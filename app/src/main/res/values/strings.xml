@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Recipe for Disaster</string>
+    <string name="placeholder_screen_title">Recipe for Disaster</string>
+    <string name="placeholder_screen_body">The kitchen is quiet. For now.</string>
+</resources>

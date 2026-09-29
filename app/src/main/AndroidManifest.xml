@@ -1,0 +1,27 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/Theme.RecipeForDisaster"
+        android:supportsRtl="true">
+
+        <!--
+          Single-activity Compose app. exported="true" is required for the
+          launcher activity to be startable at all, but this is also the
+          ONLY exported component in the app (section 13: avoid unnecessary
+          exported components) — everything else defaults to not exported.
+        -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.RecipeForDisaster">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

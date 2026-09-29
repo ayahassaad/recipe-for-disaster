@@ -1,0 +1,9 @@
+<resources>
+    <!--
+      Minimal launch theme. Actual UI theming (colors, typography, dark
+      mode, dynamic color) lives in Compose (see ui/theme/Theme.kt) rather
+      than here — this XML theme only needs to exist to satisfy the
+      manifest and controls the brief moment before Compose takes over.
+    -->
+    <style name="Theme.RecipeForDisaster" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
