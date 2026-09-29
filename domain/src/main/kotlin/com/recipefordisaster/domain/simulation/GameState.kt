@@ -26,6 +26,12 @@ data class GameState(
     val equipment: List<Equipment>,
     val ledger: Ledger,
     val log: List<SimulationLogEntry>,
+    /** Rule ID -> days remaining before that event can be considered again. */
+    val eventCooldowns: Map<String, Int> = emptyMap(),
+    /** Rule IDs already fired for rules marked `unique`, so they never fire twice in a run. */
+    val firedUniqueEventIds: Set<String> = emptySet(),
+    /** Running lifetime count of each dish sold, for the eventual end-of-run "best-selling dish" stat. */
+    val dishSalesTotals: Map<String, Int> = emptyMap(),
 )
 
 data class SimulationLogEntry(
@@ -53,10 +59,7 @@ data class DayResult(
  * function the entire game is built around — everything else (UI, save
  * data, event engine) exists to feed it inputs or read its outputs.
  *
- * TODO(Phase 3): implement the actual day-advancement rules (revenue,
- * customer flow, employee behavior, inventory consumption/spoilage,
- * equipment wear, event resolution). Phase 2 only establishes the shape of
- * the function and its inputs/outputs.
+ * See [DefaultDayTickEngine] for the real implementation.
  */
 fun interface DayTickEngine {
     fun advanceDay(state: GameState, decisions: PlayerDecisions, rng: RandomSource): DayResult

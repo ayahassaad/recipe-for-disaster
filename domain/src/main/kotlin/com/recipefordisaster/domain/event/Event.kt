@@ -52,17 +52,64 @@ data class EventRule(
  * Evaluates the current rule set against a [GameState] and selects the next
  * event to fire, respecting cooldowns and uniqueness constraints.
  *
- * TODO(Phase 6): implement selection (filter by prerequisite + cooldown,
- * weighted pick via [RandomSource], respect `unique`), and build out the
- * initial rule library described in the project brief.
+ * The selection *mechanism* below is real, working Phase 3 code. What's
+ * still missing is the actual rule library — the 15-25 concrete events
+ * described in the project brief — which is Phase 6 (Events and emergent
+ * systems) content work, deliberately not authored here. An [EventEngine]
+ * constructed with an empty rule list is a perfectly valid, fully
+ * functional engine that simply never fires an event, which is exactly
+ * what Phase 3 needs while that content doesn't exist yet.
  */
 class EventEngine(
     private val rules: List<EventRule>,
 ) {
     fun availableRules(state: GameState): List<EventRule> =
-        rules.filter { it.prerequisite(state) }
+        rules.filter { rule ->
+            rule.prerequisite(state) &&
+                (state.eventCooldowns[rule.id] ?: 0) <= 0 &&
+                !(rule.unique && rule.id in state.firedUniqueEventIds)
+        }
 
+    /**
+     * Weighted-random pick among eligible rules, then stamps the resulting
+     * state with that rule's cooldown and (if applicable) uniqueness —
+     * centralized here rather than duplicated in every rule's `resolve`,
+     * so an individual event definition only has to describe its own
+     * consequences, not the bookkeeping around firing at all.
+     */
     fun selectNext(state: GameState, rng: RandomSource): EventOutcome? {
-        TODO("Phase 6: weighted selection over availableRules(state), respecting cooldown/unique constraints")
+        val eligible = availableRules(state)
+        if (eligible.isEmpty()) return null
+
+        val weights = eligible.map { it.weight(state).coerceAtLeast(0f) }
+        val totalWeight = weights.sum()
+        if (totalWeight <= 0f) return null
+
+        val roll = rng.nextFloat() * totalWeight
+        var cumulative = 0f
+        var chosen = eligible.last()
+        for ((rule, weight) in eligible.zip(weights)) {
+            cumulative += weight
+            if (roll <= cumulative) {
+                chosen = rule
+                break
+            }
+        }
+
+        val outcome = chosen.resolve(state, rng)
+        return outcome.copy(resultingState = stampBookkeeping(outcome.resultingState, chosen))
+    }
+
+    private fun stampBookkeeping(state: GameState, rule: EventRule): GameState {
+        val newCooldowns = state.eventCooldowns + (rule.id to rule.cooldownDays)
+        val newUniques = if (rule.unique) state.firedUniqueEventIds + rule.id else state.firedUniqueEventIds
+        return state.copy(eventCooldowns = newCooldowns, firedUniqueEventIds = newUniques)
+    }
+
+    companion object {
+        /** Call once per day-tick so cooldowns on rules that didn't fire actually count down. */
+        fun decayCooldowns(cooldowns: Map<String, Int>): Map<String, Int> =
+            cooldowns.mapValues { (_, daysRemaining) -> (daysRemaining - 1).coerceAtLeast(0) }
+                .filterValues { it > 0 }
     }
 }
