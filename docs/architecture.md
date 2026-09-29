@@ -1,8 +1,8 @@
 # Architecture
 
-Status: approved (Phase 1), scaffolded (Phase 2). This document records the
-architecture as agreed, so later phases build on a written decision rather
-than institutional memory.
+Status: approved (Phase 1), scaffolded (Phase 2), simulation engine
+implemented (Phase 3). This document records the architecture as agreed, so
+later phases build on a written decision rather than institutional memory.
 
 ## Module graph
 
@@ -38,9 +38,18 @@ permitted entry point for randomness, this is what makes a seeded run
 reproducible: same seed, same decisions, same state in ⇒ same result, every
 time.
 
-`DayTickEngine`'s actual rules (revenue, customer flow, employee behavior,
-spoilage, equipment wear, event resolution) are **not implemented yet** —
-that's Phase 3. Phase 2 only established the shape of the function.
+`DayTickEngine`'s actual rules are now implemented in
+`DefaultDayTickEngine` (Phase 3): customer arrivals scale with reputation
+(`CustomerFlow`), service quality falls out of employee skill/morale/stress
+versus staffing ratio (`ServiceSimulator`), inventory is consumed and
+spoils (`InventoryOperations`), equipment wears and can fail
+(`EquipmentOperations`), the day's revenue/expenses roll up
+(`DailyFinancialsCalculator`), and average satisfaction feeds back into
+reputation (`ReputationModel`) — which feeds back into tomorrow's demand,
+closing the feedback loop described in the product brief's emergent-
+gameplay example. `EventEngine.selectNext` is real, working selection
+logic; it just has nothing to select yet, since the actual event rule
+library is Phase 6 content.
 
 ## Event engine
 
@@ -51,9 +60,14 @@ cooldown, a uniqueness flag, and a resolve function that produces an
 intended mechanism for chain reactions — ordinary rules whose prerequisites
 reference each other's consequences, rather than a hardcoded event script.
 
-`EventEngine.selectNext(...)` — the actual weighted-selection algorithm and
-the initial rule library (15–25 events for MVP, per the product brief) —
-is Phase 6 work. Phase 2 only established the type shapes.
+`EventEngine.selectNext(...)` is implemented (Phase 3): it filters eligible
+rules by prerequisite/cooldown/uniqueness, does a weighted-random pick, and
+centrally stamps the resulting cooldown/uniqueness bookkeeping onto
+`GameState` so individual rules only need to describe their own
+consequences. The initial rule library itself (15–25 events for MVP, per
+the product brief) is still Phase 6 work — an `EventEngine` built with an
+empty rule list is valid and simply never fires, which is the correct
+state until that content exists.
 
 ## Persistence
 
