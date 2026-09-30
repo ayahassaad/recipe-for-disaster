@@ -1,0 +1,107 @@
+package com.recipefordisaster.app.ui.game
+
+import com.recipefordisaster.app.testing.FakeGameRepository
+import com.recipefordisaster.domain.event.EventEngine
+import com.recipefordisaster.domain.simulation.DefaultDayTickEngine
+import com.recipefordisaster.domain.simulation.NewGameFactory
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+
+/**
+ * The event rule library is empty until Phase 6, which makes
+ * [DefaultDayTickEngine] deterministic enough to use directly here (no
+ * event can fire to introduce extra randomness) — no need for a fake day
+ * tick engine on top of the fake repository.
+ */
+class GameViewModelTest {
+
+    private val dispatcher = StandardTestDispatcher()
+    private val dayTickEngine = DefaultDayTickEngine(EventEngine(rules = emptyList()))
+
+    @Before
+    fun setUp() {
+        Dispatchers.setMain(dispatcher)
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
+
+    @Test
+    fun `starting a new game produces a playable day-one state and saves it`() = runTest(dispatcher) {
+        val repository = FakeGameRepository()
+        val viewModel = GameViewModel(repository, dayTickEngine)
+
+        viewModel.startNewGame()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state is GameUiState.Playing)
+        assertEquals(1, (state as GameUiState.Playing).state.day)
+        assertEquals(1, repository.saveCount)
+    }
+
+    @Test
+    fun `continuing with no existing save reports an error`() = runTest(dispatcher) {
+        val viewModel = GameViewModel(FakeGameRepository(), dayTickEngine)
+
+        viewModel.continueGame()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value is GameUiState.Error)
+    }
+
+    @Test
+    fun `continuing with an existing save resumes it`() = runTest(dispatcher) {
+        val saved = NewGameFactory.create(seed = 7L)
+        val repository = FakeGameRepository(stored = saved)
+        val viewModel = GameViewModel(repository, dayTickEngine)
+
+        viewModel.continueGame()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state is GameUiState.Playing)
+        assertEquals(saved, (state as GameUiState.Playing).state)
+    }
+
+    @Test
+    fun `opening for the day advances the day counter and saves again`() = runTest(dispatcher) {
+        val repository = FakeGameRepository()
+        val viewModel = GameViewModel(repository, dayTickEngine)
+        viewModel.startNewGame()
+        dispatcher.scheduler.advanceUntilIdle()
+        val dayOneState = (viewModel.uiState.value as GameUiState.Playing).state
+
+        viewModel.openForTheDay()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        val afterState = viewModel.uiState.value
+        assertTrue(afterState is GameUiState.Playing)
+        val newState = (afterState as GameUiState.Playing).state
+        assertEquals(dayOneState.day + 1, newState.day)
+        assertTrue(afterState.dayLog.isNotEmpty())
+        assertEquals(2, repository.saveCount)
+    }
+
+    @Test
+    fun `calling open for the day before a game is loaded does nothing`() = runTest(dispatcher) {
+        val repository = FakeGameRepository()
+        val viewModel = GameViewModel(repository, dayTickEngine)
+
+        viewModel.openForTheDay()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(GameUiState.Loading, viewModel.uiState.value)
+        assertEquals(0, repository.saveCount)
+    }
+}
