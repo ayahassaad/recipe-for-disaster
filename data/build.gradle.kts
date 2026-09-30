@@ -39,6 +39,10 @@ dependencies {
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
     implementation(libs.kotlinx.coroutines.core)
+    // Runtime only — no @Serializable classes are defined in :data itself
+    // (GameState and friends live in :domain, which applies the compiler
+    // plugin), so this module just needs the ability to call Json.
+    implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.junit)
     testImplementation(libs.room.testing)

@@ -5,9 +5,17 @@
 // business logic independent of the UI layer.
 plugins {
     alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 dependencies {
+    // kotlinx.serialization is a pure Kotlin multiplatform library, not an
+    // Android/AndroidX one, so depending on it here doesn't compromise
+    // :domain's "no Android dependency" rule. GameState and everything it
+    // contains is @Serializable so :data can persist a snapshot as JSON
+    // without :domain knowing anything about Room.
+    implementation(libs.kotlinx.serialization.json)
+
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
 }
