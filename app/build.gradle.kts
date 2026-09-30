@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
+    // No `kotlin.android` plugin — AGP 9.0+ has Kotlin support built in;
+    // applying it explicitly is now a hard error, not just redundant.
     alias(libs.plugins.kotlin.compose)
 }
 
