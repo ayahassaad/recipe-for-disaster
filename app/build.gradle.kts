@@ -31,9 +31,11 @@ android {
         targetCompatibility = JavaVersion.VERSION_21
     }
 
-    kotlinOptions {
-        jvmTarget = "21"
-    }
+    // No separate `kotlinOptions { jvmTarget = ... }` block — under AGP's
+    // built-in Kotlin support, the Kotlin JVM target defaults to
+    // android.compileOptions.targetCompatibility above, so it's redundant
+    // (and, per Android's built-in-Kotlin migration guide, the old
+    // `kotlinOptions` block no longer exists to set it on).
 
     buildFeatures {
         compose = true
