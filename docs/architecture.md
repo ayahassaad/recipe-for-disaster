@@ -1,9 +1,10 @@
 # Architecture
 
 Status: approved (Phase 1), scaffolded (Phase 2), simulation engine
-implemented (Phase 3), persistence implemented (Phase 4). This document
-records the architecture as agreed, so later phases build on a written
-decision rather than institutional memory.
+implemented (Phase 3), persistence implemented (Phase 4), core UI and a
+playable loop implemented (Phase 5). This document records the architecture
+as agreed, so later phases build on a written decision rather than
+institutional memory.
 
 ## Module graph
 
@@ -120,6 +121,43 @@ never "does this number make sense."
 are wired by hand via plain constructors, revisited only if that becomes
 genuinely unwieldy. No business logic in Composables or ViewModels.
 
+**Core loop (Phase 5):** two navigation destinations. `StartScreen` offers
+New Game and Continue (Continue only enabled once `GameRepository.
+hasExistingSave()` says so — never implied as safe before that check
+returns). `GameScreen` renders the day-to-day dashboard (cash, reputation,
+cleanliness, staff, running log) or the game-over summary, depending on
+whether the loaded `GameState.restaurant.status` is still `OPEN`/`CLOSED`
+or has become `BANKRUPT`/`CONDEMNED` — one route covers both rather than a
+separate game-over destination, so a `BANKRUPT` result can't leave the back
+stack in a state where pressing "back" returns to a mid-run dashboard.
+
+`PlayerDecisions` is still the Phase 2 placeholder (`Unit`), so Phase 5
+ships with exactly one player action: **"Open for the day."** Real
+decision-making UI (staffing, pricing, purchasing, menu changes) is
+Phase 6+ content, once there's something for the event engine's rule
+library to react to.
+
+`GameViewModel` derives each day's `RandomSource` from `GameState.seed`
+and `GameState.day` (`seed * <constant> + day`) rather than keeping one
+continuous seeded `Random` alive in memory for the whole run. This makes
+any single day reproducible from the state it started from, but is a known
+partial answer to full-run determinism: replaying an entire run from day 1
+across an app restart mid-run isn't guaranteed byte-identical to an
+uninterrupted run, since RNG stream position itself isn't persisted — only
+the base seed. Documented here as a deliberate, small trade-off rather than
+a hidden gap; revisit if full-run replay ever becomes a real requirement
+(e.g. for a "replay" or seed-sharing feature).
+
+`AppContainer` (constructed once, in `RecipeForDisasterApplication`) is the
+hand-wired object graph — the Room database, `GameRepository`,
+`EventEngine` (still an empty rule list; Phase 6 content), and
+`DayTickEngine`. Each ViewModel gets a small `ViewModelProvider.Factory`
+rather than a DI framework, per the no-DI decision below.
+
+The Phase 2 `PlaceholderScreen` (and its accompanying placeholder tests)
+are removed as of Phase 5 — its own doc comment said it existed only to
+prove module wiring until the real dashboard arrived, and that's now here.
+
 ## Testing
 
 | Module    | Test type                          | Runs on            |
@@ -147,3 +185,20 @@ genuinely unwieldy. No business logic in Composables or ViewModels.
   (Phase 4).** Approved trade-off: simpler and faster to evolve, at the
   cost of not being able to SQL-query into save data — acceptable since
   nothing in the game needs to.
+- **Phase 5 ships with a single player action ("Open for the day").**
+  `PlayerDecisions` stays the Phase 2 placeholder; real decisions are
+  deferred until there's event/economy content (Phase 6+) for them to
+  matter against, rather than building decision UI with nothing yet to
+  decide about.
+- **Per-day RNG seed derived from (base seed, day number), not one
+  continuous stream (Phase 5).** Simpler, and sufficient for reproducing
+  any single day from its starting state; the trade-off (documented above,
+  under UI) is that full-run replay across an app restart isn't guaranteed
+  byte-identical.
+- **Two small `androidx.lifecycle` artifacts added in Phase 5:**
+  `lifecycle-viewmodel-compose` (the `viewModel()` composable) and
+  `lifecycle-runtime-compose` (`collectAsStateWithLifecycle()`). Same
+  dependency family and version already pinned for `lifecycle-runtime-ktx`
+  since Phase 2 — needed to give each screen its own ViewModel, which was
+  always part of the agreed Compose + ViewModel architecture, not a new
+  category of dependency.

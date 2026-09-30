@@ -16,8 +16,8 @@ simulation, persistence, and UI are being built out phase by phase (see
 - [x] Phase 1 — Technical architecture
 - [x] Phase 2 — Project foundation
 - [x] Phase 3 — Simulation engine
-- [x] Phase 4 — Persistence (this commit)
-- [ ] Phase 5 — Core UI
+- [x] Phase 4 — Persistence
+- [x] Phase 5 — Core UI (this commit)
 - [ ] Phase 6 — Events and emergent systems
 - [ ] Phase 7 — Accessibility
 - [ ] Phase 8 — Security review
