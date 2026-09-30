@@ -9,41 +9,50 @@ import androidx.room.RoomDatabase
 import androidx.room.Upsert
 
 /**
- * Placeholder entity proving the Room wiring (entity -> DAO -> database ->
- * migrations) works end to end. This is NOT the real save-game schema —
- * that's Phase 4 (Persistence) work, where the actual GameState projection,
- * its migrations, and save/load semantics get designed deliberately rather
- * than backed into here.
+ * The real save schema (Phase 4), replacing the Phase 2 placeholder. One
+ * row, always `id = 0`, per the single-save-slot decision from Phase 0 —
+ * `stateJson` is a full serialized `GameState` (see
+ * [com.recipefordisaster.domain.simulation.GameStateJson]). Storing it as
+ * one JSON blob rather than a fully relational schema was a deliberate
+ * choice: this game never needs to SQL-query into save data, so the
+ * simplicity of "one row, one document" outweighs proper normalization
+ * here. See docs/architecture.md for the full reasoning.
  *
- * Schema starts at version 1 on purpose (see [GameDatabase]) so migrations
- * in Phase 4 build on a versioned schema from day one instead of retrofitting
- * versioning after the fact.
+ * `schemaVersion` is the save format's own version, independent of Room's
+ * database `version` below — it lets [com.recipefordisaster.data.repository.RoomGameRepository]
+ * recognize an old save's JSON shape without needing a SQL migration for
+ * every change to what's inside the blob.
  */
-@Entity(tableName = "save_metadata")
-data class SaveMetadataEntity(
+@Entity(tableName = "saves")
+data class SaveEntity(
     @PrimaryKey val id: Int = 0,
     val schemaVersion: Int,
-    val lastSavedAtEpochMillis: Long,
+    val stateJson: String,
+    val savedAtEpochMillis: Long,
 )
 
 @Dao
-interface SaveMetadataDao {
+interface SaveDao {
     @Upsert
-    suspend fun upsert(entity: SaveMetadataEntity)
+    suspend fun upsert(entity: SaveEntity)
 
-    @Query("SELECT * FROM save_metadata WHERE id = 0")
-    suspend fun get(): SaveMetadataEntity?
+    @Query("SELECT * FROM saves WHERE id = 0")
+    suspend fun get(): SaveEntity?
+
+    @Query("DELETE FROM saves WHERE id = 0")
+    suspend fun clear()
 }
 
 @Database(
-    entities = [SaveMetadataEntity::class],
+    entities = [SaveEntity::class],
     version = 1,
     exportSchema = true,
 )
 abstract class GameDatabase : RoomDatabase() {
-    abstract fun saveMetadataDao(): SaveMetadataDao
+    abstract fun saveDao(): SaveDao
 
     companion object {
         const val DATABASE_NAME = "recipe_for_disaster.db"
+        const val CURRENT_SAVE_SCHEMA_VERSION = 1
     }
 }

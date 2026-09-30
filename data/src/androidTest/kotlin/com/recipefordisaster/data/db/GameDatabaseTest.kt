@@ -12,13 +12,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Proves the Room wiring (entity, DAO, in-memory database) works end to
- * end, ahead of the real save/load schema design landing in Phase 4.
- *
- * This is an instrumented test (runs on a device/emulator via the
- * androidTest source set) rather than a Robolectric-based JVM test, so it
- * needs nothing beyond dependencies already declared for this module —
- * no new test framework is being introduced to get this running.
+ * Proves the Room wiring itself (entity, DAO, in-memory database) works —
+ * separate from [com.recipefordisaster.data.repository.RoomGameRepositoryTest],
+ * which covers the higher-level save/load/corruption behavior built on top
+ * of this.
  */
 @RunWith(AndroidJUnit4::class)
 class GameDatabaseTest {
@@ -38,16 +35,35 @@ class GameDatabaseTest {
 
     @Test
     fun noSaveExistsInAFreshDatabase() = runTest {
-        assertNull(database.saveMetadataDao().get())
+        assertNull(database.saveDao().get())
     }
 
     @Test
-    fun upsertedSaveMetadataCanBeReadBack() = runTest {
-        val dao = database.saveMetadataDao()
-        val entity = SaveMetadataEntity(schemaVersion = 1, lastSavedAtEpochMillis = 1_700_000_000_000)
+    fun upsertedSaveCanBeReadBack() = runTest {
+        val dao = database.saveDao()
+        val entity = SaveEntity(schemaVersion = 1, stateJson = """{"hello":"world"}""", savedAtEpochMillis = 1_700_000_000_000)
 
         dao.upsert(entity)
 
         assertEquals(entity, dao.get())
+    }
+
+    @Test
+    fun upsertingTwiceReplacesRatherThanDuplicates() = runTest {
+        val dao = database.saveDao()
+        dao.upsert(SaveEntity(schemaVersion = 1, stateJson = "first", savedAtEpochMillis = 1))
+        dao.upsert(SaveEntity(schemaVersion = 1, stateJson = "second", savedAtEpochMillis = 2))
+
+        assertEquals("second", dao.get()?.stateJson)
+    }
+
+    @Test
+    fun clearRemovesTheSave() = runTest {
+        val dao = database.saveDao()
+        dao.upsert(SaveEntity(schemaVersion = 1, stateJson = "data", savedAtEpochMillis = 1))
+
+        dao.clear()
+
+        assertNull(dao.get())
     }
 }
