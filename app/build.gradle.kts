@@ -55,8 +55,18 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    // Phase 5 addition: the `viewModel()` composable and
+    // `collectAsStateWithLifecycle()` live in these two artifacts, not in
+    // lifecycle-runtime-ktx above. Same androidx.lifecycle family/version
+    // already pinned in the catalog — needed to give each screen its own
+    // ViewModel per the approved Phase 5 scope, not a new dependency family.
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
