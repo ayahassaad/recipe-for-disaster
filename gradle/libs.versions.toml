@@ -1,22 +1,27 @@
 # Version catalog for Recipe for Disaster.
 #
-# Version numbers below were confirmed against official sources on 2026-09-29
-# (Android Gradle Plugin release notes, kotlinlang.org releases page, the
-# Compose BOM mapping page, and the Room release notes on developer.android.com).
-# This sandbox cannot reach Maven Central or Google's Maven, so these versions
-# have NOT been dependency-resolved or build-verified here. Re-sync in Android
-# Studio and bump anything that has since moved.
-
+# First round of versions (2026-09-29) were checked against official sources
+# but never actually dependency-resolved, since this sandbox has no network
+# access to Maven Central/Google's Maven. When Ayah's first real Android
+# Studio sync (2026-09-30) hit a 404 on the `ksp` plugin version, that was
+# re-verified with live web search against kotlinlang.org/github.com/
+# developer.android.com, and the same pass re-checked every other pinned
+# version below against its official release-notes page while in there —
+# `coreKtx`, `lifecycle`, `activityCompose`, and `navigationCompose` were all
+# genuinely stale (they'd still have resolved, just to old releases) and are
+# now bumped to what those pages list as current. `kotlin`, `agp`,
+# `composeBom`, `room`, and `kotlinxSerialization` were re-checked too and
+# confirmed still correct as originally pinned.
 [versions]
 kotlin = "2.4.20"
 agp = "9.4.0"
 composeBom = "2026.09.00"
 room = "2.8.5"
-ksp = "2.4.20-1.0.30" # KSP version must track the Kotlin version it's built against; verify exact pairing at github.com/google/ksp/releases when syncing.
-coreKtx = "1.15.0"
-lifecycle = "2.9.0"
-activityCompose = "1.10.1"
-navigationCompose = "2.9.0"
+ksp = "2.3.10" # KSP dropped the old "<kotlinVersion>-N" naming; it now has its own independent version line. kotlinlang.org's own KSP quickstart doc pairs Kotlin 2.4.20 with KSP 2.3.10 in its example — the previous "2.4.20-1.0.30" value here doesn't exist under the new scheme and 404'd during sync.
+coreKtx = "1.19.1"
+lifecycle = "2.11.0"
+activityCompose = "1.13.0"
+navigationCompose = "2.10.2"
 junit = "4.13.2"
 androidxTestExtJunit = "1.2.1"
 androidxTestRunner = "1.6.2"
@@ -58,7 +63,6 @@ espresso-core = { group = "androidx.test.espresso", name = "espresso-core", vers
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
