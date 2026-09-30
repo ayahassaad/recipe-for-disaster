@@ -2,7 +2,9 @@ package com.recipefordisaster.domain.menu
 
 import com.recipefordisaster.domain.customer.DietaryRequirement
 import com.recipefordisaster.domain.inventory.IngredientId
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class Dish(
     val id: DishId,
     val name: String,
@@ -14,9 +16,11 @@ data class Dish(
     val allergens: Set<Allergen>,
 )
 
+@Serializable
 @JvmInline
 value class DishId(val value: String)
 
+@Serializable
 data class Recipe(
     val ingredientRequirements: Map<IngredientId, Double>,
     val preparationTimeMinutes: Int,
@@ -27,6 +31,7 @@ data class Recipe(
  * inferred from an icon or a color alone (section 3 / accessibility
  * requirements both depend on this being real data).
  */
+@Serializable
 enum class Allergen {
     GLUTEN,
     DAIRY,

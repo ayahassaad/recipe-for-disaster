@@ -1,11 +1,14 @@
 package com.recipefordisaster.domain.employee
 
+import kotlinx.serialization.Serializable
+
 /**
  * Employees are intentionally not interchangeable. Two cooks with identical
  * roles can behave very differently once skill, morale, stress and
  * personality traits diverge — that variance is what the event engine reads
  * from when it decides how likely a conflict or a service failure is.
  */
+@Serializable
 data class Employee(
     val id: EmployeeId,
     val name: String,
@@ -22,12 +25,15 @@ data class Employee(
     val status: EmployeeStatus,
 )
 
+@Serializable
 @JvmInline
 value class EmployeeId(val value: String)
 
+@Serializable
 @JvmInline
 value class RelationshipScore(val value: Int)
 
+@Serializable
 enum class Role {
     COOK,
     SERVER,
@@ -35,6 +41,7 @@ enum class Role {
     MANAGER,
 }
 
+@Serializable
 enum class PersonalityTrait {
     PERFECTIONIST,
     SLACKER,
@@ -44,6 +51,7 @@ enum class PersonalityTrait {
     ANXIOUS,
 }
 
+@Serializable
 enum class EmployeeStatus {
     ACTIVE,
     ON_BREAK,

@@ -1,5 +1,8 @@
 package com.recipefordisaster.domain.economy
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class DailyFinancials(
     val day: Int,
     val revenue: Long,
@@ -18,6 +21,7 @@ data class DailyFinancials(
         get() = revenue - expenses
 }
 
+@Serializable
 data class Ledger(
     val history: List<DailyFinancials>,
 ) {

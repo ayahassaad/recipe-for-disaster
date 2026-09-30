@@ -1,5 +1,8 @@
 package com.recipefordisaster.domain.equipment
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class Equipment(
     val id: EquipmentId,
     val name: String,
@@ -11,5 +14,6 @@ data class Equipment(
     val upgradeLevel: Int,
 )
 
+@Serializable
 @JvmInline
 value class EquipmentId(val value: String)

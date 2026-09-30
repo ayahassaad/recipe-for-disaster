@@ -1,5 +1,8 @@
 package com.recipefordisaster.domain.inventory
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class Ingredient(
     val id: IngredientId,
     val name: String,
@@ -10,9 +13,11 @@ data class Ingredient(
     val storageSpaceRequired: Double,
 )
 
+@Serializable
 @JvmInline
 value class IngredientId(val value: String)
 
+@Serializable
 data class Supplier(
     val id: SupplierId,
     val name: String,
@@ -21,9 +26,11 @@ data class Supplier(
     val availableIngredientIds: Set<IngredientId>,
 )
 
+@Serializable
 @JvmInline
 value class SupplierId(val value: String)
 
+@Serializable
 data class InventoryState(
     val ingredients: Map<IngredientId, Ingredient>,
     val storageCapacity: Double,
