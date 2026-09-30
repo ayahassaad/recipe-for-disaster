@@ -1,5 +1,33 @@
 <resources>
     <string name="app_name">Recipe for Disaster</string>
-    <string name="placeholder_screen_title">Recipe for Disaster</string>
-    <string name="placeholder_screen_body">The kitchen is quiet. For now.</string>
+
+    <!-- Start screen -->
+    <string name="start_tagline">Run a restaurant. Try not to burn it down.</string>
+    <string name="start_new_game">New Game</string>
+    <string name="start_continue_game">Continue</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_day">Day %1$d</string>
+    <string name="dashboard_cash">Cash</string>
+    <string name="dashboard_reputation">Reputation</string>
+    <string name="dashboard_cleanliness">Cleanliness</string>
+    <string name="dashboard_staff_heading">Staff</string>
+    <string name="dashboard_employee_morale">Morale: %1$d</string>
+    <string name="dashboard_log_heading">What\'s happened</string>
+    <string name="dashboard_log_entry">Day %1$d — %2$s</string>
+    <string name="dashboard_open_for_the_day">Open for the day</string>
+
+    <!-- Game over -->
+    <string name="game_over_title">Game Over</string>
+    <string name="game_over_cause_bankrupt">The restaurant ran out of money.</string>
+    <string name="game_over_cause_condemned">The restaurant\'s reputation collapsed to nothing.</string>
+    <string name="game_over_cause_unknown">The restaurant has closed.</string>
+    <string name="game_over_days_survived">Days survived</string>
+    <string name="game_over_total_revenue">Total revenue</string>
+    <string name="game_over_total_profit_or_loss">Total profit / loss</string>
+    <string name="game_over_final_reputation">Final reputation</string>
+    <string name="game_over_best_seller">Best-selling dish</string>
+
+    <!-- Shared -->
+    <string name="game_back_to_start">Back to Start</string>
 </resources>
