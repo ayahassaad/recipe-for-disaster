@@ -1,8 +1,9 @@
 # Architecture
 
 Status: approved (Phase 1), scaffolded (Phase 2), simulation engine
-implemented (Phase 3). This document records the architecture as agreed, so
-later phases build on a written decision rather than institutional memory.
+implemented (Phase 3), persistence implemented (Phase 4). This document
+records the architecture as agreed, so later phases build on a written
+decision rather than institutional memory.
 
 ## Module graph
 
@@ -73,14 +74,44 @@ state until that content exists.
 
 `:data` is an Android library depending only on `:domain`. `GameDatabase`
 (Room) is versioned from `version = 1` with schema export turned on from
-the start, so Phase 4 migrations have real prior schemas to test against
+the start, so future migrations have real prior schemas to test against
 instead of retrofitting versioning after the fact.
 
+**Save format (Phase 4):** a full `GameState` is serialized to JSON
+(`kotlinx.serialization`, defined in `:domain` on `GameState` itself via
+`@Serializable`) and stored as a single blob in one `SaveEntity` row —
+always `id = 0`, matching the single-save-slot decision from Phase 0. This
+was a deliberate choice against a fully relational schema: the game never
+needs to SQL-query into save data, so normalizing every domain type into
+its own table would have bought nothing but migration surface. The
+trade-off is an explicit one, not an oversight — see the decisions log
+below.
+
+Several domain maps are keyed by a value class rather than a plain String
+(e.g. `Employee.relationships: Map<EmployeeId, RelationshipScore>`), so the
+shared `GameStateJson` config (in `domain/simulation/GameState.kt`) turns on
+`allowStructuredMapKeys`, which encodes those as flat key/value arrays
+instead of JSON objects. `ignoreUnknownKeys` is also on, and every field
+added to `GameState` since Phase 2 carries a default value — together
+that's the whole forward-compatibility story: an older save missing a
+newer field decodes fine and just gets that field's default, so "schema
+migration" for this save format is mostly about not removing fields or
+making a previously-optional one required, rather than SQL `ALTER TABLE`
+statements.
+
 `GameRepository` is the interface `:domain`-facing code depends on;
-`RoomGameRepository` is the Room-backed implementation. The actual
-save/load contract (a full `GameState` projection, multiple saves if ever
-needed, delete) is Phase 4 work — Phase 2 only proves the Room wiring with
-a placeholder `SaveMetadataEntity`.
+`RoomGameRepository` is the Room-backed implementation. `load()` returns a
+`SaveLoadResult` (`Success`, `NoSaveFound`, or `Corrupted`) rather than
+throwing or returning a nullable `GameState` — a save can fail for two very
+different reasons (nothing was ever saved, versus something was saved but
+can't be trusted), and callers need to tell those apart. Three things can
+mark a load `Corrupted`: the JSON fails to parse, the stored schema version
+doesn't match what this build expects, or the JSON parses fine but
+`GameStateValidator` (in `:domain`) finds values that don't make sense —
+reputation outside 0-100, negative inventory, and so on. That validator is
+deliberately in `:domain`, not `:data`: what counts as a *valid* GameState
+is a business rule, so `:data` only ever decides "did the bytes parse,"
+never "does this number make sense."
 
 ## UI
 
@@ -112,3 +143,7 @@ genuinely unwieldy. No business logic in Composables or ViewModels.
 - **`:domain` is a plain Kotlin/JVM module, not an Android library.** Non-
   negotiable per the product brief's "testable independent of Android UI"
   requirement.
+- **Save format is one JSON blob per save, not a relational schema
+  (Phase 4).** Approved trade-off: simpler and faster to evolve, at the
+  cost of not being able to SQL-query into save data — acceptable since
+  nothing in the game needs to.
