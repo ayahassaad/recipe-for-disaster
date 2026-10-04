@@ -60,7 +60,7 @@ fun moneyColor(amount: Long): Color = if (amount >= 0) LeafGreen else DisasterRe
 
 private val numberFormat: NumberFormat = NumberFormat.getIntegerInstance()
 
-/** "1,500 🪙" — grouping follows the device locale. */
+/** "1,500 💰" — grouping follows the device locale. */
 @Composable
 fun coins(amount: Long): String = stringResource(R.string.coins, numberFormat.format(amount))
 

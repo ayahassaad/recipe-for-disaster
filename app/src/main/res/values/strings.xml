@@ -8,7 +8,7 @@
     <string name="start_continue_game">Continue</string>
 
     <!-- Shared formats -->
-    <string name="coins">%1$s 🪙</string>
+    <string name="coins">%1$s 💰</string>
     <string name="percent_value">%1$d</string>
 
     <!-- Header & bottom bar -->
@@ -21,7 +21,7 @@
 
     <!-- Tabs -->
     <string name="tab_today">📋 Today</string>
-    <string name="tab_staff">🧑‍🍳 Staff</string>
+    <string name="tab_staff">👩‍🍳 Staff</string>
     <string name="tab_menu">🍔 Menu</string>
     <string name="tab_pantry">🥫 Pantry</string>
     <string name="tab_kitchen">🔧 Kitchen</string>
