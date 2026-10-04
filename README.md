@@ -42,7 +42,7 @@ model, and the event-engine design.
 
 - Android Studio (current stable)
 - JDK 21
-- minSdk 31 (Android 12) / targetSdk 36 (Android 16)
+- minSdk 28 (Android 9) / targetSdk 36 (Android 16)
 
 ## Building
 

@@ -203,11 +203,14 @@ event in the library fires somewhere across those runs.
 
 - **No DI framework for MVP.** Plain constructor injection. Revisit if the
   wiring actually becomes unwieldy — not before.
-- **`minSdk` = 31 (Android 12), `targetSdk` = 36 (Android 16).** Chosen to
-  match "phones from roughly the last 5 years," which as of the decision
-  date (September 2026) covers on the order of ~79% of active Android
-  devices. `targetSdk` 36 is required for new Google Play submissions as of
-  the same date.
+- **`minSdk` = 28 (Android 9), `targetSdk` = 36 (Android 16).** Originally
+  31 (Android 12), chosen to match "phones from roughly the last 5 years"
+  (~79% of active Android devices as of September 2026). Lowered to 28 in
+  October 2026 so the game runs on the developer's own test phone, a
+  Samsung Galaxy S8 (last updated to Android 9). Nothing in the app needs
+  an API above 28, and Lint's `NewApi` check guards against one sneaking in;
+  the trade-off is testing on older Android versions in Phase 9. `targetSdk`
+  36 is required for new Google Play submissions as of the same date.
 - **Android Lint only, no ktlint/detekt.** Zero new dependencies for
   baseline static analysis. Revisit as a deliberate, approved decision if
   style enforcement becomes a real pain point.
