@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.recipefordisaster.app"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.recipefordisaster.app"
