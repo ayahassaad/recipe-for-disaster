@@ -13,3 +13,8 @@ local.properties
 # Gradle generates locally.
 !gradle/wrapper/gradle-wrapper.jar
 !gradle/wrapper/gradle-wrapper.properties
+
+# Build output goes to build.nosync/ (see build.gradle.kts) so iCloud leaves it alone.
+build/
+build.nosync/
+.kotlin/
