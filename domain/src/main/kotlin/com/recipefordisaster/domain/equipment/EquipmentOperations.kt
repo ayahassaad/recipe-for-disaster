@@ -22,12 +22,27 @@ object EquipmentOperations {
      * at 90% condition should almost never fail; one limping along at 10%
      * should fail often enough that ignoring maintenance is a real risk,
      * not a background statistic.
+     *
+     * Quadratic in wear since Phase 6: the original linear curve gave a
+     * brand-new run's 70%-condition oven a ~17% daily failure chance, so it
+     * broke within the first few days whatever the player did. Now a decent
+     * machine is reliable and a neglected one (<30%) is a coin flip within a
+     * couple of days.
      */
     fun failureProbability(equipment: Equipment): Double {
+        if (isBroken(equipment)) return 0.0 // already broken; nothing left to fail
         val conditionFactor = (100 - equipment.condition.coerceIn(0, 100)) / 100.0
-        return (equipment.failureProbabilityBase + conditionFactor * 0.5).coerceIn(0.0, 0.95)
+        return (equipment.failureProbabilityBase + conditionFactor * conditionFactor * 0.6).coerceIn(0.0, 0.95)
     }
 
     fun rollForFailure(equipment: Equipment, rng: RandomSource): Boolean =
         rng.nextFloat() < failureProbability(equipment)
+
+    fun isBroken(equipment: Equipment): Boolean = equipment.condition <= 0
+
+    /** Cost to bring a machine back to 100% — proportional to how worn it is, so regular upkeep is cheaper than rescue. */
+    fun repairCost(equipment: Equipment): Long =
+        (100 - equipment.condition.coerceIn(0, 100)) * equipment.purchaseCost / 250
+
+    fun repair(equipment: Equipment): Equipment = equipment.copy(condition = 100)
 }

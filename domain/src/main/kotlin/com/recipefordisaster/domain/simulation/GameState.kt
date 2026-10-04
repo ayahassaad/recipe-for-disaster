@@ -1,11 +1,16 @@
 package com.recipefordisaster.domain.simulation
 
+import com.recipefordisaster.domain.customer.Customer
 import com.recipefordisaster.domain.economy.Ledger
 import com.recipefordisaster.domain.employee.Employee
+import com.recipefordisaster.domain.employee.EmployeeId
 import com.recipefordisaster.domain.equipment.Equipment
-import com.recipefordisaster.domain.customer.Customer
+import com.recipefordisaster.domain.equipment.EquipmentId
+import com.recipefordisaster.domain.event.Severity
+import com.recipefordisaster.domain.inventory.IngredientId
 import com.recipefordisaster.domain.inventory.InventoryState
 import com.recipefordisaster.domain.menu.Dish
+import com.recipefordisaster.domain.menu.DishId
 import com.recipefordisaster.domain.restaurant.Restaurant
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -46,13 +51,30 @@ data class GameState(
     val firedUniqueEventIds: Set<String> = emptySet(),
     /** Running lifetime count of each dish sold, for the eventual end-of-run "best-selling dish" stat. */
     val dishSalesTotals: Map<String, Int> = emptyMap(),
+    /** People currently asking for a job (Phase 6). Refreshed every few days; hiring one removes them. */
+    val applicants: List<Employee> = emptyList(),
+    /** Yesterday's average customer satisfaction (0-100), so events can react to how service has been going. */
+    val recentSatisfaction: Int = 50,
+    /** One-day demand swing set by events (festival, storm, tour bus...), applied to the next day and then cleared. */
+    val pendingDemandModifierPercent: Int = 0,
+    /** Follow-up rule IDs an earlier event scheduled; [com.recipefordisaster.domain.event.EventEngine] fires these first. */
+    val scheduledFollowUps: Set<String> = emptySet(),
 )
 
 @Serializable
 data class SimulationLogEntry(
     val day: Int,
     val message: String,
+    val tone: LogTone = LogTone.NEUTRAL,
 )
+
+/** Whether a log line is good news, bad news, or neither — lets the UI color it without parsing text. */
+@Serializable
+enum class LogTone {
+    GOOD,
+    NEUTRAL,
+    BAD,
+}
 
 /**
  * The single shared JSON configuration for reading/writing a [GameState].
@@ -74,20 +96,48 @@ object GameStateJson {
 }
 
 /**
- * Choices the player made before/during a day — what to buy, who to
- * schedule, prices to set, which event options to pick, etc. Left empty for
- * now; Phase 5 (Core UI) is what will grow this out to match whatever
- * decisions the UI actually exposes, so it isn't invented speculatively here.
+ * Everything the player decided before opening for the day (Phase 6):
+ * staffing, pricing, purchasing, menu changes and upkeep. Applied by
+ * [com.recipefordisaster.domain.decision.DecisionApplier] at the start of
+ * the day-tick, in a fixed order, skipping anything that can't be afforded
+ * or no longer makes sense (e.g. hiring an applicant who has since left).
+ * Every field defaults to "change nothing," so `PlayerDecisions()` is a
+ * valid "just open as-is" day.
+ *
  * Not persisted (it's a per-tick input, not part of the snapshot), so it's
  * deliberately not `@Serializable`.
  */
 data class PlayerDecisions(
-    val placeholder: Unit = Unit,
+    /** Ingredient -> extra quantity to buy, in that ingredient's own unit. */
+    val purchases: Map<IngredientId, Double> = emptyMap(),
+    /** Dish -> new selling price. Clamped to [com.recipefordisaster.domain.decision.PriceRules]. */
+    val priceChanges: Map<DishId, Long> = emptyMap(),
+    /** Dish -> whether it's on tonight's menu. */
+    val menuAvailability: Map<DishId, Boolean> = emptyMap(),
+    /** Recipes from [com.recipefordisaster.domain.menu.RecipeBook] to add to the menu. */
+    val dishesToAdd: Set<DishId> = emptySet(),
+    /** Applicant IDs (from [GameState.applicants]) to hire. */
+    val hires: Set<EmployeeId> = emptySet(),
+    val fires: Set<EmployeeId> = emptySet(),
+    /** Employees given today off: unpaid, not working, and they come back much less stressed. */
+    val restDays: Set<EmployeeId> = emptySet(),
+    val repairs: Set<EquipmentId> = emptySet(),
+    val deepClean: Boolean = false,
 )
 
 data class DayResult(
     val newState: GameState,
     val log: List<SimulationLogEntry>,
+    /** The event that fired at the end of this day, if any — surfaced separately so the UI can headline it. */
+    val event: FiredEvent? = null,
+)
+
+data class FiredEvent(
+    val ruleId: String,
+    val title: String,
+    val description: String,
+    val severity: Severity,
+    val tone: LogTone,
 )
 
 /**

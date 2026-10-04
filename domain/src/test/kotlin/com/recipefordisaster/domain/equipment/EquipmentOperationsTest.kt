@@ -1,6 +1,8 @@
 package com.recipefordisaster.domain.equipment
 
 import com.recipefordisaster.domain.simulation.SeededRandomSource
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -48,5 +50,16 @@ class EquipmentOperationsTest {
         val neglectedFailures = (1..200).count { EquipmentOperations.rollForFailure(neglected, rng) }
 
         assertTrue(neglectedFailures > wellMaintainedFailures)
+    }
+
+    @Test
+    fun `repairs cost more the more worn the machine is, and nothing at full condition`() {
+        assertTrue(EquipmentOperations.repairCost(fryer(condition = 10)) > EquipmentOperations.repairCost(fryer(condition = 70)))
+        assertEquals(0L, EquipmentOperations.repairCost(fryer(condition = 100)))
+    }
+
+    @Test
+    fun `a broken machine can't break again`() {
+        assertEquals(0.0, EquipmentOperations.failureProbability(fryer(condition = 0)), 0.0)
     }
 }

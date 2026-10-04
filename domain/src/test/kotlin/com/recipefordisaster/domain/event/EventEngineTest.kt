@@ -93,6 +93,54 @@ class EventEngineTest {
     }
 
     @Test
+    fun `a quiet-day weight means some days pass with no event at all`() {
+        val engine = EventEngine(listOf(simpleRule("A", cooldownDays = 0)), quietDayWeight = 3f)
+        val rng = SeededRandomSource(seed = 5)
+
+        val picks = (1..200).map { engine.selectNext(baseState(), rng) }
+
+        assertTrue(picks.any { it == null })
+        assertTrue(picks.any { it != null })
+    }
+
+    @Test
+    fun `a zero-weight rule never fires by chance`() {
+        val engine = EventEngine(listOf(simpleRule("followUpOnly", cooldownDays = 0, weight = 0f), simpleRule("normal", cooldownDays = 0)))
+        val rng = SeededRandomSource(seed = 9)
+
+        val picks = (1..100).map { engine.selectNext(baseState(), rng)?.ruleId }
+
+        assertTrue(picks.none { it == "followUpOnly" })
+    }
+
+    @Test
+    fun `an outcome's follow-ups are scheduled and fire first next time, even on cooldown`() {
+        val trigger = simpleRule("trigger", cooldownDays = 0, weight = 1f).copy(
+            resolve = { state, _ -> EventOutcome("trigger", "boom", state, followUpRuleIds = setOf("consequence")) },
+        )
+        val consequence = simpleRule("consequence", cooldownDays = 5, weight = 0f)
+        val engine = EventEngine(listOf(trigger, consequence))
+
+        val first = engine.selectNext(baseState(), SeededRandomSource(1))!!
+        assertTrue("consequence" in first.resultingState.scheduledFollowUps)
+
+        val onCooldown = first.resultingState.copy(eventCooldowns = first.resultingState.eventCooldowns + ("consequence" to 3))
+        val second = engine.selectNext(onCooldown, SeededRandomSource(2))!!
+        assertEquals("consequence", second.ruleId)
+        assertTrue("consequence" !in second.resultingState.scheduledFollowUps)
+    }
+
+    @Test
+    fun `prepare drops scheduled follow-ups whose prerequisite no longer holds`() {
+        val impossible = simpleRule("impossible").copy(prerequisite = { false })
+        val engine = EventEngine(listOf(impossible))
+
+        val prepared = engine.prepare(baseState().copy(scheduledFollowUps = setOf("impossible", "unknown")))
+
+        assertTrue(prepared.scheduledFollowUps.isEmpty())
+    }
+
+    @Test
     fun `decayCooldowns counts down and drops entries that reach zero`() {
         val decayed = EventEngine.decayCooldowns(mapOf("A" to 1, "B" to 3))
 

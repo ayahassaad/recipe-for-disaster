@@ -10,10 +10,12 @@ package com.recipefordisaster.domain.restaurant
 object ReputationModel {
 
     fun dailyReputationDelta(averageSatisfaction: Int, cleanliness: Int): Int {
-        // Centered on 50 "neutral" satisfaction: above it nudges reputation
-        // up, below it nudges it down, scaled gently so no single day can
-        // swing reputation wildly on its own.
-        val satisfactionEffect = (averageSatisfaction - 50) / 10
+        // Centered on 55 "neutral" satisfaction: above it nudges reputation
+        // up, below it nudges it down, capped so no single day can swing
+        // reputation wildly on its own. (Phase 6: was (avg - 50) / 10,
+        // which meant even consistently happy customers only moved
+        // reputation +1 or +2 a day — too slow for good play to show.)
+        val satisfactionEffect = ((averageSatisfaction - 55) / 6).coerceIn(-6, 5)
 
         val cleanlinessEffect = when {
             cleanliness < 30 -> -3

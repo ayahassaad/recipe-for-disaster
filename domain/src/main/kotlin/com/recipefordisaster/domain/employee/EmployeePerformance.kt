@@ -37,24 +37,64 @@ object EmployeePerformance {
     }
 
     /**
-     * Stress creep at the end of a working day — heavier when the shift was
+     * Customers per working employee that a shift can absorb without
+     * anyone's stress moving. Busier than this and stress climbs; quieter
+     * and it eases off. Phase 6 balance: before this existed stress could
+     * only ever go up, so every employee burned out on a fixed schedule no
+     * matter what the player did.
+     */
+    const val COMFORTABLE_STAFFING_RATIO = 8.0
+
+    /**
+     * Stress change at the end of a working day — heavier when the shift was
      * busy relative to how much staff was on hand. This is the "exhausted
      * employee" half of the chain-reaction example in the product brief;
      * the other half (slow service -> impatient customers) lives in
      * [com.recipefordisaster.domain.simulation.ServiceSimulator].
+     *
+     * Also where working days turn into experience: every 10 days worked
+     * adds a point of skill, so a long-serving employee is worth keeping.
      */
     fun applyEndOfDayStress(employee: Employee, staffingRatio: Double): Employee {
         if (employee.status != EmployeeStatus.ACTIVE) return employee
 
-        val stressGain = (staffingRatio * 5.0).roundToIntClamped(0, 30)
-        val moraleDrift = if (staffingRatio > 2.0) -2 else 1 // overworked days erode morale; calmer ones slowly recover it
+        val stressChange = ((staffingRatio - COMFORTABLE_STAFFING_RATIO) * 3.0).toInt().coerceIn(-6, 20)
+        // Overworked days, or simply running on fumes, erode morale; calmer ones slowly recover it.
+        val moraleDrift = when {
+            employee.stress > 90 -> -5
+            employee.stress > 75 -> -3
+            staffingRatio > COMFORTABLE_STAFFING_RATIO * 1.5 -> -2
+            else -> 1
+        }
+        val experience = employee.experienceDays + 1
+        val skillGain = if (experience % 10 == 0) 1 else 0
 
         return employee.copy(
-            stress = (employee.stress + stressGain).coerceIn(0, 100),
+            stress = (employee.stress + stressChange).coerceIn(0, 100),
             morale = (employee.morale + moraleDrift).coerceIn(0, 100),
+            experienceDays = experience,
+            skill = (employee.skill + skillGain).coerceIn(0, 95),
         )
     }
 
-    private fun Double.roundToIntClamped(min: Int, max: Int): Int =
-        this.toInt().coerceIn(min, max)
+    /** End of a day off: back on the rota tomorrow, a lot less frazzled. */
+    fun returnFromDayOff(employee: Employee): Employee {
+        if (employee.status != EmployeeStatus.ON_BREAK) return employee
+        return employee.copy(
+            status = EmployeeStatus.ACTIVE,
+            stress = (employee.stress - 35).coerceIn(0, 100),
+            morale = (employee.morale + 5).coerceIn(0, 100),
+        )
+    }
+
+    /** Counts a sick employee one day closer to recovery, returning them to work when it reaches zero. */
+    fun advanceSickness(employee: Employee): Employee {
+        if (employee.status != EmployeeStatus.SICK) return employee
+        val remaining = (employee.sickDaysRemaining - 1).coerceAtLeast(0)
+        return if (remaining == 0) {
+            employee.copy(status = EmployeeStatus.ACTIVE, sickDaysRemaining = 0, stress = (employee.stress - 15).coerceIn(0, 100))
+        } else {
+            employee.copy(sickDaysRemaining = remaining)
+        }
+    }
 }

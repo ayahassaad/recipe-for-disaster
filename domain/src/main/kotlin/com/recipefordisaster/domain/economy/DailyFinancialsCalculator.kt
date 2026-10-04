@@ -24,6 +24,7 @@ object DailyFinancialsCalculator {
         operatingCosts: OperatingCosts,
         equipment: List<Equipment>,
         miscellaneous: Long = 0,
+        upgrades: Long = 0,
     ): DailyFinancials {
         val menuById = menu.associateBy { it.id }
         val revenue = dishesSold.entries.sumOf { (dishId, count) ->
@@ -44,7 +45,7 @@ object DailyFinancialsCalculator {
             rent = operatingCosts.rentPerDay,
             utilities = operatingCosts.utilitiesPerDay,
             maintenance = maintenance,
-            upgrades = 0, // player-initiated upgrades are applied separately once decisions flow in from the UI (Phase 5)
+            upgrades = upgrades, // repairs the player paid for this morning (Phase 6)
             miscellaneous = operatingCosts.miscPerDay + miscellaneous,
         )
     }

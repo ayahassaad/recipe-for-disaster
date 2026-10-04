@@ -13,12 +13,19 @@ data class DailyFinancials(
     val maintenance: Long,
     val upgrades: Long,
     val miscellaneous: Long,
+    /**
+     * Money gained (+) or lost (-) to events after the day closed — a fine,
+     * a windfall (Phase 6). Kept apart from operating expenses so the
+     * day's "how did service go" numbers stay readable. Defaulted so
+     * pre-Phase-6 saves still load.
+     */
+    val eventCashDelta: Long = 0,
 ) {
     val expenses: Long
         get() = wages + ingredientCosts + rent + utilities + maintenance + upgrades + miscellaneous
 
     val profitOrLoss: Long
-        get() = revenue - expenses
+        get() = revenue - expenses + eventCashDelta
 }
 
 @Serializable

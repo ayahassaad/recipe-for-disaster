@@ -16,14 +16,21 @@ import kotlin.math.roundToInt
  */
 object CustomerFlow {
 
-    fun generateArrivals(restaurant: Restaurant, rng: RandomSource): List<Customer> {
-        val demand = calculateDemand(restaurant, rng)
+    /**
+     * @param demandModifierPercent a one-day swing from events (a festival
+     * nearby, a storm, a tour bus) — `+40` means 40% more people than
+     * reputation alone would bring. Demand is still capped at capacity: a
+     * surge just fills the room, it can't conjure extra seats.
+     */
+    fun generateArrivals(restaurant: Restaurant, rng: RandomSource, demandModifierPercent: Int = 0): List<Customer> {
+        val demand = calculateDemand(restaurant, rng, demandModifierPercent)
         return (0 until demand).map { generateCustomer(rng, it) }
     }
 
-    internal fun calculateDemand(restaurant: Restaurant, rng: RandomSource): Int {
+    internal fun calculateDemand(restaurant: Restaurant, rng: RandomSource, demandModifierPercent: Int = 0): Int {
         val reputationFactor = restaurant.reputation.coerceIn(0, 100) / 100.0
-        val baseline = (restaurant.capacity * reputationFactor).roundToInt()
+        val modifier = (100 + demandModifierPercent).coerceAtLeast(0) / 100.0
+        val baseline = (restaurant.capacity * reputationFactor * modifier).roundToInt()
         // +/- a small amount of day-to-day noise so demand isn't a pure
         // function of reputation alone — still seeded/reproducible via rng.
         val noise = rng.nextInt(5) - 2
@@ -51,7 +58,10 @@ object CustomerFlow {
             id = CustomerId("cust-${index}-${rng.nextInt(1_000_000)}"),
             name = name,
             patience = 10 + rng.nextInt(40), // minutes-equivalent tolerance before frustration sets in
-            budget = (500 + rng.nextInt(3_000)).toLong(),
+            // Same currency as menu prices (whole coins), 10-45. Was 500-3,500
+            // before Phase 6 — a different unit from the menu prices, so
+            // nobody was ever priced out and pricing decisions couldn't matter.
+            budget = (10 + rng.nextInt(36)).toLong(),
             preferences = emptySet(),
             dietaryRequirements = dietary,
             satisfaction = 70, // customers start neutral-to-positive; the visit moves this

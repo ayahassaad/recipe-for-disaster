@@ -14,6 +14,13 @@ data class Dish(
     val quality: Int,
     val available: Boolean,
     val allergens: Set<Allergen>,
+    /**
+     * What customers consider a fair price for this dish (Phase 6). Pricing
+     * above it makes the dish less attractive and less satisfying; pricing
+     * below it does the opposite. Defaults to the selling price, so a dish
+     * from a pre-Phase-6 save is treated as fairly priced.
+     */
+    val referencePrice: Long = sellingPrice,
 )
 
 @Serializable

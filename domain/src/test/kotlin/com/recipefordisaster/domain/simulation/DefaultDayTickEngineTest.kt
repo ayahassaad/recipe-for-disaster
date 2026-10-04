@@ -114,6 +114,44 @@ class DefaultDayTickEngineTest {
     }
 
     @Test
+    fun `a full new game is reproducible across many days with the real event library`() {
+        val engine = DefaultDayTickEngine(com.recipefordisaster.domain.event.EventLibrary.engine())
+        fun run(): GameState {
+            var state = NewGameFactory.create(seed = 77)
+            repeat(30) { state = engine.advanceDay(state, PlayerDecisions(), SeededRandomSource(state.seed + state.day)).newState }
+            return state
+        }
+
+        assertEquals(run(), run())
+    }
+
+    @Test
+    fun `the morning's spending lands in that day's books`() {
+        val engine = DefaultDayTickEngine(emptyEventEngine)
+        val state = NewGameFactory.create(seed = 5)
+        val flour = state.inventory.ingredients.keys.first()
+
+        val result = engine.advanceDay(state, PlayerDecisions(purchases = mapOf(flour to 4.0), deepClean = true), SeededRandomSource(1))
+
+        val books = result.newState.ledger.history.last()
+        assertTrue(books.ingredientCosts > 0)
+        assertEquals(com.recipefordisaster.domain.decision.DecisionApplier.DEEP_CLEAN_COST, books.miscellaneous - state.restaurant.operatingCosts.miscPerDay)
+        assertEquals(state.restaurant.cash + books.profitOrLoss, result.newState.restaurant.cash)
+    }
+
+    @Test
+    fun `an employee given the day off is unpaid that day and back the next`() {
+        val engine = DefaultDayTickEngine(emptyEventEngine)
+        val state = NewGameFactory.create(seed = 5)
+        val resting = state.employees.first()
+
+        val result = engine.advanceDay(state, PlayerDecisions(restDays = setOf(resting.id)), SeededRandomSource(1))
+
+        assertEquals(state.employees.sumOf { it.salaryPerDay } - resting.salaryPerDay, result.newState.ledger.history.last().wages)
+        assertEquals(EmployeeStatus.ACTIVE, result.newState.employees.single { it.id == resting.id }.status)
+    }
+
+    @Test
     fun `going cash-negative flips restaurant status to bankrupt`() {
         val engine = DefaultDayTickEngine(emptyEventEngine)
         val brokeState = freshState(listOf(employee(70, 20))).let {

@@ -23,6 +23,8 @@ data class Employee(
     val personalityTraits: Set<PersonalityTrait>,
     val relationships: Map<EmployeeId, RelationshipScore>,
     val status: EmployeeStatus,
+    /** Days left before a [EmployeeStatus.SICK] employee is back. Defaulted so pre-Phase-6 saves still load. */
+    val sickDaysRemaining: Int = 0,
 )
 
 @Serializable

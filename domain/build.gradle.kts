@@ -26,4 +26,7 @@ kotlin {
 
 tasks.test {
     useJUnit()
+    // Lets `./gradlew :domain:test -DbalanceReport=true` print BalanceSimulationTest's survival stats.
+    listOf("balanceReport", "balanceMaxDays").forEach { key -> System.getProperty(key)?.let { systemProperty(key, it) } }
+    testLogging { showStandardStreams = System.getProperty("balanceReport") != null }
 }

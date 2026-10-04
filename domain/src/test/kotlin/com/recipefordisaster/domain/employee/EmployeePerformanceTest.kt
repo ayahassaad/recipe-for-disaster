@@ -55,8 +55,36 @@ class EmployeePerformanceTest {
     @Test
     fun `a busy understaffed day raises stress`() {
         val before = cook(stress = 20)
-        val after = EmployeePerformance.applyEndOfDayStress(before, staffingRatio = 4.0)
+        val after = EmployeePerformance.applyEndOfDayStress(before, staffingRatio = 10.0)
 
         assertTrue(after.stress > before.stress)
+    }
+
+    @Test
+    fun `a quiet well-staffed day lets stress recover`() {
+        val before = cook(stress = 50)
+        val after = EmployeePerformance.applyEndOfDayStress(before, staffingRatio = 2.0)
+
+        assertTrue(after.stress < before.stress)
+    }
+
+    @Test
+    fun `a day off returns the employee to work with less stress`() {
+        val resting = cook(stress = 80, status = EmployeeStatus.ON_BREAK)
+        val after = EmployeePerformance.returnFromDayOff(resting)
+
+        assertEquals(EmployeeStatus.ACTIVE, after.status)
+        assertTrue(after.stress < resting.stress)
+    }
+
+    @Test
+    fun `a sick employee comes back once their sick days run out`() {
+        val sick = cook(status = EmployeeStatus.SICK).copy(sickDaysRemaining = 2)
+
+        val dayOne = EmployeePerformance.advanceSickness(sick)
+        val dayTwo = EmployeePerformance.advanceSickness(dayOne)
+
+        assertEquals(EmployeeStatus.SICK, dayOne.status)
+        assertEquals(EmployeeStatus.ACTIVE, dayTwo.status)
     }
 }

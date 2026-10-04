@@ -1,6 +1,7 @@
 package com.recipefordisaster.domain.event
 
 import com.recipefordisaster.domain.simulation.GameState
+import com.recipefordisaster.domain.simulation.LogTone
 import com.recipefordisaster.domain.simulation.RandomSource
 
 enum class Severity {
@@ -15,15 +16,20 @@ enum class Severity {
  * A single outcome produced by resolving an [EventRule] against the current
  * [GameState]. `followUpRuleIds` lets one event schedule another — this is
  * the mechanism chain reactions (e.g. exhausted employee -> slow service ->
- * unhappy customers -> bad reviews) are meant to be built from in Phase 6:
- * ordinary rules whose prerequisites happen to reference each other's
- * consequences, not a hardcoded script.
+ * unhappy customers -> bad reviews) are built from: ordinary rules whose
+ * prerequisites happen to reference each other's consequences, not a
+ * hardcoded script. A scheduled follow-up only fires if its own
+ * prerequisite still holds by then.
+ *
+ * [tone] is decided per outcome rather than per rule, since the same event
+ * can go either way (a food critic can rave or savage you).
  */
 data class EventOutcome(
     val ruleId: String,
     val description: String,
     val resultingState: GameState,
     val followUpRuleIds: Set<String> = emptySet(),
+    val tone: LogTone = LogTone.NEUTRAL,
 )
 
 /**
@@ -33,10 +39,11 @@ data class EventOutcome(
  * actually going on in the restaurant, per the "no purely scripted events"
  * design principle.
  *
- * NOTE: this is Phase 2 scaffolding — the type shape only. The actual rule
- * library (the 15-25 events agreed for MVP) and the selection algorithm
- * that reads [EventEngine] rules against [GameState] are Phase 6 work
- * (Events and emergent systems), deliberately not implemented yet.
+ * A rule whose weight is always zero never fires by chance, only when an
+ * earlier event schedules it as a follow-up — that's how a "consequence"
+ * event (the inspection after a fire) is expressed.
+ *
+ * The rule library itself lives in [EventLibrary].
  */
 data class EventRule(
     val id: String,
@@ -46,22 +53,30 @@ data class EventRule(
     val prerequisite: (GameState) -> Boolean,
     val weight: (GameState) -> Float,
     val resolve: (GameState, RandomSource) -> EventOutcome,
+    /** Short headline for the UI ("Food critic!"); the outcome's description carries the detail. */
+    val title: String = id,
 )
 
 /**
  * Evaluates the current rule set against a [GameState] and selects the next
  * event to fire, respecting cooldowns and uniqueness constraints.
  *
- * The selection *mechanism* below is real, working Phase 3 code. What's
- * still missing is the actual rule library — the 15-25 concrete events
- * described in the project brief — which is Phase 6 (Events and emergent
- * systems) content work, deliberately not authored here. An [EventEngine]
- * constructed with an empty rule list is a perfectly valid, fully
- * functional engine that simply never fires an event, which is exactly
- * what Phase 3 needs while that content doesn't exist yet.
+ * Selection order each day:
+ * 1. Any follow-up an earlier event scheduled ([GameState.scheduledFollowUps])
+ *    whose prerequisite still holds fires first, ignoring its cooldown —
+ *    consequences shouldn't be skipped just because the same thing happened
+ *    recently. Scheduled follow-ups whose prerequisite no longer holds are
+ *    dropped.
+ * 2. Otherwise a weighted-random pick among eligible rules, where
+ *    [quietDayWeight] is the weight of "nothing happens today." Because rule
+ *    weights rise as things go wrong, a struggling restaurant sees more
+ *    events than a calm one — the chaos is emergent, not scheduled.
+ *
+ * An engine with an empty rule list is still valid and simply never fires.
  */
 class EventEngine(
     private val rules: List<EventRule>,
+    private val quietDayWeight: Float = 0f,
 ) {
     fun availableRules(state: GameState): List<EventRule> =
         rules.filter { rule ->
@@ -71,13 +86,22 @@ class EventEngine(
         }
 
     /**
-     * Weighted-random pick among eligible rules, then stamps the resulting
-     * state with that rule's cooldown and (if applicable) uniqueness —
-     * centralized here rather than duplicated in every rule's `resolve`,
-     * so an individual event definition only has to describe its own
+     * Picks and resolves the next event, then centrally stamps cooldown,
+     * uniqueness and follow-up bookkeeping onto the resulting state — so an
+     * individual event definition only has to describe its own
      * consequences, not the bookkeeping around firing at all.
+     *
+     * When nothing fires but scheduled follow-ups were dropped, that cleanup
+     * still has to reach the state, so the caller should use [prepare]
+     * first; [selectNext] assumes it's been given the prepared state.
      */
     fun selectNext(state: GameState, rng: RandomSource): EventOutcome? {
+        val scheduled = scheduledFollowUp(state)
+        if (scheduled != null) {
+            val withoutIt = state.copy(scheduledFollowUps = state.scheduledFollowUps - scheduled.id)
+            return fire(scheduled, withoutIt, rng)
+        }
+
         val eligible = availableRules(state)
         if (eligible.isEmpty()) return null
 
@@ -85,25 +109,55 @@ class EventEngine(
         val totalWeight = weights.sum()
         if (totalWeight <= 0f) return null
 
-        val roll = rng.nextFloat() * totalWeight
+        val roll = rng.nextFloat() * (totalWeight + quietDayWeight.coerceAtLeast(0f))
+        if (roll > totalWeight) return null // a quiet day
+
         var cumulative = 0f
-        var chosen = eligible.last()
+        // Fallback for float rounding at the very top of the range — never a zero-weight (follow-up-only) rule.
+        var chosen = eligible.zip(weights).last { (_, weight) -> weight > 0f }.first
         for ((rule, weight) in eligible.zip(weights)) {
             cumulative += weight
-            if (roll <= cumulative) {
+            if (weight > 0f && roll <= cumulative) {
                 chosen = rule
                 break
             }
         }
-
-        val outcome = chosen.resolve(state, rng)
-        return outcome.copy(resultingState = stampBookkeeping(outcome.resultingState, chosen))
+        return fire(chosen, state, rng)
     }
 
-    private fun stampBookkeeping(state: GameState, rule: EventRule): GameState {
+    /** Drops scheduled follow-ups that can no longer happen (unknown ID, prerequisite gone, unique already fired). */
+    fun prepare(state: GameState): GameState {
+        if (state.scheduledFollowUps.isEmpty()) return state
+        val stillValid = state.scheduledFollowUps.filter { id ->
+            val rule = rules.firstOrNull { it.id == id } ?: return@filter false
+            rule.prerequisite(state) && !(rule.unique && rule.id in state.firedUniqueEventIds)
+        }.toSet()
+        return if (stillValid == state.scheduledFollowUps) state else state.copy(scheduledFollowUps = stillValid)
+    }
+
+    fun ruleById(id: String): EventRule? = rules.firstOrNull { it.id == id }
+
+    private fun scheduledFollowUp(state: GameState): EventRule? =
+        rules.firstOrNull { rule ->
+            rule.id in state.scheduledFollowUps &&
+                rule.prerequisite(state) &&
+                !(rule.unique && rule.id in state.firedUniqueEventIds)
+        }
+
+    private fun fire(rule: EventRule, state: GameState, rng: RandomSource): EventOutcome {
+        val outcome = rule.resolve(state, rng)
+        return outcome.copy(resultingState = stampBookkeeping(outcome.resultingState, rule, outcome.followUpRuleIds))
+    }
+
+    private fun stampBookkeeping(state: GameState, rule: EventRule, followUps: Set<String>): GameState {
         val newCooldowns = state.eventCooldowns + (rule.id to rule.cooldownDays)
         val newUniques = if (rule.unique) state.firedUniqueEventIds + rule.id else state.firedUniqueEventIds
-        return state.copy(eventCooldowns = newCooldowns, firedUniqueEventIds = newUniques)
+        val knownFollowUps = followUps.filter { id -> rules.any { it.id == id } }
+        return state.copy(
+            eventCooldowns = newCooldowns,
+            firedUniqueEventIds = newUniques,
+            scheduledFollowUps = state.scheduledFollowUps + knownFollowUps,
+        )
     }
 
     companion object {
