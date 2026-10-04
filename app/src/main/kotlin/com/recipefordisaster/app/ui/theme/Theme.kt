@@ -8,20 +8,32 @@ import androidx.compose.runtime.Composable
 
 private val LightColors = lightColorScheme(
     primary = DisasterRed,
+    onPrimary = PlateCream,
     secondary = StoveOrange,
+    // Tonal buttons and selected chips use the secondary container; without
+    // this they fall back to Material's default lavender.
+    secondaryContainer = ApricotContainer,
+    onSecondaryContainer = KitchenCharcoal,
     tertiary = SinkTeal,
     background = PlateCream,
     surface = PlateCream,
+    surfaceContainer = CardCreamLight,
+    surfaceContainerHigh = CardCreamLight,
     onBackground = KitchenCharcoal,
     onSurface = KitchenCharcoal,
 )
 
 private val DarkColors = darkColorScheme(
     primary = StoveOrange,
+    onPrimary = CharcoalDeep,
     secondary = DisasterRed,
+    secondaryContainer = EmberContainer,
+    onSecondaryContainer = PlateCream,
     tertiary = SinkTeal,
     background = KitchenCharcoal,
     surface = KitchenCharcoal,
+    surfaceContainer = CardCharcoalDark,
+    surfaceContainerHigh = CardCharcoalDark,
     onBackground = PlateCream,
     onSurface = PlateCream,
 )

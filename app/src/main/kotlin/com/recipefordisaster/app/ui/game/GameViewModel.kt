@@ -5,7 +5,15 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.recipefordisaster.data.repository.GameRepository
 import com.recipefordisaster.data.repository.SaveLoadResult
+import com.recipefordisaster.domain.decision.AppliedDecisions
+import com.recipefordisaster.domain.decision.DecisionApplier
+import com.recipefordisaster.domain.decision.PriceRules
+import com.recipefordisaster.domain.employee.EmployeeId
+import com.recipefordisaster.domain.equipment.EquipmentId
+import com.recipefordisaster.domain.inventory.IngredientId
+import com.recipefordisaster.domain.menu.DishId
 import com.recipefordisaster.domain.simulation.DayTickEngine
+import com.recipefordisaster.domain.simulation.FiredEvent
 import com.recipefordisaster.domain.simulation.GameState
 import com.recipefordisaster.domain.simulation.NewGameFactory
 import com.recipefordisaster.domain.simulation.PlayerDecisions
@@ -14,6 +22,7 @@ import com.recipefordisaster.domain.simulation.SimulationLogEntry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
@@ -22,19 +31,30 @@ import kotlin.random.Random
  * dashboard needs to render; [dayLog] is just the entries produced by the
  * *most recent* day, kept separate so the UI can highlight "what just
  * happened" distinctly from the full running history in [GameState.log].
+ *
+ * [plan] is the player's not-yet-committed decisions for the coming day,
+ * and [preview] is the domain's own answer to "what would that plan do and
+ * cost" — computed by the same [DecisionApplier] the day-tick uses, so what
+ * the screen promises is exactly what happens.
  */
 sealed interface GameUiState {
     data object Loading : GameUiState
-    data class Playing(val state: GameState, val dayLog: List<SimulationLogEntry>) : GameUiState
+    data class Playing(
+        val state: GameState,
+        val dayLog: List<SimulationLogEntry>,
+        val lastEvent: FiredEvent? = null,
+        val plan: PlayerDecisions = PlayerDecisions(),
+        val preview: AppliedDecisions = DecisionApplier.apply(state, plan),
+    ) : GameUiState
     data class Error(val message: String) : GameUiState
 }
 
 /**
- * Drives the single-action core loop approved for Phase 5: start or resume
- * a run, then repeatedly call "Open for the day." No simulation logic
- * lives here — every rule about what a day *does* stays in `:domain`
- * ([DayTickEngine]); this class only sequences calls to it and to
- * [GameRepository], and turns the result into UI state.
+ * Drives the core loop: start or resume a run, build up the day's plan
+ * (Phase 6 decisions), then "Open for the day." No simulation logic lives
+ * here — every rule about what a decision or a day *does* stays in
+ * `:domain` ([DecisionApplier], [DayTickEngine]); this class only edits
+ * the draft plan, sequences calls, and turns results into UI state.
  */
 class GameViewModel(
     private val gameRepository: GameRepository,
@@ -89,11 +109,58 @@ class GameViewModel(
             val dailySeed = current.state.seed * 6_364_136_223_846_793_005L + current.state.day
             val rng = SeededRandomSource(dailySeed)
 
-            val result = dayTickEngine.advanceDay(current.state, PlayerDecisions(), rng)
+            val result = dayTickEngine.advanceDay(current.state, current.plan, rng)
             gameRepository.save(result.newState)
-            _uiState.value = GameUiState.Playing(result.newState, dayLog = result.log)
+            _uiState.value = GameUiState.Playing(result.newState, dayLog = result.log, lastEvent = result.event)
         }
     }
+
+    // --- Planning the day. Each of these only edits the draft; nothing is committed until openForTheDay(). ---
+
+    /** Adds [delta] (may be negative) to the planned purchase of an ingredient, never below zero. */
+    fun adjustPurchase(id: IngredientId, delta: Double) = editPlan { plan ->
+        val updated = ((plan.purchases[id] ?: 0.0) + delta).coerceAtLeast(0.0)
+        plan.copy(purchases = if (updated > 0.0) plan.purchases + (id to updated) else plan.purchases - id)
+    }
+
+    fun clearPurchases() = editPlan { it.copy(purchases = emptyMap()) }
+
+    fun adjustPrice(id: DishId, delta: Long) = editPlan { plan ->
+        val dish = currentState()?.menu?.firstOrNull { it.id == id } ?: return@editPlan plan
+        val current = plan.priceChanges[id] ?: dish.sellingPrice
+        val updated = PriceRules.clamp(dish, current + delta)
+        plan.copy(priceChanges = if (updated == dish.sellingPrice) plan.priceChanges - id else plan.priceChanges + (id to updated))
+    }
+
+    fun setDishAvailable(id: DishId, available: Boolean) = editPlan { plan ->
+        val dish = currentState()?.menu?.firstOrNull { it.id == id } ?: return@editPlan plan
+        plan.copy(menuAvailability = if (available == dish.available) plan.menuAvailability - id else plan.menuAvailability + (id to available))
+    }
+
+    fun toggleAddDish(id: DishId) = editPlan { it.copy(dishesToAdd = it.dishesToAdd.toggle(id)) }
+
+    fun toggleHire(id: EmployeeId) = editPlan { it.copy(hires = it.hires.toggle(id)) }
+
+    /** Firing and resting the same person are mutually exclusive, so choosing one clears the other. */
+    fun toggleFire(id: EmployeeId) = editPlan { it.copy(fires = it.fires.toggle(id), restDays = it.restDays - id) }
+
+    fun toggleRestDay(id: EmployeeId) = editPlan { it.copy(restDays = it.restDays.toggle(id), fires = it.fires - id) }
+
+    fun toggleRepair(id: EquipmentId) = editPlan { it.copy(repairs = it.repairs.toggle(id)) }
+
+    fun toggleDeepClean() = editPlan { it.copy(deepClean = !it.deepClean) }
+
+    private fun currentState(): GameState? = (_uiState.value as? GameUiState.Playing)?.state
+
+    private fun editPlan(transform: (PlayerDecisions) -> PlayerDecisions) {
+        _uiState.update { current ->
+            if (current !is GameUiState.Playing) return@update current
+            val plan = transform(current.plan)
+            current.copy(plan = plan, preview = DecisionApplier.apply(current.state, plan))
+        }
+    }
+
+    private fun <T> Set<T>.toggle(item: T): Set<T> = if (item in this) this - item else this + item
 }
 
 class GameViewModelFactory(

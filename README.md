@@ -17,8 +17,8 @@ simulation, persistence, and UI are being built out phase by phase (see
 - [x] Phase 2 — Project foundation
 - [x] Phase 3 — Simulation engine
 - [x] Phase 4 — Persistence
-- [x] Phase 5 — Core UI (this commit)
-- [ ] Phase 6 — Events and emergent systems
+- [x] Phase 5 — Core UI
+- [x] Phase 6 — Events and emergent systems (25-event library, player decisions, balance pass)
 - [ ] Phase 7 — Accessibility
 - [ ] Phase 8 — Security review
 - [ ] Phase 9 — Device testing
@@ -50,17 +50,16 @@ model, and the event-engine design.
 ./gradlew build
 ```
 
-**Note:** this scaffold was generated in a sandboxed environment with no
-Android SDK installed and no access to Maven Central, so the build has
-*not* been verified to compile or run yet. Open it in Android Studio to let
-it sync, resolve dependencies, and surface anything that needs fixing —
-dependency versions in `gradle/libs.versions.toml` were checked against
-current release pages as of the date they were added, but haven't been
-build-tested end to end.
+Build output goes to each module's `build.nosync/` folder rather than
+`build/`. The project lives on an iCloud-synced Desktop, and iCloud skips
+folders ending in `.nosync`; without this, builds hung reading back their
+own compiled classes (see the note in `build.gradle.kts`).
 
 ## Testing
 
-- `:domain` — `./gradlew :domain:test` (plain JUnit, no emulator needed)
+- `:domain` — `./gradlew :domain:test` (plain JUnit, no emulator needed).
+  Add `-DbalanceReport=true` to print the balance simulation's survival
+  stats per play style (`-DbalanceMaxDays=400` to look further out).
 - `:data` — `./gradlew :data:connectedAndroidTest` (needs a device/emulator; Room in-memory DB tests)
 - `:app` — `./gradlew :app:test` for unit tests, `./gradlew :app:connectedAndroidTest` for Compose UI tests
 

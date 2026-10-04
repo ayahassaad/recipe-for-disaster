@@ -4,6 +4,7 @@ import com.recipefordisaster.app.testing.FakeGameRepository
 import com.recipefordisaster.domain.event.EventEngine
 import com.recipefordisaster.domain.simulation.DefaultDayTickEngine
 import com.recipefordisaster.domain.simulation.NewGameFactory
+import com.recipefordisaster.domain.simulation.PlayerDecisions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -91,6 +92,52 @@ class GameViewModelTest {
         assertEquals(dayOneState.day + 1, newState.day)
         assertTrue(afterState.dayLog.isNotEmpty())
         assertEquals(2, repository.saveCount)
+    }
+
+    @Test
+    fun `planning a purchase previews its cost without spending anything yet`() = runTest(dispatcher) {
+        val repository = FakeGameRepository()
+        val viewModel = GameViewModel(repository, dayTickEngine)
+        viewModel.startNewGame()
+        dispatcher.scheduler.advanceUntilIdle()
+        val dayOne = (viewModel.uiState.value as GameUiState.Playing).state
+        val flour = dayOne.inventory.ingredients.keys.first()
+
+        viewModel.adjustPurchase(flour, 5.0)
+
+        val planning = viewModel.uiState.value as GameUiState.Playing
+        assertEquals(5.0, planning.plan.purchases[flour]!!, 0.0001)
+        assertTrue(planning.preview.spending.ingredients > 0)
+        assertEquals(dayOne.restaurant.cash, planning.state.restaurant.cash)
+        assertEquals(1, repository.saveCount)
+    }
+
+    @Test
+    fun `opening for the day carries out the plan and starts the next day with a clean slate`() = runTest(dispatcher) {
+        val viewModel = GameViewModel(FakeGameRepository(), dayTickEngine)
+        viewModel.startNewGame()
+        dispatcher.scheduler.advanceUntilIdle()
+        val applicant = (viewModel.uiState.value as GameUiState.Playing).state.applicants.first()
+
+        viewModel.toggleHire(applicant.id)
+        viewModel.openForTheDay()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        val after = viewModel.uiState.value as GameUiState.Playing
+        assertTrue(after.state.employees.any { it.id == applicant.id })
+        assertEquals(PlayerDecisions(), after.plan)
+    }
+
+    @Test
+    fun `toggling a decision twice cancels it`() = runTest(dispatcher) {
+        val viewModel = GameViewModel(FakeGameRepository(), dayTickEngine)
+        viewModel.startNewGame()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleDeepClean()
+        viewModel.toggleDeepClean()
+
+        assertEquals(PlayerDecisions(), (viewModel.uiState.value as GameUiState.Playing).plan)
     }
 
     @Test

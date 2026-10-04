@@ -10,12 +10,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.recipefordisaster.app.R
@@ -43,28 +46,38 @@ fun StartScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
+                text = stringResource(R.string.start_logo),
+                style = MaterialTheme.typography.displayLarge,
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
                 text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
             )
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = stringResource(R.string.start_tagline),
                 style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
             )
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
             if (uiState.isLoading) {
                 CircularProgressIndicator()
             } else {
-                Button(onClick = onNewGame, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.start_new_game))
+                Button(onClick = onNewGame, modifier = Modifier.fillMaxWidth().height(60.dp)) {
+                    Text(stringResource(R.string.start_new_game), style = MaterialTheme.typography.titleMedium)
                 }
                 Spacer(modifier = Modifier.height(12.dp))
-                Button(
+                OutlinedButton(
                     onClick = onContinueGame,
                     enabled = uiState.hasExistingSave,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().height(60.dp),
                 ) {
-                    Text(stringResource(R.string.start_continue_game))
+                    Text(stringResource(R.string.start_continue_game), style = MaterialTheme.typography.titleMedium)
                 }
             }
         }

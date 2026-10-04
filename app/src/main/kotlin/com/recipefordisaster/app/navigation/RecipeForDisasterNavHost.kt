@@ -2,6 +2,7 @@ package com.recipefordisaster.app.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -13,6 +14,7 @@ import com.recipefordisaster.app.AppContainer
 import com.recipefordisaster.app.ui.game.GameScreen
 import com.recipefordisaster.app.ui.game.GameViewModel
 import com.recipefordisaster.app.ui.game.GameViewModelFactory
+import com.recipefordisaster.app.ui.game.actions
 import com.recipefordisaster.app.ui.start.StartScreen
 import com.recipefordisaster.app.ui.start.StartViewModel
 import com.recipefordisaster.app.ui.start.StartViewModelFactory
@@ -69,7 +71,7 @@ fun RecipeForDisasterNavHost(appContainer: AppContainer) {
 
             GameScreen(
                 uiState = uiState,
-                onOpenForTheDay = viewModel::openForTheDay,
+                actions = viewModel.actions(),
                 onBackToStart = {
                     navController.popBackStack(ROUTE_START, inclusive = false)
                 },

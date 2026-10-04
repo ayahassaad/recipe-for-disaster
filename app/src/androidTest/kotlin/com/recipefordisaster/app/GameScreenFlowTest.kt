@@ -10,6 +10,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.recipefordisaster.app.ui.game.GameScreen
 import com.recipefordisaster.app.ui.game.GameViewModel
+import com.recipefordisaster.app.ui.game.actions
 import com.recipefordisaster.app.ui.start.StartScreen
 import com.recipefordisaster.app.ui.start.StartViewModel
 import com.recipefordisaster.app.ui.theme.RecipeForDisasterTheme
@@ -59,7 +60,7 @@ class GameScreenFlowTest {
         composeTestRule.setContent {
             val uiState by viewModel.uiState.collectAsState()
             RecipeForDisasterTheme {
-                GameScreen(uiState = uiState, onOpenForTheDay = viewModel::openForTheDay, onBackToStart = {})
+                GameScreen(uiState = uiState, actions = viewModel.actions(), onBackToStart = {})
             }
         }
 

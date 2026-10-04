@@ -2,7 +2,8 @@
 
 Status: approved (Phase 1), scaffolded (Phase 2), simulation engine
 implemented (Phase 3), persistence implemented (Phase 4), core UI and a
-playable loop implemented (Phase 5). This document records the architecture
+playable loop implemented (Phase 5), events, player decisions and a
+balance pass implemented (Phase 6). This document records the architecture
 as agreed, so later phases build on a written decision rather than
 institutional memory.
 
@@ -49,9 +50,16 @@ spoils (`InventoryOperations`), equipment wears and can fail
 (`DailyFinancialsCalculator`), and average satisfaction feeds back into
 reputation (`ReputationModel`) — which feeds back into tomorrow's demand,
 closing the feedback loop described in the product brief's emergent-
-gameplay example. `EventEngine.selectNext` is real, working selection
-logic; it just has nothing to select yet, since the actual event rule
-library is Phase 6 content.
+gameplay example.
+
+Phase 6 put real constraints on that loop. The kitchen can only cook so
+many meals (`KitchenModel`, from who is cooking and what is broken), every
+meal comes out of real stock, cleanliness drifts down with every service
+(`CleanlinessModel`), stress can recover as well as climb, and price
+relative to a dish's `referencePrice` changes both what customers order and
+how happy they are. A day now runs: morning decisions (`DecisionApplier`),
+service, closing (spoilage, staff, equipment, books, reputation), then one
+overnight event.
 
 ## Event engine
 
@@ -62,14 +70,26 @@ cooldown, a uniqueness flag, and a resolve function that produces an
 intended mechanism for chain reactions — ordinary rules whose prerequisites
 reference each other's consequences, rather than a hardcoded event script.
 
-`EventEngine.selectNext(...)` is implemented (Phase 3): it filters eligible
-rules by prerequisite/cooldown/uniqueness, does a weighted-random pick, and
+`EventEngine.selectNext(...)` filters eligible rules by
+prerequisite/cooldown/uniqueness, does a weighted-random pick, and
 centrally stamps the resulting cooldown/uniqueness bookkeeping onto
 `GameState` so individual rules only need to describe their own
-consequences. The initial rule library itself (15–25 events for MVP, per
-the product brief) is still Phase 6 work — an `EventEngine` built with an
-empty rule list is valid and simply never fires, which is the correct
-state until that content exists.
+consequences. Phase 6 added two things to it:
+
+- **Quiet days.** `quietDayWeight` is the weight of "nothing happens".
+  Rule weights rise as things go wrong, so a struggling restaurant gets
+  events most nights and a calm one roughly every other night.
+- **Follow-ups.** An outcome's `followUpRuleIds` are stored in
+  `GameState.scheduledFollowUps` and fire first the next night, if their
+  prerequisite still holds. A rule with zero weight only ever fires this
+  way, which is how a consequence is expressed (fire → fire inspection,
+  rat → health inspection).
+
+**The rule library (Phase 6)** is `EventLibrary`: 25 rules, the top of the
+brief's 15–25, in four groups: `StaffEvents`, `CustomerEvents`,
+`KitchenEvents` and `SupplyEvents`. None is tied to a day number. Event
+money is booked onto the closed day's `DailyFinancials.eventCashDelta`, so
+ledger totals always match cash on hand.
 
 ## Persistence
 
@@ -131,11 +151,18 @@ or has become `BANKRUPT`/`CONDEMNED` — one route covers both rather than a
 separate game-over destination, so a `BANKRUPT` result can't leave the back
 stack in a state where pressing "back" returns to a mid-run dashboard.
 
-`PlayerDecisions` is still the Phase 2 placeholder (`Unit`), so Phase 5
-ships with exactly one player action: **"Open for the day."** Real
-decision-making UI (staffing, pricing, purchasing, menu changes) is
-Phase 6+ content, once there's something for the event engine's rule
-library to react to.
+**Player decisions (Phase 6):** `PlayerDecisions` carries purchases,
+price changes, menu availability, recipe-book additions, hires, firings,
+days off, repairs and a deep clean. `DecisionApplier` carries them out in
+a fixed priority order and skips (and logs) anything the cash on hand
+can't cover. It's pure, so `GameViewModel` runs it on the draft plan to
+preview costs, and the day-tick runs the same function for real. The
+preview and the outcome can't disagree.
+
+`GameScreen` is a header (day, cash), five tabs (Today, Staff, Menu,
+Pantry, Kitchen) and a bottom bar with the plan's cost and "Open for the
+day". Forecast warnings ("not enough cooks", "running low") come from
+`OutlookCalculator` in `:domain`, so Composables don't reimplement rules.
 
 `GameViewModel` derives each day's `RandomSource` from `GameState.seed`
 and `GameState.day` (`seed * <constant> + day`) rather than keeping one
@@ -150,8 +177,7 @@ a hidden gap; revisit if full-run replay ever becomes a real requirement
 
 `AppContainer` (constructed once, in `RecipeForDisasterApplication`) is the
 hand-wired object graph — the Room database, `GameRepository`,
-`EventEngine` (still an empty rule list; Phase 6 content), and
-`DayTickEngine`. Each ViewModel gets a small `ViewModelProvider.Factory`
+`EventEngine` (`EventLibrary.engine()`), and `DayTickEngine`. Each ViewModel gets a small `ViewModelProvider.Factory`
 rather than a DI framework, per the no-DI decision below.
 
 The Phase 2 `PlaceholderScreen` (and its accompanying placeholder tests)
@@ -165,6 +191,13 @@ prove module wiring until the real dashboard arrived, and that's now here.
 | `:domain` | JUnit, plain Kotlin                 | JVM, no emulator     |
 | `:data`   | Room in-memory DB (instrumented)    | Device/emulator      |
 | `:app`    | JUnit (unit) + Compose UI (instrumented) | JVM / device/emulator |
+
+`BalanceSimulationTest` stands in for playtesting. It plays 40 seeded runs
+with scripted policies and asserts that decisions matter. As of Phase 6:
+doing nothing lasts about 12 days, a careless owner who only restocks about
+20, and a sensible player usually 120+ (median about 167 with no cap, with
+rent increases eventually ending every run). It also asserts that every
+event in the library fires somewhere across those runs.
 
 ## Key decisions log
 
@@ -190,6 +223,18 @@ prove module wiring until the real dashboard arrived, and that's now here.
   deferred until there's event/economy content (Phase 6+) for them to
   matter against, rather than building decision UI with nothing yet to
   decide about.
+- **Phase 6 rebalance.** Fixed costs used to exceed the most the restaurant
+  could earn, so every run went bankrupt on schedule whatever the player
+  did. Starting numbers, prices (and customer budgets, which were in a
+  different unit), stress recovery, the equipment failure curve and the
+  reputation model were all retuned, checked by `BalanceSimulationTest`.
+  These are still first-pass numbers pending real playtesting.
+- **No event choices yet.** Events resolve on their own. Letting the
+  player pick a response (pay the fine or argue, etc.) would need a
+  "pending decision" in `GameState`; deferred until the decisions above
+  have been playtested.
+- **Build output in `build.nosync/`.** The project sits on an iCloud-synced
+  Desktop, which offloaded build outputs mid-build and hung Gradle.
 - **Per-day RNG seed derived from (base seed, day number), not one
   continuous stream (Phase 5).** Simpler, and sufficient for reproducing
   any single day from its starting state; the trade-off (documented above,
