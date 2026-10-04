@@ -18,6 +18,7 @@ import com.recipefordisaster.domain.simulation.DaySummary
 import com.recipefordisaster.domain.simulation.DayTickEngine
 import com.recipefordisaster.domain.simulation.FiredEvent
 import com.recipefordisaster.domain.simulation.GameState
+import com.recipefordisaster.domain.simulation.MorningAdvisor
 import com.recipefordisaster.domain.simulation.NewGameFactory
 import com.recipefordisaster.domain.simulation.PlayerDecisions
 import com.recipefordisaster.domain.simulation.SeededRandomSource
@@ -54,6 +55,8 @@ sealed interface GameUiState {
         val plan: PlayerDecisions = PlayerDecisions(),
         val preview: AppliedDecisions = DecisionApplier.apply(state, plan),
         val report: DayReport? = null,
+        /** True on a brand-new game until the player has read "How to play". */
+        val showIntro: Boolean = false,
     ) : GameUiState {
         /** The restaurant as the player has set it up this morning. */
         val morning: GameState get() = preview.state
@@ -102,7 +105,7 @@ class GameViewModel(
             val seed = Random.nextLong()
             val newState = NewGameFactory.create(seed)
             gameRepository.save(newState)
-            _uiState.value = GameUiState.Playing(newState, dayLog = emptyList())
+            _uiState.value = GameUiState.Playing(newState, dayLog = emptyList(), showIntro = true)
         }
     }
 
@@ -147,6 +150,10 @@ class GameViewModel(
         }
     }
 
+    fun dismissIntro() {
+        _uiState.update { current -> if (current is GameUiState.Playing) current.copy(showIntro = false) else current }
+    }
+
     /** Leaves the results screen for the next morning. */
     fun nextMorning() {
         _uiState.update { current -> if (current is GameUiState.Playing) current.copy(report = null) else current }
@@ -161,6 +168,18 @@ class GameViewModel(
     }
 
     fun clearPurchases() = editPlan { it.copy(purchases = emptyMap()) }
+
+    /** Buys everything the morning advice says is running low, in one go. */
+    fun restockAll() {
+        val current = _uiState.value as? GameUiState.Playing ?: return
+        val list = MorningAdvisor.restockList(current.morning)
+        if (list.isEmpty()) return
+        editPlan { plan ->
+            val merged = plan.purchases.toMutableMap()
+            list.forEach { (id, quantity) -> merged.merge(id, quantity, Double::plus) }
+            plan.copy(purchases = merged)
+        }
+    }
 
     fun adjustPrice(id: DishId, delta: Long) = editPlan { plan ->
         val dish = currentState()?.menu?.firstOrNull { it.id == id } ?: return@editPlan plan

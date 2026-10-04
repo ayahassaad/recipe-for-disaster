@@ -2,126 +2,98 @@
     <string name="app_name">Recipe for Disaster</string>
 
     <!-- Start screen -->
-    <string name="start_logo" translatable="false">👩‍🍳🔥</string>
     <string name="start_tagline">Run a restaurant. Try not to burn it down.</string>
-    <string name="start_new_game">New Game</string>
+    <string name="start_new_game">New game</string>
     <string name="start_continue_game">Continue</string>
 
-    <!-- Shared formats -->
-    <string name="coins">%1$s 💰</string>
-    <string name="coins_per_day">%1$s 💰/day</string>
-    <string name="percent_value">%1$d</string>
+    <!-- Money -->
+    <string name="coins">%1$s coins</string>
+    <string name="coins_per_day">%1$s a day</string>
     <string name="undo">Undo</string>
+    <string name="back">Back</string>
+    <string name="cant_afford">Not enough money</string>
 
-    <!-- Header & bottom bar -->
-    <string name="dashboard_day">Day %1$d</string>
-    <string name="phase_morning">☀️ Morning: get ready for tonight</string>
-    <string name="header_cash">Cash</string>
-    <string name="header_daily_costs">Costs %1$s a day</string>
-    <string name="start_service">🍽️  Start service</string>
-    <string name="start_service_hint">Tonight: about %1$d guests. You can undo anything until you start.</string>
+    <!-- How to play -->
+    <string name="intro_title">How to play</string>
+    <string name="intro_step1_title">Morning</string>
+    <string name="intro_step1">Get ready. Do the jobs on the chalkboard: buy food, hire staff, fix things.</string>
+    <string name="intro_step2_title">Service</string>
+    <string name="intro_step2">Open the doors. Guests come in, eat, and pay.</string>
+    <string name="intro_step3_title">The bill</string>
+    <string name="intro_step3">See how the day went, then start the next morning.</string>
+    <string name="intro_goal">Keep your money above zero and your guests happy. How many days can you last?</string>
+    <string name="intro_start">Let\'s cook</string>
 
-    <!-- Tabs -->
-    <string name="tab_today">📋 Today</string>
-    <string name="tab_staff">👩‍🍳 Staff</string>
-    <string name="tab_menu">🍔 Menu</string>
-    <string name="tab_pantry">🥫 Pantry</string>
-    <string name="tab_kitchen">🔧 Kitchen</string>
+    <!-- Morning screen -->
+    <string name="day">Day %1$d</string>
+    <string name="daily_costs">Costs %1$s a day</string>
+    <string name="guests_happy">Guests are happy</string>
+    <string name="guests_ok">Guests are okay</string>
+    <string name="guests_unhappy">Guests are unhappy</string>
+    <string name="overnight">Overnight</string>
+    <string name="jobs_title">Today\'s jobs</string>
+    <string name="jobs_done">All set. Open the doors when you\'re ready.</string>
+    <string name="jobs_more">More to do in Staff, Food or Kitchen</string>
+    <string name="job_restock">Running low on %1$s</string>
+    <string name="job_restock_action">Restock (%1$s)</string>
+    <string name="job_cooks">Not enough cooks for tonight</string>
+    <string name="job_cooks_action">Hire</string>
+    <string name="job_losing">You\'ll lose money tonight. Too many staff?</string>
+    <string name="job_losing_action">Staff</string>
+    <string name="job_broken">The %1$s is broken</string>
+    <string name="job_worn">The %1$s is wearing out</string>
+    <string name="job_fix_action">Fix (%1$s)</string>
+    <string name="job_dirty">The place is getting dirty</string>
+    <string name="job_clean_action">Clean (%1$s)</string>
+    <string name="job_tired">%1$s is exhausted</string>
+    <string name="job_tired_action">Day off</string>
+    <string name="tonight">Tonight\'s guests: about %1$d. Expected profit: %2$s.</string>
+    <string name="open_doors">Open the doors</string>
+    <string name="nav_staff">Staff</string>
+    <string name="nav_food">Food</string>
+    <string name="nav_kitchen">Kitchen</string>
 
-    <!-- Today tab: the morning checklist -->
-    <string name="dashboard_reputation">Reputation</string>
-    <string name="dashboard_cleanliness">Cleanliness</string>
-    <string name="overnight_heading">Overnight</string>
-    <string name="todo_heading">Needs your attention</string>
-    <string name="todo_all_good">✅ All set for tonight. Start service when you\'re ready.</string>
-    <string name="todo_restock_urgent">🥬 %1$s will run out tonight</string>
-    <string name="todo_restock">🥬 %1$s is getting low</string>
-    <string name="todo_restock_detail">You have %1$s %2$s. Enough for about two nights is %3$s %2$s more.</string>
-    <string name="todo_restock_action">Buy %1$s %2$s (%3$s)</string>
-    <string name="todo_kitchen">🍳 Not enough cooks</string>
-    <string name="todo_kitchen_detail">About %1$d guests are coming, but your kitchen can only cook about %2$d meals. Hungry guests hurt your reputation.</string>
-    <string name="todo_kitchen_action">Hire a cook</string>
-    <string name="todo_losing">📉 You\'ll probably lose money tonight</string>
-    <string name="todo_losing_detail">You\'ll earn about %1$s, but running the place costs %2$s plus about %3$s in ingredients.</string>
-    <string name="todo_losing_action">Check staff costs</string>
-    <string name="todo_broken">💥 The %1$s is broken</string>
-    <string name="todo_broken_detail">Your kitchen is working at half speed until it\'s fixed.</string>
-    <string name="todo_worn">🔧 The %1$s is wearing out</string>
-    <string name="todo_worn_detail">Condition %1$d. It could break (or catch fire) soon.</string>
-    <string name="todo_repair_action">Repair (%1$s)</string>
-    <string name="todo_dirty">🧽 The place is getting dirty</string>
-    <string name="todo_dirty_detail">Cleanliness is %1$d. Below 45 the rats show up, and the health inspector follows.</string>
-    <string name="todo_clean_action">Deep clean (%1$s)</string>
-    <string name="todo_exhausted">😩 %1$s is exhausted</string>
-    <string name="todo_exhausted_detail">Stress %1$d. Exhausted staff get sick, argue and quit.</string>
-    <string name="todo_rest_action">Give them today off</string>
-    <string name="todo_unmakeable">🚫 You can\'t make the %1$s</string>
-    <string name="todo_unmakeable_detail">You\'re out of something it needs.</string>
-    <string name="todo_pantry_action">Go to the pantry</string>
-    <string name="cant_afford">Not enough cash</string>
-    <string name="tonight_heading">Tonight</string>
-    <plurals name="tonight_guests">
-        <item quantity="one">About %1$d guest expected</item>
-        <item quantity="other">About %1$d guests expected</item>
-    </plurals>
-    <plurals name="tonight_meals">
-        <item quantity="one">Your kitchen can cook about %1$d meal</item>
-        <item quantity="other">Your kitchen can cook about %1$d meals</item>
-    </plurals>
-    <string name="tonight_money">Expected: earn ~%1$s, spend ~%2$s</string>
-    <string name="tonight_profit">Expected profit</string>
-    <string name="tonight_demand_up">📈 Busier than usual tonight</string>
-    <string name="tonight_demand_down">📉 Quieter than usual tonight</string>
-    <string name="done_heading">Done this morning</string>
-    <string name="done_hint">Changed your mind? Tap the same button again to undo it.</string>
-    <string name="dashboard_log_heading">History</string>
-    <string name="log_day_badge">%1$d</string>
+    <!-- The bill (end of day) -->
+    <string name="bill_title">Day %1$d</string>
+    <string name="bill_made">Today you made</string>
+    <string name="bill_lost">Today you lost</string>
+    <string name="bill_fed">Guests fed</string>
+    <string name="bill_fed_value">%1$d of %2$d</string>
+    <string name="bill_hungry_kitchen">%1$d went hungry (too few cooks)</string>
+    <string name="bill_hungry_stock">%1$d went hungry (out of food)</string>
+    <string name="bill_walked_out">%1$d walked out (nothing for them)</string>
+    <string name="bill_reputation">Reputation</string>
+    <string name="bill_details_show">Show the full bill</string>
+    <string name="bill_details_hide">Hide the full bill</string>
+    <string name="bill_earned">Meals sold</string>
+    <string name="bill_wages">Wages</string>
+    <string name="bill_premises">Rent and bills</string>
+    <string name="bill_groceries">Groceries</string>
+    <string name="bill_repairs">Repairs</string>
+    <string name="bill_other">Hiring, cleaning, menu</string>
+    <string name="bill_events">Overnight</string>
+    <string name="bill_total">Total</string>
+    <string name="bill_cash">Money left</string>
+    <string name="bill_next">Next day</string>
+    <string name="bill_game_over">See the final bill</string>
 
-    <!-- End-of-day results -->
-    <string name="report_title">🌙 Day %1$d is over</string>
-    <string name="report_guests_heading">Guests</string>
-    <string name="report_fed">Fed %1$d of %2$d guests</string>
-    <string name="report_unfed_kitchen">🍳 %1$d left hungry: the kitchen couldn\'t keep up. More cooks?</string>
-    <string name="report_unfed_stock">🥬 %1$d left hungry: you ran out of ingredients. Buy more?</string>
-    <string name="report_walked_out">🚪 %1$d walked out: nothing on the menu they could eat or afford.</string>
-    <string name="report_mood">How happy your guests were</string>
-    <string name="report_reputation">Reputation: %1$d → %2$d</string>
-    <string name="report_money_heading">Money</string>
-    <string name="report_earned">Earned from meals</string>
-    <string name="report_wages">Wages</string>
-    <string name="report_premises">Rent, bills and upkeep</string>
-    <string name="report_groceries">Groceries</string>
-    <string name="report_repairs">Repairs</string>
-    <string name="report_other">Hiring, cleaning and menu</string>
-    <string name="report_events">Overnight events</string>
-    <string name="report_total">Today\'s profit / loss</string>
-    <string name="report_cash">Cash: %1$s → %2$s</string>
-    <string name="report_next">☀️ Next morning (Day %1$d)</string>
-    <string name="report_game_over">See what happened</string>
-
-    <!-- Staff tab -->
-    <string name="staff_costs_heading">Daily running costs</string>
-    <string name="staff_costs_detail">Wages %1$s + rent and bills %2$s. You pay this every day, busy or not.</string>
-    <string name="staff_heading">Your team</string>
-    <string name="staff_empty">Nobody works here. That\'s a problem.</string>
-    <string name="staff_role_salary">%1$s · %2$s</string>
-    <string name="staff_morale">Morale</string>
-    <string name="staff_stress">Stress</string>
-    <string name="staff_new">✨ New, starts today</string>
-    <string name="staff_leaving">👋 Leaving today</string>
-    <string name="staff_resting">😴 Day off today</string>
-    <string name="staff_sick_one">🤒 Sick (back tomorrow)</string>
-    <plurals name="staff_sick">
-        <item quantity="one">🤒 Sick (%1$d day left)</item>
-        <item quantity="other">🤒 Sick (%1$d days left)</item>
-    </plurals>
-    <string name="staff_day_off">😴 Day off</string>
-    <string name="staff_fire">👋 Let go (%1$s)</string>
-    <string name="applicants_heading">Looking for work</string>
-    <string name="applicants_hint">New people every few days.</string>
-    <string name="applicants_empty">Nobody\'s applying right now.</string>
-    <string name="applicant_stats">Skill %1$d · Speed %2$d · Reliability %3$d</string>
-    <string name="applicant_hire">🤝 Hire: %1$s now, then %2$s</string>
+    <!-- Staff -->
+    <string name="staff_title">Staff</string>
+    <string name="staff_costs">Your team costs %1$s a day</string>
+    <string name="staff_role_wage">%1$s, %2$s</string>
+    <string name="staff_new">New, starts today</string>
+    <string name="staff_leaving">Leaving today</string>
+    <string name="staff_resting">Day off today</string>
+    <string name="staff_sick">Off sick</string>
+    <string name="staff_tired">Exhausted</string>
+    <string name="staff_day_off">Day off</string>
+    <string name="staff_fire">Let go</string>
+    <string name="mood_happy">%1$s looks happy</string>
+    <string name="mood_ok">%1$s looks okay</string>
+    <string name="mood_unhappy">%1$s looks unhappy</string>
+    <string name="hiring_title">Looking for work</string>
+    <string name="hiring_empty">Nobody\'s looking for work right now. Check back in a few days.</string>
+    <string name="hire">Hire (%1$s)</string>
 
     <!-- Roles & traits -->
     <string name="role_cook">Cook</string>
@@ -135,60 +107,46 @@
     <string name="trait_hotheaded">Hotheaded</string>
     <string name="trait_anxious">Anxious</string>
 
-    <!-- Menu tab -->
-    <string name="menu_heading">On the menu</string>
-    <string name="menu_hint">Charging above the fair price earns more per plate but makes guests less happy.</string>
-    <string name="menu_fair_price">Fair price %1$s · costs ~%2$s to make</string>
-    <string name="menu_quality_popularity">Quality %1$d · Popularity %2$d · Sold %3$d</string>
-    <string name="menu_price_down">Lower price of %1$s</string>
-    <string name="menu_price_up">Raise price of %1$s</string>
-    <string name="menu_available">Serving</string>
-    <string name="menu_out_of_stock">⚠️ Can\'t make it right now. Check the pantry.</string>
-    <string name="recipe_book_heading">Recipe book</string>
-    <string name="recipe_book_hint">You\'ll need to buy its ingredients too.</string>
-    <string name="recipe_book_empty">You\'ve cooked everything in the book. Show-off.</string>
-    <string name="recipe_quality_popularity">Quality %1$d · Popularity %2$d</string>
-    <string name="recipe_needs">Needs: %1$s</string>
-    <string name="recipe_add">📖 Add to menu (%1$s)</string>
-    <string name="recipe_added">✓ Added (tap to undo)</string>
+    <!-- Food -->
+    <string name="food_title">Food</string>
+    <string name="food_restock_all">Restock all (%1$s)</string>
+    <string name="food_stocked">Shelves are stocked</string>
+    <string name="food_undo">Undo today\'s shopping</string>
+    <string name="pantry_title">Pantry</string>
+    <string name="stock_out">Out</string>
+    <string name="stock_low">Low</string>
+    <string name="stock_ok">Enough</string>
+    <string name="stock_unused">Not needed</string>
+    <string name="stock_amount">%1$s %2$s</string>
+    <string name="stock_bought">+%1$s today</string>
+    <string name="buy_more">+5</string>
+    <string name="buy_more_label">Buy 5 more %1$s</string>
+    <string name="menu_title">Menu</string>
+    <string name="menu_fair">Fair price %1$s</string>
+    <string name="menu_price_down">Lower the price of %1$s</string>
+    <string name="menu_price_up">Raise the price of %1$s</string>
+    <string name="new_dishes_title">New dishes</string>
+    <string name="new_dish_add">Add (%1$s)</string>
+    <string name="new_dish_needs">Needs %1$s</string>
 
-    <!-- Pantry tab -->
-    <string name="pantry_heading">Pantry</string>
-    <string name="pantry_storage">Storage used: %1$d of %2$d</string>
-    <string name="pantry_on_hand">%1$s %2$s · %3$s per %2$s</string>
-    <string name="pantry_bought">+%1$s %2$s bought today</string>
-    <string name="pantry_unused">Not on tonight\'s menu</string>
-    <string name="pantry_low">⚠️ Won\'t last tonight</string>
-    <string name="pantry_buy">Buy 5</string>
-    <string name="pantry_unbuy">−5</string>
-    <string name="pantry_buy_less">Buy less %1$s</string>
-    <string name="pantry_buy_more">Buy more %1$s</string>
-    <string name="pantry_clear">Undo all purchases</string>
-    <string name="pantry_hint">Fresh stuff spoils fast. Lettuce and fish don\'t keep.</string>
-
-    <!-- Kitchen tab -->
-    <string name="kitchen_cleanliness_heading">Cleanliness</string>
-    <string name="kitchen_cleanliness_hint">Every service makes a mess. Dishwashers keep up with it, and below 45 the rats move in.</string>
-    <string name="kitchen_deep_clean">🧼 Deep clean (%1$s)</string>
-    <string name="kitchen_cleaned">✓ Cleaned (tap to undo)</string>
-    <string name="kitchen_equipment_heading">Equipment</string>
-    <string name="kitchen_condition">Condition</string>
-    <string name="kitchen_broken">💥 Broken. The kitchen is running at half speed.</string>
-    <string name="kitchen_repair">🔧 Repair (%1$s)</string>
-    <string name="kitchen_repaired">✓ Repaired (tap to undo)</string>
-    <string name="kitchen_good_shape">In good shape</string>
+    <!-- Kitchen -->
+    <string name="kitchen_title">Kitchen</string>
+    <string name="cleanliness">Cleanliness</string>
+    <string name="clean">Deep clean (%1$s)</string>
+    <string name="condition">Condition</string>
+    <string name="broken">Broken. The kitchen works at half speed.</string>
+    <string name="fix">Fix (%1$s)</string>
+    <string name="fine">Working fine</string>
+    <string name="meter_value">%1$s %2$d out of 100</string>
 
     <!-- Game over -->
-    <string name="game_over_title">Game Over</string>
-    <string name="game_over_cause_bankrupt">💸 The restaurant ran out of money.</string>
-    <string name="game_over_cause_condemned">🚫 The restaurant\'s reputation collapsed to nothing.</string>
-    <string name="game_over_cause_unknown">The restaurant has closed.</string>
-    <string name="game_over_days_survived">Days survived</string>
-    <string name="game_over_total_revenue">Total revenue</string>
-    <string name="game_over_total_profit_or_loss">Total profit / loss</string>
-    <string name="game_over_final_reputation">Final reputation</string>
-    <string name="game_over_best_seller">Best-selling dish</string>
-
-    <!-- Shared -->
-    <string name="game_back_to_start">Back to Start</string>
+    <string name="final_title">Final bill</string>
+    <string name="final_bankrupt">The restaurant ran out of money.</string>
+    <string name="final_condemned">Nobody wants to eat here anymore.</string>
+    <string name="final_closed">The restaurant has closed.</string>
+    <string name="final_days">Days open</string>
+    <string name="final_revenue">Total takings</string>
+    <string name="final_profit">Total profit</string>
+    <string name="final_best">Best seller</string>
+    <string name="game_back_to_start">Back to start</string>
 </resources>

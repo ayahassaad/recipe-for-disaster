@@ -6,6 +6,7 @@ import com.recipefordisaster.domain.employee.EmployeeStatus
 import com.recipefordisaster.domain.equipment.Equipment
 import com.recipefordisaster.domain.equipment.EquipmentOperations
 import com.recipefordisaster.domain.inventory.Ingredient
+import com.recipefordisaster.domain.inventory.IngredientId
 import com.recipefordisaster.domain.menu.Dish
 import kotlin.math.ceil
 import kotlin.math.roundToLong
@@ -92,6 +93,26 @@ sealed interface Advice {
 object MorningAdvisor {
 
     private const val RESTOCK_NIGHTS = 2
+
+    /**
+     * Everything [adviceFor] suggests buying, as one shopping list — what a
+     * single "restock everything" button buys.
+     */
+    fun restockList(state: GameState): Map<IngredientId, Double> =
+        adviceFor(state).filterIsInstance<Advice.Restock>().associate { it.ingredient.id to it.suggestedQuantity }
+
+    /**
+     * Roughly how many nights the current stock of an ingredient lasts at
+     * tonight's expected demand. `null` if tonight's menu doesn't use it.
+     */
+    fun nightsOfStock(state: GameState, ingredient: Ingredient): Double? {
+        val serving = state.menu.filter { it.available }
+        if (serving.isEmpty()) return null
+        val perCustomer = serving.sumOf { it.recipe.ingredientRequirements[ingredient.id] ?: 0.0 } / serving.size
+        if (perCustomer <= 0.0) return null
+        val perNight = perCustomer * OutlookCalculator.forTonight(state).expectedCustomers.coerceAtLeast(1)
+        return ingredient.quantityOnHand / perNight
+    }
 
     fun forecast(state: GameState): MoneyForecast {
         val outlook = OutlookCalculator.forTonight(state)

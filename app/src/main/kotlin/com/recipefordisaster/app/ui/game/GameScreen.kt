@@ -1,37 +1,33 @@
 package com.recipefordisaster.app.ui.game
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.recipefordisaster.app.R
 import com.recipefordisaster.domain.employee.EmployeeId
@@ -39,9 +35,6 @@ import com.recipefordisaster.domain.equipment.EquipmentId
 import com.recipefordisaster.domain.inventory.IngredientId
 import com.recipefordisaster.domain.menu.DishId
 import com.recipefordisaster.domain.restaurant.RestaurantStatus
-import com.recipefordisaster.domain.simulation.DailyCosts
-import com.recipefordisaster.domain.simulation.GameState
-import com.recipefordisaster.domain.simulation.OutlookCalculator
 
 /**
  * Everything the player can do on the game screen, bundled so the screen
@@ -51,6 +44,8 @@ import com.recipefordisaster.domain.simulation.OutlookCalculator
 data class GameActions(
     val onStartService: () -> Unit = {},
     val onNextMorning: () -> Unit = {},
+    val onDismissIntro: () -> Unit = {},
+    val onRestockAll: () -> Unit = {},
     val onAdjustPurchase: (IngredientId, Double) -> Unit = { _, _ -> },
     val onClearPurchases: () -> Unit = {},
     val onAdjustPrice: (DishId, Long) -> Unit = { _, _ -> },
@@ -66,6 +61,8 @@ data class GameActions(
 fun GameViewModel.actions(): GameActions = GameActions(
     onStartService = ::startService,
     onNextMorning = ::nextMorning,
+    onDismissIntro = ::dismissIntro,
+    onRestockAll = ::restockAll,
     onAdjustPurchase = ::adjustPurchase,
     onClearPurchases = ::clearPurchases,
     onAdjustPrice = ::adjustPrice,
@@ -78,20 +75,14 @@ fun GameViewModel.actions(): GameActions = GameActions(
     onToggleDeepClean = ::toggleDeepClean,
 )
 
-internal enum class GameTab(val labelRes: Int) {
-    TODAY(R.string.tab_today),
-    STAFF(R.string.tab_staff),
-    MENU(R.string.tab_menu),
-    PANTRY(R.string.tab_pantry),
-    KITCHEN(R.string.tab_kitchen),
-}
+/** The three places off the main screen. */
+internal enum class Place { STAFF, FOOD, KITCHEN }
 
 /**
- * The main play screen. Depending on [GameUiState] it shows a loading
- * spinner, the morning (five tabs to get ready, and "Start service"), the
- * end-of-day results, or — once [GameState.restaurant]'s status is
- * [RestaurantStatus.BANKRUPT] or [RestaurantStatus.CONDEMNED] and the
- * player has seen that last day's results — the run-ending summary.
+ * The play screen. One thing at a time: "How to play" on a brand-new
+ * game, then each day's morning (one screen, plus Staff / Food / Kitchen
+ * one tap away), the bill after service, and the final bill when the run
+ * ends.
  */
 @Composable
 fun GameScreen(
@@ -101,170 +92,89 @@ fun GameScreen(
     modifier: Modifier = Modifier,
 ) {
     when (uiState) {
-        is GameUiState.Loading -> Scaffold(modifier = modifier.fillMaxSize()) { padding -> LoadingContent(Modifier.padding(padding)) }
+        is GameUiState.Loading -> Scaffold(modifier = modifier.fillMaxSize()) { padding ->
+            Column(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) { CircularProgressIndicator() }
+        }
         is GameUiState.Error -> Scaffold(modifier = modifier.fillMaxSize()) { padding ->
-            ErrorContent(message = uiState.message, onBackToStart = onBackToStart, modifier = Modifier.padding(padding))
+            Column(
+                modifier = Modifier.fillMaxSize().padding(padding).padding(24.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(text = uiState.message, style = MaterialTheme.typography.bodyLarge)
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = onBackToStart) { Text(stringResource(R.string.game_back_to_start)) }
+            }
         }
         is GameUiState.Playing -> {
             val status = uiState.state.restaurant.status
             val gameOver = status == RestaurantStatus.BANKRUPT || status == RestaurantStatus.CONDEMNED
+            var place by rememberSaveable { mutableStateOf<Place?>(null) }
             when {
-                uiState.report != null -> DayReportScreen(
+                uiState.showIntro -> IntroScreen(onStart = actions.onDismissIntro, modifier = modifier)
+                uiState.report != null -> BillScreen(
                     report = uiState.report,
-                    nextDay = uiState.state.day,
                     gameOver = gameOver,
-                    onContinue = actions.onNextMorning,
+                    onContinue = {
+                        place = null
+                        actions.onNextMorning()
+                    },
                     modifier = modifier,
                 )
-                gameOver -> Scaffold(modifier = modifier.fillMaxSize()) { padding ->
-                    GameOverContent(state = uiState.state, onBackToStart = onBackToStart, modifier = Modifier.padding(padding).padding(16.dp))
+                gameOver -> FinalBillScreen(state = uiState.state, onBackToStart = onBackToStart, modifier = modifier)
+                else -> {
+                    BackHandler(enabled = place != null) { place = null }
+                    when (place) {
+                        null -> MorningScreen(uiState = uiState, actions = actions, onGoTo = { place = it }, modifier = modifier)
+                        Place.STAFF -> StaffScreen(uiState, actions, onBack = { place = null }, modifier = modifier)
+                        Place.FOOD -> FoodScreen(uiState, actions, onBack = { place = null }, modifier = modifier)
+                        Place.KITCHEN -> KitchenScreen(uiState, actions, onBack = { place = null }, modifier = modifier)
+                    }
                 }
-                else -> MorningContent(uiState = uiState, actions = actions, modifier = modifier)
             }
         }
     }
 }
 
+/**
+ * Shared frame for Staff, Food and Kitchen: a slim awning, the page's name,
+ * the money left after this morning's choices, and a way back.
+ */
 @Composable
-private fun MorningContent(uiState: GameUiState.Playing, actions: GameActions, modifier: Modifier = Modifier) {
-    var selectedTab by rememberSaveable { mutableIntStateOf(GameTab.TODAY.ordinal) }
-    val goTo: (GameTab) -> Unit = { selectedTab = it.ordinal }
-
+internal fun PlaceScaffold(
+    title: String,
+    cashNow: Long,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: LazyListScope.() -> Unit,
+) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = { MorningHeader(uiState = uiState, selectedTab = selectedTab, onSelectTab = { selectedTab = it }) },
-        bottomBar = { ServiceBar(uiState = uiState, onStartService = actions.onStartService) },
-    ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            when (GameTab.entries[selectedTab]) {
-                GameTab.TODAY -> TodayTab(uiState, actions, onGoTo = goTo)
-                GameTab.STAFF -> StaffTab(uiState, actions)
-                GameTab.MENU -> MenuTab(uiState, actions)
-                GameTab.PANTRY -> PantryTab(uiState, actions)
-                GameTab.KITCHEN -> KitchenTab(uiState, actions)
-            }
-        }
-    }
-}
-
-@Composable
-private fun MorningHeader(uiState: GameUiState.Playing, selectedTab: Int, onSelectTab: (Int) -> Unit) {
-    val dailyCosts = remember(uiState.morning) { DailyCosts.of(uiState.morning) }
-    Surface(color = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary) {
-        Column(modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(top = 4.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.dashboard_day, uiState.state.day),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(text = stringResource(R.string.phase_morning), style = MaterialTheme.typography.labelLarge)
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(text = stringResource(R.string.header_cash), style = MaterialTheme.typography.labelMedium)
-                    Text(text = coins(uiState.cashNow), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text(
-                        text = stringResource(R.string.header_daily_costs, coins(dailyCosts.total)),
-                        style = MaterialTheme.typography.labelMedium,
-                    )
+        topBar = {
+            Surface(color = MaterialTheme.colorScheme.background) {
+                Column(modifier = Modifier.fillMaxWidth().statusBarsPadding()) {
+                    Awning(height = 22.dp, stripes = 16)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        TextButton(onClick = onBack) { Text(stringResource(R.string.back)) }
+                        Text(text = title, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
+                        Text(text = coins(cashNow), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(end = 8.dp))
+                    }
                 }
             }
-            PrimaryScrollableTabRow(
-                selectedTabIndex = selectedTab,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                edgePadding = 8.dp,
-            ) {
-                GameTab.entries.forEach { tab ->
-                    Tab(
-                        selected = selectedTab == tab.ordinal,
-                        onClick = { onSelectTab(tab.ordinal) },
-                        text = { Text(stringResource(tab.labelRes)) },
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ServiceBar(uiState: GameUiState.Playing, onStartService: () -> Unit) {
-    val outlook = remember(uiState.morning) { OutlookCalculator.forTonight(uiState.morning) }
-    Surface(tonalElevation = 3.dp, shadowElevation = 8.dp) {
-        Column(modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 10.dp)) {
-            Text(
-                text = stringResource(R.string.start_service_hint, outlook.expectedCustomers),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = onStartService, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-                Text(text = stringResource(R.string.start_service), style = MaterialTheme.typography.titleMedium)
-            }
-        }
-    }
-}
-
-@Composable
-private fun LoadingContent(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        CircularProgressIndicator()
-    }
-}
-
-@Composable
-private fun ErrorContent(message: String, onBackToStart: () -> Unit, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(text = message, style = MaterialTheme.typography.bodyLarge)
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onBackToStart) {
-            Text(stringResource(R.string.game_back_to_start))
-        }
-    }
-}
-
-@Composable
-private fun GameOverContent(state: GameState, onBackToStart: () -> Unit, modifier: Modifier = Modifier) {
-    val cause = when (state.restaurant.status) {
-        RestaurantStatus.BANKRUPT -> stringResource(R.string.game_over_cause_bankrupt)
-        RestaurantStatus.CONDEMNED -> stringResource(R.string.game_over_cause_condemned)
-        else -> stringResource(R.string.game_over_cause_unknown)
-    }
-    val bestSellingDish = state.dishSalesTotals.maxByOrNull { it.value }
-    val bestSellingName = bestSellingDish?.let { (id, _) -> state.menu.firstOrNull { it.id.value == id }?.name ?: id }
-    val profit = state.ledger.totalProfitOrLoss
-
-    Column(modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        Text(text = stringResource(R.string.game_over_title), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(text = cause, style = MaterialTheme.typography.bodyLarge)
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-
-        GameCard {
-            // The run ended during the day shown, so the last full day survived is the one before.
-            StatRow(label = stringResource(R.string.game_over_days_survived), value = (state.day - 1).coerceAtLeast(0).toString())
-            StatRow(label = stringResource(R.string.game_over_total_revenue), value = coins(state.ledger.totalRevenue))
-            StatRow(label = stringResource(R.string.game_over_total_profit_or_loss), value = coins(profit), valueColor = moneyColor(profit))
-            StatRow(label = stringResource(R.string.game_over_final_reputation), value = state.restaurant.reputation.toString())
-            if (bestSellingDish != null && bestSellingName != null) {
-                StatRow(label = stringResource(R.string.game_over_best_seller), value = "$bestSellingName (${bestSellingDish.value})")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onBackToStart, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-            Text(stringResource(R.string.game_back_to_start), style = MaterialTheme.typography.titleMedium)
-        }
+        },
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            content = content,
+        )
     }
 }

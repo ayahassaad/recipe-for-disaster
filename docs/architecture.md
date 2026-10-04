@@ -159,32 +159,29 @@ can't cover. It's pure, so `GameViewModel` runs it on the draft plan to
 preview costs, and the day-tick runs the same function for real. The
 preview and the outcome can't disagree.
 
-**The day loop on screen (UI rework, October 2026).** Playtesting showed
-the plan-then-commit model was confusing: tapping "Hire" did nothing
-visible until the day ran, and nothing said what a hire would cost per
-day. The screens now follow three clear phases:
+**The day loop on screen (UI simplification, October 2026).** Two rounds
+of playtesting on a real phone said the dashboard was confusing and too
+busy, so the screens were cut back to one thing at a time:
 
-1. **Morning.** Choices show up immediately. A new hire is in the team,
-   cash in the header has gone down, repaired equipment reads 100%, and
-   tapping again undoes it. Under the hood this is still a
-   `PlayerDecisions` plan applied by `DecisionApplier` to the morning's
-   starting state (`GameUiState.Playing.morning` / `cashNow`), so nothing
-   is committed until service starts and undo is free. The header always
-   shows **daily running costs** (`DailyCosts`: wages, rent, bills,
-   upkeep), and hiring buttons show both the one-off fee and the daily
-   wage.
-2. **Service.** "Start service" runs the day-tick.
-3. **Results.** A full-screen report (`DayReportScreen`, fed by the new
-   `DayResult.summary`) explains who was fed, why anyone wasn't, where
-   every coin went, how reputation moved and what happened overnight,
-   before "Next morning".
+- **How to play**, once, on a new game: three steps and the goal.
+- **Morning**: a single screen. It shows the day, the money, and daily
+  running costs (`DailyCosts`), a star rating, and *today's jobs* on a
+  chalkboard: at most three, from `MorningAdvisor` in `:domain`, each with
+  one button ("Restock", "Fix", "Hire"...). Below that is a one-line
+  forecast and the "Open the doors" button. Staff, Food and Kitchen are one
+  tap away as separate pages. Choices take effect on screen immediately
+  and can be undone until service starts. Under the hood this is still a
+  `PlayerDecisions` plan applied by `DecisionApplier` to the morning's
+  starting state (`GameUiState.Playing.morning` / `cashNow`).
+- **The bill**: a till receipt with the day's profit, guests fed (and why
+  any weren't), reputation change, the overnight event, and the itemised
+  breakdown behind one tap (`DayResult.summary`).
 
-The Today tab is a morning to-do list from `MorningAdvisor` in `:domain`:
-running out of stock, not enough cooks, a likely losing day (from its
-`MoneyForecast`), broken or worn equipment, dirt and exhausted staff. Each
-item has a one-tap fix. It reads the state *after* the morning's choices,
-so fixing something removes it from the list. Forecasts come from
-`:domain` (`OutlookCalculator`, `MorningAdvisor`), so Composables don't
+The look is a restaurant drawn with Compose shapes (`RestaurantDecor.kt`:
+awning, chalkboard, receipt paper, mood faces), with serif headings. There
+are deliberately no emoji: older Android versions (the test phone runs
+Android 9) can't draw newer ones. Forecasts come from `:domain`
+(`OutlookCalculator`, `MorningAdvisor`), so Composables don't
 reimplement rules.
 
 `GameViewModel` derives each day's `RandomSource` from `GameState.seed`

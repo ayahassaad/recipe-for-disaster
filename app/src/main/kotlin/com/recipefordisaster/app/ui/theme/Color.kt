@@ -24,3 +24,15 @@ val CardCharcoalDark = Color(0xFF3A2823)
 val CharcoalDeep = Color(0xFF1F1310)
 val ApricotContainer = Color(0xFFFBDCC6)
 val EmberContainer = Color(0xFF5C3426)
+
+// Restaurant look (UI simplification pass): fixed "materials" that read the
+// same in light and dark mode — a chalkboard, its wooden frame, receipt
+// paper and the awning — so the screens feel like being in the restaurant.
+val ChalkboardGreen = Color(0xFF2E3A33)
+val ChalkWhite = Color(0xFFF1EEE4)
+val ChalkDim = Color(0xFFB9C4BB)
+val WoodBrown = Color(0xFF7B4B2A)
+val WoodDark = Color(0xFF55331C)
+val ReceiptPaper = Color(0xFFFFFCF4)
+val ReceiptInk = Color(0xFF2B2622)
+val SweatBlue = Color(0xFF5FA8D3)

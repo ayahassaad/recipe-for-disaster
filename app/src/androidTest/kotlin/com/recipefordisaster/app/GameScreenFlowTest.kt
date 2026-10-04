@@ -66,18 +66,21 @@ class GameScreenFlowTest {
 
         composeTestRule.runOnIdle { viewModel.startNewGame() }
         composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText("How to play").assertExists()
+        composeTestRule.onNodeWithText("Let's cook").performClick()
+        composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("Day 1").assertExists()
 
-        composeTestRule.onNodeWithText("Start service", substring = true).performClick()
+        composeTestRule.onNodeWithText("Open the doors").performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Day 1 is over", substring = true).assertExists()
-        composeTestRule.onNodeWithText("Next morning", substring = true).performClick()
+        composeTestRule.onNodeWithText("Guests fed").assertExists()
+        composeTestRule.onNodeWithText("Next day").performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("Day 2").assertExists()
 
-        composeTestRule.onNodeWithText("Start service", substring = true).performClick()
+        composeTestRule.onNodeWithText("Open the doors").performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Next morning", substring = true).performClick()
+        composeTestRule.onNodeWithText("Next day").performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("Day 3").assertExists()
     }

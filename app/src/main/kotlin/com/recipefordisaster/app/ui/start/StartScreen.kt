@@ -1,33 +1,41 @@
 package com.recipefordisaster.app.ui.start
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.recipefordisaster.app.R
+import com.recipefordisaster.app.ui.game.Awning
+import com.recipefordisaster.app.ui.game.Chalkboard
+import com.recipefordisaster.app.ui.game.SignButton
+import com.recipefordisaster.app.ui.theme.ChalkWhite
 import com.recipefordisaster.app.ui.theme.RecipeForDisasterTheme
+import com.recipefordisaster.app.ui.theme.WoodBrown
 
 /**
- * The very first screen: New Game, or Continue if a save exists. Continue
- * is only enabled once we actually know a save is there (section 13: never
- * imply a save is available, or safe to load, when it isn't).
+ * The very first screen: the shop front, with New game, or Continue if a
+ * save exists. Continue is only enabled once we actually know a save is
+ * there (section 13: never imply a save is available, or safe to load,
+ * when it isn't).
  */
 @Composable
 fun StartScreen(
@@ -36,48 +44,51 @@ fun StartScreen(
     onContinueGame: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Scaffold(modifier = modifier.fillMaxSize()) { innerPadding ->
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .statusBarsPadding()
+            .navigationBarsPadding(),
+    ) {
+        Awning(height = 56.dp, stripes = 8)
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(24.dp),
+            modifier = Modifier.weight(1f).fillMaxWidth().padding(24.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(
-                text = stringResource(R.string.start_logo),
-                style = MaterialTheme.typography.displayLarge,
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                textAlign = TextAlign.Center,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = stringResource(R.string.start_tagline),
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center,
-            )
+            Chalkboard {
+                Text(
+                    text = stringResource(R.string.app_name),
+                    style = MaterialTheme.typography.displaySmall,
+                    color = ChalkWhite,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.start_tagline),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = ChalkWhite.copy(alpha = 0.85f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                )
+            }
             Spacer(modifier = Modifier.height(40.dp))
 
             if (uiState.isLoading) {
                 CircularProgressIndicator()
             } else {
-                Button(onClick = onNewGame, modifier = Modifier.fillMaxWidth().height(60.dp)) {
-                    Text(stringResource(R.string.start_new_game), style = MaterialTheme.typography.titleMedium)
-                }
-                Spacer(modifier = Modifier.height(12.dp))
+                SignButton(text = stringResource(R.string.start_new_game), onClick = onNewGame)
+                Spacer(modifier = Modifier.height(14.dp))
                 OutlinedButton(
                     onClick = onContinueGame,
                     enabled = uiState.hasExistingSave,
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(2.dp, if (uiState.hasExistingSave) WoodBrown else WoodBrown.copy(alpha = 0.3f)),
                     modifier = Modifier.fillMaxWidth().height(60.dp),
                 ) {
-                    Text(stringResource(R.string.start_continue_game), style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.start_continue_game), style = MaterialTheme.typography.titleLarge)
                 }
             }
         }

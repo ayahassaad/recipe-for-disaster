@@ -172,6 +172,37 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `a new game opens with how-to-play, a continued one doesn't`() = runTest(dispatcher) {
+        val viewModel = GameViewModel(FakeGameRepository(), dayTickEngine)
+        viewModel.startNewGame()
+        dispatcher.scheduler.advanceUntilIdle()
+        assertTrue((viewModel.uiState.value as GameUiState.Playing).showIntro)
+
+        viewModel.dismissIntro()
+        assertTrue(!(viewModel.uiState.value as GameUiState.Playing).showIntro)
+
+        val resumed = GameViewModel(FakeGameRepository(stored = NewGameFactory.create(1L)), dayTickEngine)
+        resumed.continueGame()
+        dispatcher.scheduler.advanceUntilIdle()
+        assertTrue(!(resumed.uiState.value as GameUiState.Playing).showIntro)
+    }
+
+    @Test
+    fun `restock all buys everything that's running low`() = runTest(dispatcher) {
+        val start = NewGameFactory.create(1L)
+        val bare = start.copy(inventory = start.inventory.copy(ingredients = start.inventory.ingredients.mapValues { it.value.copy(quantityOnHand = 0.0) }))
+        val viewModel = GameViewModel(FakeGameRepository(stored = bare), dayTickEngine)
+        viewModel.continueGame()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.restockAll()
+
+        val after = viewModel.uiState.value as GameUiState.Playing
+        assertTrue(after.plan.purchases.isNotEmpty())
+        assertTrue(com.recipefordisaster.domain.simulation.MorningAdvisor.restockList(after.morning).isEmpty())
+    }
+
+    @Test
     fun `toggling a decision twice cancels it`() = runTest(dispatcher) {
         val viewModel = GameViewModel(FakeGameRepository(), dayTickEngine)
         viewModel.startNewGame()

@@ -81,4 +81,24 @@ class MorningAdvisorTest {
         assertEquals(result.newState.restaurant.cash, summary.cashAfter)
         assertEquals(start.restaurant.cash + result.newState.ledger.history.last().profitOrLoss, summary.cashAfter)
     }
+
+    @Test
+    fun `buying the whole restock list clears every restock item`() {
+        val bare = start.copy(inventory = start.inventory.copy(ingredients = start.inventory.ingredients.mapValues { it.value.copy(quantityOnHand = 0.0) }))
+        val list = MorningAdvisor.restockList(bare)
+        assertTrue(list.isNotEmpty())
+
+        val stocked = DecisionApplier.apply(bare, PlayerDecisions(purchases = list)).state
+
+        assertTrue(MorningAdvisor.adviceFor(stocked).none { it is Advice.Restock })
+    }
+
+    @Test
+    fun `nights of stock is null for ingredients tonight's menu doesn't use`() {
+        val eggs = start.inventory.ingredients.getValue(RecipeBook.EGGS)
+        val flour = start.inventory.ingredients.getValue(RecipeBook.FLOUR)
+
+        assertEquals(null, MorningAdvisor.nightsOfStock(start, eggs))
+        assertTrue(MorningAdvisor.nightsOfStock(start, flour)!! > 0.0)
+    }
 }
