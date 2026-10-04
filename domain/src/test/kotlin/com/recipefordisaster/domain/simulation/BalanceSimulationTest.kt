@@ -17,7 +17,7 @@ import org.junit.Test
  * Whole-run checks over many seeds, standing in for playtesting until there
  * is some. The point of Phase 6's decisions is that they matter, so the
  * core assertion is simple: a player who restocks, hires and maintains
- * outlasts one who just keeps pressing "Open for the day."
+ * outlasts one who just keeps pressing "Start service."
  *
  * Set the `balanceReport` system property (e.g. via
  * `./gradlew :domain:test -DbalanceReport=true` with the test task

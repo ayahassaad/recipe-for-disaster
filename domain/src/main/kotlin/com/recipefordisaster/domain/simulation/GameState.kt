@@ -130,6 +130,31 @@ data class DayResult(
     val log: List<SimulationLogEntry>,
     /** The event that fired at the end of this day, if any — surfaced separately so the UI can headline it. */
     val event: FiredEvent? = null,
+    /** Headline numbers for the end-of-day results screen. */
+    val summary: DaySummary? = null,
+)
+
+/**
+ * What happened during one day's service, in the terms the player cares
+ * about. Money is taken from the day's [com.recipefordisaster.domain.economy.DailyFinancials]
+ * (the last ledger entry), so it isn't duplicated here.
+ */
+data class DaySummary(
+    val day: Int,
+    val customersArrived: Int,
+    val customersFed: Int,
+    /** Sat down, but the kitchen had already cooked all it could. */
+    val unfedKitchenFull: Int,
+    /** Sat down, but the ingredients for what they wanted had run out. */
+    val unfedOutOfStock: Int,
+    /** Found nothing on the menu they could eat or afford, and left. */
+    val walkedOut: Int,
+    val averageSatisfaction: Int,
+    val reputationBefore: Int,
+    /** After everything, including the overnight event. */
+    val reputationAfter: Int,
+    val cashBefore: Long,
+    val cashAfter: Long,
 )
 
 data class FiredEvent(

@@ -159,10 +159,33 @@ can't cover. It's pure, so `GameViewModel` runs it on the draft plan to
 preview costs, and the day-tick runs the same function for real. The
 preview and the outcome can't disagree.
 
-`GameScreen` is a header (day, cash), five tabs (Today, Staff, Menu,
-Pantry, Kitchen) and a bottom bar with the plan's cost and "Open for the
-day". Forecast warnings ("not enough cooks", "running low") come from
-`OutlookCalculator` in `:domain`, so Composables don't reimplement rules.
+**The day loop on screen (UI rework, October 2026).** Playtesting showed
+the plan-then-commit model was confusing: tapping "Hire" did nothing
+visible until the day ran, and nothing said what a hire would cost per
+day. The screens now follow three clear phases:
+
+1. **Morning.** Choices show up immediately. A new hire is in the team,
+   cash in the header has gone down, repaired equipment reads 100%, and
+   tapping again undoes it. Under the hood this is still a
+   `PlayerDecisions` plan applied by `DecisionApplier` to the morning's
+   starting state (`GameUiState.Playing.morning` / `cashNow`), so nothing
+   is committed until service starts and undo is free. The header always
+   shows **daily running costs** (`DailyCosts`: wages, rent, bills,
+   upkeep), and hiring buttons show both the one-off fee and the daily
+   wage.
+2. **Service.** "Start service" runs the day-tick.
+3. **Results.** A full-screen report (`DayReportScreen`, fed by the new
+   `DayResult.summary`) explains who was fed, why anyone wasn't, where
+   every coin went, how reputation moved and what happened overnight,
+   before "Next morning".
+
+The Today tab is a morning to-do list from `MorningAdvisor` in `:domain`:
+running out of stock, not enough cooks, a likely losing day (from its
+`MoneyForecast`), broken or worn equipment, dirt and exhausted staff. Each
+item has a one-tap fix. It reads the state *after* the morning's choices,
+so fixing something removes it from the list. Forecasts come from
+`:domain` (`OutlookCalculator`, `MorningAdvisor`), so Composables don't
+reimplement rules.
 
 `GameViewModel` derives each day's `RandomSource` from `GameState.seed`
 and `GameState.day` (`seed * <constant> + day`) rather than keeping one

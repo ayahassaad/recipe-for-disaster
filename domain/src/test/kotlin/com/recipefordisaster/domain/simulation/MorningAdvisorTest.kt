@@ -1,0 +1,84 @@
+package com.recipefordisaster.domain.simulation
+
+import com.recipefordisaster.domain.decision.DecisionApplier
+import com.recipefordisaster.domain.event.EventEngine
+import com.recipefordisaster.domain.menu.RecipeBook
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class MorningAdvisorTest {
+
+    private val start = NewGameFactory.create(seed = 3L)
+
+    @Test
+    fun `daily costs add up wages and premises`() {
+        val costs = DailyCosts.of(start)
+
+        assertEquals(start.employees.sumOf { it.salaryPerDay }, costs.wages)
+        assertTrue(costs.premises >= start.restaurant.operatingCosts.rentPerDay)
+    }
+
+    @Test
+    fun `hiring raises the daily costs by the new person's salary`() {
+        val applicant = start.applicants.first()
+        val hired = DecisionApplier.apply(start, PlayerDecisions(hires = setOf(applicant.id))).state
+
+        assertEquals(DailyCosts.of(start).total + applicant.salaryPerDay, DailyCosts.of(hired).total)
+    }
+
+    @Test
+    fun `an empty pantry produces urgent restock advice, and buying clears it`() {
+        val emptyLettuce = start.copy(
+            inventory = start.inventory.copy(
+                ingredients = start.inventory.ingredients.mapValues { (id, ingredient) ->
+                    if (id == RecipeBook.LETTUCE) ingredient.copy(quantityOnHand = 0.0) else ingredient
+                },
+            ),
+        )
+
+        val advice = MorningAdvisor.adviceFor(emptyLettuce).filterIsInstance<Advice.Restock>().single { it.ingredient.id == RecipeBook.LETTUCE }
+        assertTrue(advice.urgent)
+
+        val restocked = DecisionApplier.apply(emptyLettuce, PlayerDecisions(purchases = mapOf(RecipeBook.LETTUCE to advice.suggestedQuantity))).state
+        assertTrue(MorningAdvisor.adviceFor(restocked).filterIsInstance<Advice.Restock>().none { it.ingredient.id == RecipeBook.LETTUCE })
+    }
+
+    @Test
+    fun `overstaffing for the crowd shows up as a losing day`() {
+        val overstaffed = start.copy(employees = start.employees + start.applicants + start.applicants.map { it.copy(id = com.recipefordisaster.domain.employee.EmployeeId(it.id.value + "-twin")) })
+
+        assertTrue(MorningAdvisor.forecast(overstaffed).expectedProfit < 0)
+        assertTrue(MorningAdvisor.adviceFor(overstaffed).any { it is Advice.LosingMoney })
+    }
+
+    @Test
+    fun `a broken oven is flagged with its repair cost`() {
+        val broken = start.copy(equipment = start.equipment.map { it.copy(condition = 0) })
+
+        assertTrue(MorningAdvisor.adviceFor(broken).any { it is Advice.EquipmentBroken && it.repairCost > 0 })
+    }
+
+    @Test
+    fun `urgent advice comes first`() {
+        val messy = start.copy(
+            restaurant = start.restaurant.copy(cleanliness = 50),
+            equipment = start.equipment.map { it.copy(condition = 0) },
+        )
+
+        val advice = MorningAdvisor.adviceFor(messy)
+        assertEquals(advice.sortedByDescending { it.urgent }, advice)
+    }
+
+    @Test
+    fun `each day comes with a summary that matches the books`() {
+        val result = DefaultDayTickEngine(EventEngine(emptyList())).advanceDay(start, PlayerDecisions(), SeededRandomSource(1))
+        val summary = result.summary!!
+
+        assertEquals(start.day, summary.day)
+        assertTrue(summary.customersFed <= summary.customersArrived)
+        assertEquals(summary.customersArrived, summary.customersFed + summary.unfedKitchenFull + summary.unfedOutOfStock + summary.walkedOut)
+        assertEquals(result.newState.restaurant.cash, summary.cashAfter)
+        assertEquals(start.restaurant.cash + result.newState.ledger.history.last().profitOrLoss, summary.cashAfter)
+    }
+}

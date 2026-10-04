@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -26,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -39,7 +39,9 @@ import com.recipefordisaster.domain.equipment.EquipmentId
 import com.recipefordisaster.domain.inventory.IngredientId
 import com.recipefordisaster.domain.menu.DishId
 import com.recipefordisaster.domain.restaurant.RestaurantStatus
+import com.recipefordisaster.domain.simulation.DailyCosts
 import com.recipefordisaster.domain.simulation.GameState
+import com.recipefordisaster.domain.simulation.OutlookCalculator
 
 /**
  * Everything the player can do on the game screen, bundled so the screen
@@ -47,7 +49,8 @@ import com.recipefordisaster.domain.simulation.GameState
  * [GameViewModel.actions] wires these to the ViewModel.
  */
 data class GameActions(
-    val onOpenForTheDay: () -> Unit = {},
+    val onStartService: () -> Unit = {},
+    val onNextMorning: () -> Unit = {},
     val onAdjustPurchase: (IngredientId, Double) -> Unit = { _, _ -> },
     val onClearPurchases: () -> Unit = {},
     val onAdjustPrice: (DishId, Long) -> Unit = { _, _ -> },
@@ -61,7 +64,8 @@ data class GameActions(
 )
 
 fun GameViewModel.actions(): GameActions = GameActions(
-    onOpenForTheDay = ::openForTheDay,
+    onStartService = ::startService,
+    onNextMorning = ::nextMorning,
     onAdjustPurchase = ::adjustPurchase,
     onClearPurchases = ::clearPurchases,
     onAdjustPrice = ::adjustPrice,
@@ -74,7 +78,7 @@ fun GameViewModel.actions(): GameActions = GameActions(
     onToggleDeepClean = ::toggleDeepClean,
 )
 
-private enum class GameTab(val labelRes: Int) {
+internal enum class GameTab(val labelRes: Int) {
     TODAY(R.string.tab_today),
     STAFF(R.string.tab_staff),
     MENU(R.string.tab_menu),
@@ -83,12 +87,11 @@ private enum class GameTab(val labelRes: Int) {
 }
 
 /**
- * The main play screen. Renders one of three things depending on
- * [GameUiState]: a loading spinner, the run-ending summary (once
- * [GameState.restaurant]'s status is [RestaurantStatus.BANKRUPT] or
- * [RestaurantStatus.CONDEMNED]), or the day-to-day dashboard: five tabs for
- * planning the day, and a bottom bar showing what the plan costs next to
- * the "Open for the day" button that commits it.
+ * The main play screen. Depending on [GameUiState] it shows a loading
+ * spinner, the morning (five tabs to get ready, and "Start service"), the
+ * end-of-day results, or — once [GameState.restaurant]'s status is
+ * [RestaurantStatus.BANKRUPT] or [RestaurantStatus.CONDEMNED] and the
+ * player has seen that last day's results — the run-ending summary.
  */
 @Composable
 fun GameScreen(
@@ -104,29 +107,37 @@ fun GameScreen(
         }
         is GameUiState.Playing -> {
             val status = uiState.state.restaurant.status
-            if (status == RestaurantStatus.BANKRUPT || status == RestaurantStatus.CONDEMNED) {
-                Scaffold(modifier = modifier.fillMaxSize()) { padding ->
+            val gameOver = status == RestaurantStatus.BANKRUPT || status == RestaurantStatus.CONDEMNED
+            when {
+                uiState.report != null -> DayReportScreen(
+                    report = uiState.report,
+                    nextDay = uiState.state.day,
+                    gameOver = gameOver,
+                    onContinue = actions.onNextMorning,
+                    modifier = modifier,
+                )
+                gameOver -> Scaffold(modifier = modifier.fillMaxSize()) { padding ->
                     GameOverContent(state = uiState.state, onBackToStart = onBackToStart, modifier = Modifier.padding(padding).padding(16.dp))
                 }
-            } else {
-                DashboardContent(uiState = uiState, actions = actions, modifier = modifier)
+                else -> MorningContent(uiState = uiState, actions = actions, modifier = modifier)
             }
         }
     }
 }
 
 @Composable
-private fun DashboardContent(uiState: GameUiState.Playing, actions: GameActions, modifier: Modifier = Modifier) {
+private fun MorningContent(uiState: GameUiState.Playing, actions: GameActions, modifier: Modifier = Modifier) {
     var selectedTab by rememberSaveable { mutableIntStateOf(GameTab.TODAY.ordinal) }
+    val goTo: (GameTab) -> Unit = { selectedTab = it.ordinal }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = { DashboardHeader(state = uiState.state, selectedTab = selectedTab, onSelectTab = { selectedTab = it }) },
-        bottomBar = { PlanBar(uiState = uiState, onOpenForTheDay = actions.onOpenForTheDay) },
+        topBar = { MorningHeader(uiState = uiState, selectedTab = selectedTab, onSelectTab = { selectedTab = it }) },
+        bottomBar = { ServiceBar(uiState = uiState, onStartService = actions.onStartService) },
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             when (GameTab.entries[selectedTab]) {
-                GameTab.TODAY -> TodayTab(uiState)
+                GameTab.TODAY -> TodayTab(uiState, actions, onGoTo = goTo)
                 GameTab.STAFF -> StaffTab(uiState, actions)
                 GameTab.MENU -> MenuTab(uiState, actions)
                 GameTab.PANTRY -> PantryTab(uiState, actions)
@@ -137,22 +148,29 @@ private fun DashboardContent(uiState: GameUiState.Playing, actions: GameActions,
 }
 
 @Composable
-private fun DashboardHeader(state: GameState, selectedTab: Int, onSelectTab: (Int) -> Unit) {
+private fun MorningHeader(uiState: GameUiState.Playing, selectedTab: Int, onSelectTab: (Int) -> Unit) {
+    val dailyCosts = remember(uiState.morning) { DailyCosts.of(uiState.morning) }
     Surface(color = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary) {
         Column(modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(top = 4.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = stringResource(R.string.dashboard_day, state.day),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-                Spacer(modifier = Modifier.weight(1f))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.dashboard_day, uiState.state.day),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(text = stringResource(R.string.phase_morning), style = MaterialTheme.typography.labelLarge)
+                }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(text = stringResource(R.string.header_cash), style = MaterialTheme.typography.labelMedium)
-                    Text(text = coins(state.restaurant.cash), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(text = coins(uiState.cashNow), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = stringResource(R.string.header_daily_costs, coins(dailyCosts.total)),
+                        style = MaterialTheme.typography.labelMedium,
+                    )
                 }
             }
             PrimaryScrollableTabRow(
@@ -174,27 +192,17 @@ private fun DashboardHeader(state: GameState, selectedTab: Int, onSelectTab: (In
 }
 
 @Composable
-private fun PlanBar(uiState: GameUiState.Playing, onOpenForTheDay: () -> Unit) {
-    val spend = uiState.preview.spending.total
+private fun ServiceBar(uiState: GameUiState.Playing, onStartService: () -> Unit) {
+    val outlook = remember(uiState.morning) { OutlookCalculator.forTonight(uiState.morning) }
     Surface(tonalElevation = 3.dp, shadowElevation = 8.dp) {
         Column(modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 10.dp)) {
-            if (spend > 0) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(text = stringResource(R.string.plan_spend, coins(spend)), style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        text = stringResource(R.string.plan_cash_after, coins(uiState.state.restaurant.cash - spend)),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-            } else {
-                Text(text = stringResource(R.string.plan_nothing), style = MaterialTheme.typography.bodyMedium)
-            }
+            Text(
+                text = stringResource(R.string.start_service_hint, outlook.expectedCustomers),
+                style = MaterialTheme.typography.bodyMedium,
+            )
             Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = onOpenForTheDay, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-                Text(text = "🍳", style = MaterialTheme.typography.titleLarge)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = stringResource(R.string.dashboard_open_for_the_day), style = MaterialTheme.typography.titleMedium)
+            Button(onClick = onStartService, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+                Text(text = stringResource(R.string.start_service), style = MaterialTheme.typography.titleMedium)
             }
         }
     }

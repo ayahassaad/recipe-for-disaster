@@ -83,7 +83,7 @@ class GameViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
         val dayOneState = (viewModel.uiState.value as GameUiState.Playing).state
 
-        viewModel.openForTheDay()
+        viewModel.startService()
         dispatcher.scheduler.advanceUntilIdle()
 
         val afterState = viewModel.uiState.value
@@ -120,12 +120,55 @@ class GameViewModelTest {
         val applicant = (viewModel.uiState.value as GameUiState.Playing).state.applicants.first()
 
         viewModel.toggleHire(applicant.id)
-        viewModel.openForTheDay()
+        viewModel.startService()
         dispatcher.scheduler.advanceUntilIdle()
 
         val after = viewModel.uiState.value as GameUiState.Playing
         assertTrue(after.state.employees.any { it.id == applicant.id })
         assertEquals(PlayerDecisions(), after.plan)
+    }
+
+    @Test
+    fun `starting service shows the day's results until the player moves on to the next morning`() = runTest(dispatcher) {
+        val viewModel = GameViewModel(FakeGameRepository(), dayTickEngine)
+        viewModel.startNewGame()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.startService()
+        dispatcher.scheduler.advanceUntilIdle()
+        val results = viewModel.uiState.value as GameUiState.Playing
+        assertTrue(results.report != null)
+        assertEquals(1, results.report!!.summary.day)
+
+        viewModel.nextMorning()
+        assertEquals(null, (viewModel.uiState.value as GameUiState.Playing).report)
+    }
+
+    @Test
+    fun `choices can't be changed while the results screen is up`() = runTest(dispatcher) {
+        val viewModel = GameViewModel(FakeGameRepository(), dayTickEngine)
+        viewModel.startNewGame()
+        dispatcher.scheduler.advanceUntilIdle()
+        viewModel.startService()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleDeepClean()
+
+        assertEquals(PlayerDecisions(), (viewModel.uiState.value as GameUiState.Playing).plan)
+    }
+
+    @Test
+    fun `cash shown this morning already reflects what's been bought`() = runTest(dispatcher) {
+        val viewModel = GameViewModel(FakeGameRepository(), dayTickEngine)
+        viewModel.startNewGame()
+        dispatcher.scheduler.advanceUntilIdle()
+        val before = (viewModel.uiState.value as GameUiState.Playing).cashNow
+
+        viewModel.toggleDeepClean()
+
+        val after = viewModel.uiState.value as GameUiState.Playing
+        assertEquals(before - com.recipefordisaster.domain.decision.DecisionApplier.DEEP_CLEAN_COST, after.cashNow)
+        assertTrue(after.morning.restaurant.cleanliness > after.state.restaurant.cleanliness)
     }
 
     @Test
@@ -145,7 +188,7 @@ class GameViewModelTest {
         val repository = FakeGameRepository()
         val viewModel = GameViewModel(repository, dayTickEngine)
 
-        viewModel.openForTheDay()
+        viewModel.startService()
         dispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(GameUiState.Loading, viewModel.uiState.value)

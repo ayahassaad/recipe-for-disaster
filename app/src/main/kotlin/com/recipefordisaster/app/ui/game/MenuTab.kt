@@ -48,7 +48,12 @@ internal fun MenuTab(uiState: GameUiState.Playing, actions: GameActions, modifie
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { SectionHeader(stringResource(R.string.menu_heading)) }
+        item {
+            Column {
+                SectionHeader(stringResource(R.string.menu_heading))
+                Text(stringResource(R.string.menu_hint), style = MaterialTheme.typography.bodyMedium)
+            }
+        }
         items(currentMenu, key = { it.id.value }) { dish ->
             DishCard(
                 dish = dish,
@@ -64,7 +69,7 @@ internal fun MenuTab(uiState: GameUiState.Playing, actions: GameActions, modifie
         item {
             Column {
                 SectionHeader(stringResource(R.string.recipe_book_heading))
-                Text(stringResource(R.string.recipe_book_hint, coins(RecipeBook.ADD_DISH_COST)), style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.recipe_book_hint), style = MaterialTheme.typography.bodyMedium)
             }
         }
         if (book.isEmpty()) {
@@ -75,6 +80,7 @@ internal fun MenuTab(uiState: GameUiState.Playing, actions: GameActions, modifie
                 dish = dish,
                 state = uiState.state,
                 adding = dish.id in uiState.plan.dishesToAdd,
+                canAfford = uiState.cashNow >= RecipeBook.ADD_DISH_COST,
                 onToggle = { actions.onToggleAddDish(dish.id) },
             )
         }
@@ -137,7 +143,7 @@ private fun priceColor(dish: Dish) = when {
 }
 
 @Composable
-private fun RecipeCard(dish: Dish, state: GameState, adding: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
+private fun RecipeCard(dish: Dish, state: GameState, adding: Boolean, canAfford: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
     val needs = dish.recipe.ingredientRequirements.keys.joinToString { id -> state.inventory.ingredients[id]?.name ?: id.value }
     GameCard(modifier = modifier) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -147,6 +153,11 @@ private fun RecipeCard(dish: Dish, state: GameState, adding: Boolean, onToggle: 
         Text(text = stringResource(R.string.recipe_quality_popularity, dish.quality, dish.popularity), style = MaterialTheme.typography.bodyMedium)
         Text(text = stringResource(R.string.recipe_needs, needs), style = MaterialTheme.typography.bodyMedium)
         Spacer(modifier = Modifier.height(6.dp))
-        FilterChip(selected = adding, onClick = onToggle, label = { Text("📖 " + stringResource(R.string.recipe_add)) })
+        FilterChip(
+            selected = adding,
+            onClick = onToggle,
+            enabled = adding || canAfford,
+            label = { Text(if (adding) stringResource(R.string.recipe_added) else stringResource(R.string.recipe_add, coins(RecipeBook.ADD_DISH_COST))) },
+        )
     }
 }

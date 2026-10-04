@@ -159,15 +159,29 @@ class DefaultDayTickEngine(
             pendingDemandModifierPercent = 0,
         ).withStatusChecked()
 
+        fun summaryFor(end: GameState) = DaySummary(
+            day = state.day,
+            customersArrived = arrivals.size,
+            customersFed = customersFed,
+            unfedKitchenFull = serviceResult.missedCount(MissedMealReason.KITCHEN_OVERWHELMED),
+            unfedOutOfStock = serviceResult.missedCount(MissedMealReason.OUT_OF_STOCK),
+            walkedOut = serviceResult.missedCount(MissedMealReason.NOTHING_SUITABLE),
+            averageSatisfaction = averageSatisfaction,
+            reputationBefore = state.restaurant.reputation,
+            reputationAfter = end.restaurant.reputation,
+            cashBefore = state.restaurant.cash,
+            cashAfter = end.restaurant.cash,
+        )
+
         // 4. Overnight — but not once the run is already over.
         if (stateBeforeEvent.isGameOver()) {
-            return DayResult(newState = stateBeforeEvent, log = dayLog)
+            return DayResult(newState = stateBeforeEvent, log = dayLog, summary = summaryFor(stateBeforeEvent))
         }
 
         val prepared = eventEngine.prepare(stateBeforeEvent)
         val eventOutcome = eventEngine.selectNext(prepared, rng)
         if (eventOutcome == null) {
-            return DayResult(newState = prepared, log = dayLog)
+            return DayResult(newState = prepared, log = dayLog, summary = summaryFor(prepared))
         }
 
         val rule = eventEngine.ruleById(eventOutcome.ruleId)
@@ -182,7 +196,7 @@ class DefaultDayTickEngine(
             severity = rule?.severity ?: Severity.MINOR,
             tone = eventOutcome.tone,
         )
-        return DayResult(newState = finalState, log = dayLog, event = firedEvent)
+        return DayResult(newState = finalState, log = dayLog, event = firedEvent, summary = summaryFor(finalState))
     }
 
     /** Re-derives game-over status from cash and reputation — run again after events, since a fine can bankrupt you. */

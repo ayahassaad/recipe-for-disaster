@@ -64,6 +64,10 @@ private val numberFormat: NumberFormat = NumberFormat.getIntegerInstance()
 @Composable
 fun coins(amount: Long): String = stringResource(R.string.coins, numberFormat.format(amount))
 
+/** "78 💰/day" — for anything paid every day, like wages. */
+@Composable
+fun coinsPerDay(amount: Long): String = stringResource(R.string.coins_per_day, numberFormat.format(amount))
+
 @Composable
 fun GameCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     Card(
@@ -213,3 +217,7 @@ fun traitLabel(trait: PersonalityTrait): String = stringResource(
         PersonalityTrait.ANXIOUS -> R.string.trait_anxious
     },
 )
+
+/** "5" for whole amounts, "4.3" otherwise — in the device's own decimal format. */
+internal fun formatQuantity(quantity: Double): String =
+    if (quantity == quantity.toLong().toDouble()) quantity.toLong().toString() else String.format(java.util.Locale.getDefault(), "%.1f", quantity)

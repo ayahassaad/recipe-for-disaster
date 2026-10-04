@@ -25,7 +25,9 @@ import com.recipefordisaster.domain.simulation.LogTone
 @Composable
 internal fun KitchenTab(uiState: GameUiState.Playing, actions: GameActions, modifier: Modifier = Modifier) {
     val state = uiState.state
+    // Before the deep clean (if any), so the chip still makes sense once it's been tapped.
     val cleanliness = state.restaurant.cleanliness
+    val cleanedTo = uiState.morning.restaurant.cleanliness
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -35,24 +37,35 @@ internal fun KitchenTab(uiState: GameUiState.Playing, actions: GameActions, modi
         item {
             GameCard {
                 SectionHeader(stringResource(R.string.kitchen_cleanliness_heading))
-                Meter(stringResource(R.string.dashboard_cleanliness), cleanliness, statColorFor(cleanliness))
+                Meter(stringResource(R.string.dashboard_cleanliness), cleanedTo, statColorFor(cleanedTo))
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(stringResource(R.string.kitchen_cleanliness_hint), style = MaterialTheme.typography.bodyMedium)
                 Spacer(modifier = Modifier.height(6.dp))
                 FilterChip(
                     selected = uiState.plan.deepClean,
                     onClick = actions.onToggleDeepClean,
-                    enabled = cleanliness < 100,
-                    label = { Text("🧼 " + stringResource(R.string.kitchen_deep_clean, coins(DecisionApplier.DEEP_CLEAN_COST))) },
+                    enabled = uiState.plan.deepClean || (cleanliness < 100 && uiState.cashNow >= DecisionApplier.DEEP_CLEAN_COST),
+                    label = {
+                        Text(
+                            if (uiState.plan.deepClean) {
+                                stringResource(R.string.kitchen_cleaned)
+                            } else {
+                                stringResource(R.string.kitchen_deep_clean, coins(DecisionApplier.DEEP_CLEAN_COST))
+                            },
+                        )
+                    },
                 )
             }
         }
 
         item { SectionHeader(stringResource(R.string.kitchen_equipment_heading)) }
         items(state.equipment, key = { it.id.value }) { equipment ->
+            val repairing = equipment.id in uiState.plan.repairs
             EquipmentCard(
                 equipment = equipment,
-                repairing = equipment.id in uiState.plan.repairs,
+                shownCondition = if (repairing) 100 else equipment.condition,
+                repairing = repairing,
+                canAfford = uiState.cashNow >= EquipmentOperations.repairCost(equipment),
                 onToggleRepair = { actions.onToggleRepair(equipment.id) },
             )
         }
@@ -60,13 +73,20 @@ internal fun KitchenTab(uiState: GameUiState.Playing, actions: GameActions, modi
 }
 
 @Composable
-private fun EquipmentCard(equipment: Equipment, repairing: Boolean, onToggleRepair: () -> Unit, modifier: Modifier = Modifier) {
+private fun EquipmentCard(
+    equipment: Equipment,
+    shownCondition: Int,
+    repairing: Boolean,
+    canAfford: Boolean,
+    onToggleRepair: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val cost = EquipmentOperations.repairCost(equipment)
     GameCard(modifier = modifier) {
         Text(text = equipment.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(6.dp))
-        Meter(stringResource(R.string.kitchen_condition), equipment.condition, statColorFor(equipment.condition))
-        if (EquipmentOperations.isBroken(equipment)) {
+        Meter(stringResource(R.string.kitchen_condition), shownCondition, statColorFor(shownCondition))
+        if (EquipmentOperations.isBroken(equipment) && !repairing) {
             Text(
                 text = stringResource(R.string.kitchen_broken),
                 style = MaterialTheme.typography.bodyMedium,
@@ -79,7 +99,10 @@ private fun EquipmentCard(equipment: Equipment, repairing: Boolean, onToggleRepa
             FilterChip(
                 selected = repairing,
                 onClick = onToggleRepair,
-                label = { Text("🔧 " + stringResource(R.string.kitchen_repair, coins(cost))) },
+                enabled = repairing || canAfford,
+                label = {
+                    Text(if (repairing) stringResource(R.string.kitchen_repaired) else stringResource(R.string.kitchen_repair, coins(cost)))
+                },
             )
         } else {
             Text(stringResource(R.string.kitchen_good_shape), style = MaterialTheme.typography.bodyMedium)

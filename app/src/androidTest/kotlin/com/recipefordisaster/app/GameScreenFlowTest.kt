@@ -26,7 +26,7 @@ import org.junit.runner.RunWith
 
 /**
  * Covers the critical flows named in section 18 that are actually in scope
- * for Phase 5: new game, start day (Open for the day), and the resulting
+ * for the core loop: new game, start service, the results screen, next morning, and the resulting
  * dashboard update, plus the Start screen's Continue-enablement rule. Uses
  * a real in-memory Room database and the real [DefaultDayTickEngine] (with
  * the still-empty Phase 6 event rule list) rather than fakes, so this is as
@@ -68,11 +68,16 @@ class GameScreenFlowTest {
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("Day 1").assertExists()
 
-        composeTestRule.onNodeWithText("Open for the day").performClick()
+        composeTestRule.onNodeWithText("Start service", substring = true).performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText("Day 1 is over", substring = true).assertExists()
+        composeTestRule.onNodeWithText("Next morning", substring = true).performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("Day 2").assertExists()
 
-        composeTestRule.onNodeWithText("Open for the day").performClick()
+        composeTestRule.onNodeWithText("Start service", substring = true).performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText("Next morning", substring = true).performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("Day 3").assertExists()
     }

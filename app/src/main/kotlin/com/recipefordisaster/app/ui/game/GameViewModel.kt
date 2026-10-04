@@ -7,11 +7,14 @@ import com.recipefordisaster.data.repository.GameRepository
 import com.recipefordisaster.data.repository.SaveLoadResult
 import com.recipefordisaster.domain.decision.AppliedDecisions
 import com.recipefordisaster.domain.decision.DecisionApplier
+import com.recipefordisaster.domain.decision.DecisionSpending
 import com.recipefordisaster.domain.decision.PriceRules
+import com.recipefordisaster.domain.economy.DailyFinancials
 import com.recipefordisaster.domain.employee.EmployeeId
 import com.recipefordisaster.domain.equipment.EquipmentId
 import com.recipefordisaster.domain.inventory.IngredientId
 import com.recipefordisaster.domain.menu.DishId
+import com.recipefordisaster.domain.simulation.DaySummary
 import com.recipefordisaster.domain.simulation.DayTickEngine
 import com.recipefordisaster.domain.simulation.FiredEvent
 import com.recipefordisaster.domain.simulation.GameState
@@ -27,15 +30,20 @@ import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 /**
- * UI state for the main play screen. A [GameState] carries everything the
- * dashboard needs to render; [dayLog] is just the entries produced by the
- * *most recent* day, kept separate so the UI can highlight "what just
- * happened" distinctly from the full running history in [GameState.log].
+ * UI state for the main play screen.
  *
- * [plan] is the player's not-yet-committed decisions for the coming day,
- * and [preview] is the domain's own answer to "what would that plan do and
- * cost" — computed by the same [DecisionApplier] the day-tick uses, so what
- * the screen promises is exactly what happens.
+ * A day has two phases. In the **morning** the player hires, buys, repairs
+ * and so on; each choice shows up straight away (the new cook is in the
+ * team, the cash has gone down) and can be undone by tapping it again until
+ * service starts. Under the hood those choices are a [plan] over the
+ * morning's starting [state], and [preview] is the domain's own answer to
+ * "what does the restaurant look like with that plan" — computed by the
+ * same [DecisionApplier] the day-tick uses, so what the screen shows is
+ * exactly what happens. Screens should read [morning] (the restaurant as
+ * the player has arranged it) and [cashNow], not [state].
+ *
+ * When service ends, [report] holds the results until the player moves on
+ * to the next morning.
  */
 sealed interface GameUiState {
     data object Loading : GameUiState
@@ -45,13 +53,33 @@ sealed interface GameUiState {
         val lastEvent: FiredEvent? = null,
         val plan: PlayerDecisions = PlayerDecisions(),
         val preview: AppliedDecisions = DecisionApplier.apply(state, plan),
-    ) : GameUiState
+        val report: DayReport? = null,
+    ) : GameUiState {
+        /** The restaurant as the player has set it up this morning. */
+        val morning: GameState get() = preview.state
+
+        /** Cash after everything chosen so far this morning. */
+        val cashNow: Long get() = state.restaurant.cash - preview.spending.total
+    }
     data class Error(val message: String) : GameUiState
 }
 
 /**
- * Drives the core loop: start or resume a run, build up the day's plan
- * (Phase 6 decisions), then "Open for the day." No simulation logic lives
+ * Everything the end-of-day results screen shows. [morningSpending] is
+ * kept so the screen can separate the player's one-off choices (hiring,
+ * cleaning, menu) from the restaurant's fixed daily costs, which the books
+ * file together.
+ */
+data class DayReport(
+    val summary: DaySummary,
+    val books: DailyFinancials,
+    val event: FiredEvent?,
+    val morningSpending: DecisionSpending,
+)
+
+/**
+ * Drives the core loop: start or resume a run, set up the morning
+ * (Phase 6 decisions), start service, read the results, next morning. No simulation logic lives
  * here — every rule about what a decision or a day *does* stays in
  * `:domain` ([DecisionApplier], [DayTickEngine]); this class only edits
  * the draft plan, sequences calls, and turns results into UI state.
@@ -89,9 +117,10 @@ class GameViewModel(
         }
     }
 
-    fun openForTheDay() {
+    /** Runs tonight's service with everything chosen this morning, then shows the results. */
+    fun startService() {
         val current = _uiState.value
-        if (current !is GameUiState.Playing) return
+        if (current !is GameUiState.Playing || current.report != null) return
 
         viewModelScope.launch {
             // Per-day deterministic seed, derived from the run's base seed
@@ -111,11 +140,19 @@ class GameViewModel(
 
             val result = dayTickEngine.advanceDay(current.state, current.plan, rng)
             gameRepository.save(result.newState)
-            _uiState.value = GameUiState.Playing(result.newState, dayLog = result.log, lastEvent = result.event)
+            val report = result.summary?.let { summary ->
+                result.newState.ledger.history.lastOrNull()?.let { books -> DayReport(summary, books, result.event, current.preview.spending) }
+            }
+            _uiState.value = GameUiState.Playing(result.newState, dayLog = result.log, lastEvent = result.event, report = report)
         }
     }
 
-    // --- Planning the day. Each of these only edits the draft; nothing is committed until openForTheDay(). ---
+    /** Leaves the results screen for the next morning. */
+    fun nextMorning() {
+        _uiState.update { current -> if (current is GameUiState.Playing) current.copy(report = null) else current }
+    }
+
+    // --- The morning. Each of these edits the plan, so the change shows straight away and tapping again undoes it. ---
 
     /** Adds [delta] (may be negative) to the planned purchase of an ingredient, never below zero. */
     fun adjustPurchase(id: IngredientId, delta: Double) = editPlan { plan ->
@@ -154,7 +191,7 @@ class GameViewModel(
 
     private fun editPlan(transform: (PlayerDecisions) -> PlayerDecisions) {
         _uiState.update { current ->
-            if (current !is GameUiState.Playing) return@update current
+            if (current !is GameUiState.Playing || current.report != null) return@update current
             val plan = transform(current.plan)
             current.copy(plan = plan, preview = DecisionApplier.apply(current.state, plan))
         }
