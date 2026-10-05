@@ -559,7 +559,8 @@ internal fun Pen.drawPerson(
     slumped: Boolean = false,
     variant: Int = 0,
     walkPhase: Float? = null,
-    apron: Color = Palette.serverRed,
+    /** Apron (servers) or overalls (dishwashers) colour; null for the usual red or blue. */
+    apron: Color? = null,
 ) {
     val y = at.y - bob + if (slumped) 0.8f else 0f
     oval(at.x, at.y + 3.6f, 4.2f, 1.3f, Palette.shadow)
@@ -603,19 +604,19 @@ internal fun Pen.drawPerson(
             }
         }
         Outfit.SERVER -> {
-            // Waistcoat, red apron and a bow tie.
+            // Waistcoat, apron and a bow tie in the same colour.
             box(at.x - 4f, y - 1.2f, 2.4f, 5.6f, Color(0xFF2B2B2B), radius = 1.2f)
             box(at.x + 1.6f, y - 1.2f, 2.4f, 5.6f, Color(0xFF2B2B2B), radius = 1.2f)
-            box(at.x - 2.6f, y + 1.8f, 5.2f, 3.4f, apron, radius = 0.6f)
+            box(at.x - 2.6f, y + 1.8f, 5.2f, 3.4f, apron ?: Palette.serverRed, radius = 0.6f)
             line(at.x - 2.6f, y + 1.9f, at.x + 2.6f, y + 1.9f, Color(0x55000000), 0.3f)
-            shape(Palette.ink) {
+            shape(apron ?: Palette.ink) {
                 moveTo(at.x, y - 0.6f); lineTo(at.x - 1.3f, y - 1.3f); lineTo(at.x - 1.3f, y + 0.1f); close()
                 moveTo(at.x, y - 0.6f); lineTo(at.x + 1.3f, y - 1.3f); lineTo(at.x + 1.3f, y + 0.1f); close()
             }
         }
         Outfit.WASHER -> {
             // Overalls bib with two buttons.
-            box(at.x - 2f, y - 0.6f, 4f, 3f, Color(0xFF2F6188), radius = 0.5f)
+            box(at.x - 2f, y - 0.6f, 4f, 3f, apron ?: Color(0xFF2F6188), radius = 0.5f)
             dot(at.x - 1.3f, y - 0.2f, 0.3f, Palette.gold)
             dot(at.x + 1.3f, y - 0.2f, 0.3f, Palette.gold)
         }

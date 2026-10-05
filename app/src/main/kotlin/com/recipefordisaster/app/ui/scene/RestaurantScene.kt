@@ -107,6 +107,7 @@ fun RestaurantScene(
         val unit = minOf(widthPx / SceneLayout.WIDTH, heightPx / SceneLayout.HEIGHT)
         val origin = Offset((widthPx - unit * SceneLayout.WIDTH) / 2f, (heightPx - unit * SceneLayout.HEIGHT) / 2f)
         val staffSpots = staffPositions(model.staff)
+        val helperColor = remember(model.staff) { helperColors(model.staff) }
 
         Canvas(modifier = Modifier.fillMaxSize()) {
             // Nobody gets drawn outside the room, even on their way out of the door.
@@ -134,6 +135,7 @@ fun RestaurantScene(
                         sweat = figure.stress >= 70,
                         slumped = figure.stress >= 85,
                         variant = figure.name.hashCode().mod(5),
+                        apron = helperColor[figure.id.value],
                     )
                 }
 

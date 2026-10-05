@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -48,7 +49,18 @@ data class NightLabels(
 
 /** Colours that mark whose table is whose: yours, and each hired server's. */
 internal val PlayerColor = Color(0xFF3E8E41)
-internal val HelperColors = listOf(Color(0xFF3B78A8), Color(0xFF9C6FB6))
+internal val HelperColors = listOf(Color(0xFF3B78A8), Color(0xFF9C6FB6), Color(0xFFE08A2E), Color(0xFF2E9C8F))
+
+/**
+ * Each hired helper's colour, by id: servers first, then dishwashers, two of
+ * each — the same people, in the same order, that work the floor at night —
+ * so someone wears the same colour in the morning as during service.
+ */
+internal fun helperColors(staff: List<StaffFigure>): Map<String, Color> {
+    val helpers = staff.filter { it.role == StaffRole.SERVER || it.role == StaffRole.MANAGER }.take(2) +
+        staff.filter { it.role == StaffRole.DISHWASHER }.take(2)
+    return helpers.mapIndexed { k, figure -> figure.id.value to HelperColors[k % HelperColors.size] }.toMap()
+}
 
 /**
  * Service, played. The same restaurant as the morning, with guests in it:
@@ -81,6 +93,7 @@ fun NightScene(
         val unit = minOf(widthPx / SceneLayout.WIDTH, heightPx / SceneLayout.HEIGHT)
         val origin = Offset((widthPx - unit * SceneLayout.WIDTH) / 2f, (heightPx - unit * SceneLayout.HEIGHT) / 2f)
         val ownerColor = ownerColors(night)
+        val helperColor = remember(model.staff) { helperColors(model.staff) }
 
         Canvas(modifier = Modifier.fillMaxSize()) {
             clipRect(origin.x, origin.y, origin.x + unit * SceneLayout.WIDTH, origin.y + unit * SceneLayout.HEIGHT) {
@@ -209,7 +222,7 @@ fun NightScene(
                             sweat = (figure?.stress ?: 0) >= 70,
                             variant = (figure?.name ?: "you").hashCode().mod(5),
                             walkPhase = if (walking) time * 2.4f else null,
-                            apron = if (waiter.isPlayer) PlayerColor else Palette.serverRed,
+                            apron = if (waiter.isPlayer) PlayerColor else helperColor[waiter.id],
                         )
                         // What's in each hand (left, then right), and a notepad for tickets not yet handed in.
                         waiter.hands.forEachIndexed { k, item ->
@@ -230,8 +243,7 @@ fun NightScene(
                         }
                         if (waiter.isPlayer) drawYouMarker(text, labels.you, Point(at.x, at.y - 12f), clock)
                         else {
-                            val helperIndex = night.waiters.filter { !it.isPlayer }.indexOf(waiter)
-                            dot(at.x, at.y - 11.4f, 1.1f, HelperColors[helperIndex.coerceAtLeast(0) % HelperColors.size])
+                            helperColor[waiter.id]?.let { dot(at.x, at.y - 11.4f, 1.1f, it) }
                         }
                     }
                 }
