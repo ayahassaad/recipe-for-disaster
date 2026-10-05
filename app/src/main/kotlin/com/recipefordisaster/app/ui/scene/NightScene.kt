@@ -37,6 +37,9 @@ data class NightLabels(
     val foodReady: String,
     val eating: String,
     val empty: String,
+    val needsClearing: String,
+    val dishStation: String,
+    val dishSign: String,
     val you: String,
     val menu: String,
 )
@@ -63,6 +66,7 @@ fun NightScene(
     clock: Float,
     onTapTable: (Int) -> Unit,
     onTapCounter: () -> Unit,
+    onTapDishStation: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val text = rememberTextMeasurer()
@@ -90,13 +94,17 @@ fun NightScene(
                     drawMopBucket()
 
                     // Kitchen staff at their stations, working when there's cooking.
-                    staffPositions(model.staff).filter { it.first.role != StaffRole.SERVER && it.first.role != StaffRole.MANAGER }
+                    staffPositions(model.staff).filter { it.first.role == StaffRole.COOK }
                         .forEach { (figure, spot) ->
                             drawPerson(spot, outfitFor(figure.role), figure.morale, bob = if (cooking) sin(clock * 12f) * 0.6f else 0f, sweat = figure.stress >= 70, variant = figure.name.hashCode().mod(5))
                         }
 
                     drawTickets(text, night)
                     drawReadyPlates(text, night)
+                    drawDishStation(text, labels.dishSign, night, clock)
+
+                    // Tables guests have left: dirty plates, crumbs and a crumpled napkin until someone clears them.
+                    night.dirtyTables.forEach { t -> drawDirtyTable(SceneLayout.tables[t]) }
 
                     // Table number cards, in the colour of whoever looks after the table.
                     SceneLayout.tables.forEachIndexed { t, table -> drawTableNumber(text, table, t + 1, ownerColor[t] ?: PlayerColor) }
@@ -159,6 +167,7 @@ fun NightScene(
                         val spot = when (errand) {
                             is ServiceNight.Errand.VisitTable -> ServiceFloor.stand(errand.table)
                             ServiceNight.Errand.VisitPass -> ServiceFloor.pass
+                            ServiceNight.Errand.VisitDishStation -> ServiceFloor.dishStation
                             else -> null
                         } ?: return@forEachIndexed
                         val at = Point(spot.x, spot.y + 3.5f)
@@ -178,7 +187,7 @@ fun NightScene(
                         val figure = model.staff.firstOrNull { it.id.value == waiter.id }
                         drawPerson(
                             at = at,
-                            outfit = Outfit.SERVER,
+                            outfit = if (waiter.kind == ServiceNight.Kind.DISHWASHER) Outfit.WASHER else Outfit.SERVER,
                             mood = figure?.morale ?: 80,
                             bob = bob,
                             sweat = (figure?.stress ?: 0) >= 70,
@@ -190,6 +199,7 @@ fun NightScene(
                         waiter.hands.forEachIndexed { k, item ->
                             val hand = Point(at.x + (if (k == 0) -4.6f else 4.6f), at.y + 2.6f)
                             when (item) {
+                                is ServiceNight.HandItem.DirtyDishes -> drawDirtyStack(hand)
                                 is ServiceNight.HandItem.Plate -> {
                                     drawPlate(hand)
                                     // The table number travels with the plate, so you always know where it's going.
@@ -220,11 +230,12 @@ fun NightScene(
                 Stage.ORDER_TAKEN, Stage.IN_KITCHEN, Stage.COOKING, Stage.CARRIED -> labels.waitingForFood
                 Stage.READY_AT_PASS -> labels.foodReady
                 Stage.EATING -> labels.eating
-                else -> labels.empty
+                else -> if (t in night.dirtyTables) labels.needsClearing else labels.empty
             }
             TapArea(rect, unit, origin, labels.table(t + 1, state)) { onTapTable(t) }
         }
-        TapArea(Rect(0f, 0f, SceneLayout.WIDTH, SceneLayout.counter.bottom + 2f), unit, origin, labels.counter, onTapCounter)
+        TapArea(Rect(0f, 0f, 78f, SceneLayout.counter.bottom + 2f), unit, origin, labels.counter, onTapCounter)
+        TapArea(Rect(78f, 0f, SceneLayout.WIDTH, SceneLayout.counter.bottom + 2f), unit, origin, labels.dishStation, onTapDishStation)
     }
 }
 
@@ -342,4 +353,57 @@ private fun Pen.drawYouMarker(text: TextMeasurer, label: String, at: Point, cloc
     box(at.x - 4.4f, y - 2.2f, 8.8f, 3.6f, PlayerColor, radius = 1.6f)
     centeredText(text, label, Point(at.x, y - 0.4f), size = 2.4f, color = Color.White, bold = true)
     shape(PlayerColor) { moveTo(at.x - 1.2f, y + 1.4f); lineTo(at.x + 1.2f, y + 1.4f); lineTo(at.x, y + 3f); close() }
+}
+
+/** Dirty plates left on a table: smeared, with crumbs and a crumpled napkin. */
+private fun Pen.drawDirtyTable(table: Point) {
+    for (side in listOf(-1f, 1f)) {
+        val px = table.x + side * 4.2f
+        dot(px, table.y, 1.9f, Color(0xFFF4EFE6))
+        oval(px + 0.3f, table.y - 0.2f, 1.1f, 0.6f, Color(0x99A0612E)) // smear of sauce
+        dot(px - 0.7f, table.y + 0.6f, 0.25f, Color(0xFF8A5A2E))
+        dot(px + 0.9f, table.y + 0.8f, 0.2f, Color(0xFF8A5A2E))
+        line(px - 1.2f, table.y - 1.6f, px + 1.4f, table.y + 1.2f, Palette.steelDark, 0.3f) // dropped fork
+    }
+    // Crumpled napkin.
+    dot(table.x + 1.2f, table.y + 2.6f, 1.1f, Color.White)
+    dot(table.x + 1.9f, table.y + 2.1f, 0.7f, Color(0xFFEDEDED))
+    // Crumbs on the cloth.
+    for (k in 0..4) dot(table.x - 2f + k * 1.1f, table.y - 3f + (k % 2) * 0.8f, 0.2f, Color(0xFF9A6A3A))
+}
+
+/** A stack of dirty plates, as carried in one hand. */
+private fun Pen.drawDirtyStack(at: Point) {
+    for (k in 0..2) {
+        oval(at.x, at.y - k * 0.6f, 2.2f, 1.1f, Color(0xFFF4EFE6))
+        ring(at.x, at.y - k * 0.6f, 1.2f, Color(0x33000000), 0.15f)
+    }
+    oval(at.x + 0.4f, at.y - 1.4f, 0.9f, 0.4f, Color(0x99A0612E))
+}
+
+/** The dish station at the right end of the counter: a deep basin, a drying rack, and a sign. */
+private fun Pen.drawDishStation(text: TextMeasurer, sign: String, night: ServiceNight, clock: Float) {
+    val c = SceneLayout.counter
+    val x = 80f
+    box(x, c.top - 1f, 14f, 6f, Palette.steel, radius = 0.6f)
+    box(x + 1f, c.top - 0.2f, 7f, 4.4f, Palette.steelDark, radius = 0.6f)
+    for (k in 0..2) dot(x + 2.6f + k * 1.6f, c.top + 1.6f + (k % 2) * 0.6f, 0.6f, Color(0xCCFFFFFF)) // suds
+    for (k in 0..3) line(x + 9.2f + k * 1.2f, c.top - 0.4f, x + 9.2f + k * 1.2f, c.top + 4.6f, Palette.steelMid, 0.3f) // drying rack
+    box(x + 2f, c.top - 6.6f, 10f, 4f, Color(0xFF2F6188), radius = 0.5f)
+    centeredText(text, sign, Point(x + 7f, c.top - 4.6f), size = 2.3f, color = Color.White, bold = true)
+    // Someone washing up: a ring that fills as the dishes get done.
+    night.waiters.filter { it.errand == ServiceNight.Errand.Wash }.forEach { w ->
+        val progress = ((night.time - w.routeStart) / (w.routeEnd - w.routeStart).coerceAtLeast(0.01f)).coerceIn(0f, 1f)
+        val at = w.position(night.time).toPoint()
+        drawArc(
+            Palette.washerBlue,
+            startAngle = -90f,
+            sweepAngle = 360f * progress,
+            useCenter = false,
+            topLeft = p(at.x - 3f, at.y - 16f),
+            size = androidx.compose.ui.geometry.Size(u(6f), u(6f)),
+            style = androidx.compose.ui.graphics.drawscope.Stroke(u(0.8f)),
+        )
+        dot(at.x + sin(clock * 10f) * 0.6f, at.y - 13f, 0.6f, Color(0xCCFFFFFF))
+    }
 }

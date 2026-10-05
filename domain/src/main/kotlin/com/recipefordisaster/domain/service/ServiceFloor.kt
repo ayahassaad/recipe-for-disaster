@@ -40,6 +40,9 @@ object ServiceFloor {
 
     /** Where tickets are handed in and plates picked up. */
     val pass = FloorPoint(50f, 49f)
+
+    /** The dish station at the right end of the counter, where dirty plates are washed. */
+    val dishStation = FloorPoint(86f, 49f)
     val door = FloorPoint(50f, 146f)
     const val AISLE_X = 50f
 

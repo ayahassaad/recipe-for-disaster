@@ -32,14 +32,16 @@ class ServiceNightTest {
         return n
     }
 
-    /** A decent player: serves plates first, hands in tickets, then takes the longest-waiting order. */
+    /** A decent player: serves plates first, hands in tickets, then takes the longest-waiting order, and clears up. */
     private fun busyPlayer(n: ServiceNight): ServiceNight {
         val me = n.player
         if (me.walking) return n
+        if (me.dirtyDishes.isNotEmpty() && (me.freeHands == 0 || n.dirtyTables.isEmpty())) return n.tapDishStation()
         me.plates.firstOrNull()?.let { id -> n.parties.first { it.id == id }.table?.let { return n.tapTable(it) } }
         if (me.tickets.isNotEmpty()) return n.tapPass()
         if (n.parties.any { it.stage == Stage.READY_AT_PASS && it.table in me.tables }) return n.tapPass()
         n.parties.filter { it.stage == Stage.READY_TO_ORDER && it.table in me.tables }.minByOrNull { it.stageSince }?.table?.let { return n.tapTable(it) }
+        if (me.freeHands > 0) n.dirtyTables.firstOrNull()?.let { return n.tapTable(it) }
         return n
     }
 
@@ -175,5 +177,47 @@ class ServiceNightTest {
     fun `tapping the same stop twice doesn't queue it twice`() {
         var n = open().tapTable(0).tapPass().tapPass().tapTable(0)
         assertEquals(listOf<ServiceNight.Errand>(ServiceNight.Errand.VisitPass), n.player.queue)
+    }
+
+    @Test
+    fun `guests leave dirty plates, and nobody sits at a dirty table`() {
+        var n = open(start.copy(employees = start.employees.filter { it.role != com.recipefordisaster.domain.employee.Role.DISHWASHER }))
+        // Serve but never clear: tables fill up with dirty plates and stay empty.
+        n = play(n) { current ->
+            val me = current.player
+            when {
+                me.walking -> current
+                me.plates.isNotEmpty() -> current.parties.first { it.id == me.plates.first() }.table?.let { current.tapTable(it) } ?: current
+                me.tickets.isNotEmpty() || current.parties.any { it.stage == Stage.READY_AT_PASS } -> current.tapPass()
+                else -> current.parties.filter { it.stage == Stage.READY_TO_ORDER }.minByOrNull { it.stageSince }?.table?.let { current.tapTable(it) } ?: current
+            }
+        }
+        assertTrue(n.dirtyTables.isNotEmpty())
+    }
+
+    @Test
+    fun `clearing and washing up frees the table again`() {
+        var n = open(start.copy(employees = start.employees.filter { it.role != com.recipefordisaster.domain.employee.Role.SERVER }))
+        n = play(n, ::busyPlayer)
+        assertTrue("dirty tables left: ${n.dirtyTables}", n.dirtyTables.size <= 1)
+    }
+
+    @Test
+    fun `a hired dishwasher clears tables on their own`() {
+        val washer = start.applicants.first().copy(role = com.recipefordisaster.domain.employee.Role.DISHWASHER)
+        val withWasher = start.copy(employees = start.employees + washer)
+        val night = open(withWasher)
+        assertTrue(night.waiters.any { it.kind == ServiceNight.Kind.DISHWASHER })
+        // The player serves but never clears; the dishwasher should keep tables clean.
+        val served = play(night) { current ->
+            val me = current.player
+            when {
+                me.walking -> current
+                me.plates.isNotEmpty() -> current.parties.first { it.id == me.plates.first() }.table?.let { current.tapTable(it) } ?: current
+                me.tickets.isNotEmpty() || current.parties.any { it.stage == Stage.READY_AT_PASS } -> current.tapPass()
+                else -> current.parties.filter { it.stage == Stage.READY_TO_ORDER }.minByOrNull { it.stageSince }?.table?.let { current.tapTable(it) } ?: current
+            }
+        }
+        assertTrue("dirty tables left: ${served.dirtyTables}", served.dirtyTables.size <= 1)
     }
 }

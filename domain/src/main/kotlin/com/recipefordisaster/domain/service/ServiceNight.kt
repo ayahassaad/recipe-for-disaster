@@ -48,6 +48,8 @@ data class ServiceNight(
     /** Everyone who came in, in the order they arrived — the order results are reported in. */
     val arrivalOrder: List<Customer>,
     val results: Map<Int, CustomerServiceOutcome> = emptyMap(),
+    /** Tables guests have left dirty plates on; nobody can sit there until they're cleared. */
+    val dirtyTables: Set<Int> = emptySet(),
 ) {
 
     enum class Stage {
@@ -95,13 +97,25 @@ data class ServiceNight(
     sealed interface HandItem {
         /** A party's food (one hand holds a whole table's order). */
         data class Plate(val partyId: Int) : HandItem
+
+        /** The dirty plates cleared from a table, on their way to the dish station. */
+        data class DirtyDishes(val table: Int) : HandItem
     }
+
+    /** Who a waiter is: the player, a hired server running food, or a hired dishwasher clearing tables. */
+    enum class Kind { PLAYER, RUNNER, DISHWASHER }
 
     sealed interface Errand {
         /** Go to a table and do whatever it needs: serve it if you're carrying its food, otherwise take its order. */
         data class VisitTable(val table: Int) : Errand
         data object VisitPass : Errand
         data class Serve(val table: Int) : Errand
+
+        /** Take dirty dishes to the dish station and wash them. */
+        data object VisitDishStation : Errand
+
+        /** Standing at the dish station washing up. */
+        data object Wash : Errand
         data object Rest : Errand
     }
 
@@ -122,7 +136,9 @@ data class ServiceNight(
         val hands: List<HandItem> = emptyList(),
         /** Where the player has asked to go next, after the current errand — taps queue up rather than interrupt. */
         val queue: List<Errand> = emptyList(),
+        val kind: Kind = if (isPlayer) Kind.PLAYER else Kind.RUNNER,
     ) {
+        val dirtyDishes: List<Int> get() = hands.filterIsInstance<HandItem.DirtyDishes>().map { it.table }
         /** Party ids whose plates this waiter is carrying. */
         val plates: List<Int> get() = hands.filterIsInstance<HandItem.Plate>().map { it.partyId }
         val freeHands: Int get() = (HANDS - hands.size).coerceAtLeast(0)
@@ -150,6 +166,9 @@ data class ServiceNight(
     /** Go to the pass: hand in any tickets you're holding and pick up plates that are ready. */
     fun tapPass(): ServiceNight = enqueue(Errand.VisitPass)
 
+    /** Go to the dish station and wash whatever dirty plates you're carrying. */
+    fun tapDishStation(): ServiceNight = enqueue(Errand.VisitDishStation)
+
     /**
      * Taps queue up: if the player is already on their way somewhere, the
      * new stop goes on the end of the list instead of cutting the current
@@ -171,6 +190,8 @@ data class ServiceNight(
             is Errand.VisitTable -> ServiceFloor.stand(errand.table)
             is Errand.Serve -> ServiceFloor.stand(errand.table)
             Errand.VisitPass -> ServiceFloor.pass
+            Errand.VisitDishStation -> ServiceFloor.dishStation
+            Errand.Wash -> here
             Errand.Rest -> waiter.restSpot
         }
         val route = ServiceFloor.route(here, destination)
@@ -232,7 +253,9 @@ data class ServiceNight(
         var night = this
         val queue = night.parties.filter { it.stage == Stage.QUEUEING }.sortedBy { it.arriveAt }
         for (party in queue) {
-            val free = (0 until ServiceFloor.TABLE_COUNT).firstOrNull { t -> night.parties.none { it.table == t && it.occupiesTable } } ?: break
+            val free = (0 until ServiceFloor.TABLE_COUNT).firstOrNull { t ->
+                t !in night.dirtyTables && night.parties.none { it.table == t && it.occupiesTable }
+            } ?: break
             val walk = ServiceFloor.length(ServiceFloor.route(ServiceFloor.door, ServiceFloor.stand(free))) / GUEST_SPEED
             night = night.updateParty(party.id) { it.copy(stage = Stage.WALKING_TO_TABLE, stageSince = time, table = free, until = time + walk) }
         }
@@ -321,7 +344,9 @@ data class ServiceNight(
                         val satisfaction = ServiceSimulator.resolveSatisfaction(customer, dish, waitedMinutes, kitchenQualityBonus)
                         results = results + (guest to CustomerServiceOutcome(customer, dish, satisfaction, waitedMinutes))
                     }
-                    night = night.copy(results = results).updateParty(party.id) { it.copy(stage = Stage.LEAVING_HAPPY, stageSince = time, until = time + LEAVE) }
+                    // They leave their dirty plates behind; the table needs clearing before anyone else can sit there.
+                    night = night.copy(results = results, dirtyTables = night.dirtyTables + listOfNotNull(party.table))
+                        .updateParty(party.id) { it.copy(stage = Stage.LEAVING_HAPPY, stageSince = time, until = time + LEAVE) }
                 }
                 (party.stage == Stage.LEAVING_HAPPY || party.stage == Stage.LEAVING_ANGRY) && time >= party.until ->
                     night = night.updateParty(party.id) { it.copy(stage = Stage.DONE, stageSince = time) }
@@ -335,9 +360,10 @@ data class ServiceNight(
         for (waiter in waiters) {
             if (waiter.errand == null || time < waiter.routeEnd) continue
             night = night.arrive(waiter.id)
-            // Then on to the next stop the player queued up, if any.
-            val next = night.waiters.first { it.id == waiter.id }.queue.firstOrNull()
-            if (next != null) {
+            // Then on to the next stop the player queued up, if any (unless they've just started washing up).
+            val after = night.waiters.first { it.id == waiter.id }
+            val next = after.queue.firstOrNull()
+            if (next != null && after.errand == null) {
                 night = night.copy(waiters = night.waiters.map { if (it.id == waiter.id) it.copy(queue = it.queue.drop(1)) else it })
                     .send(waiter.id, next)
             }
@@ -358,7 +384,11 @@ data class ServiceNight(
                 if (party != null && party.id in waiter.plates) {
                     night = night.updateParty(party.id) { it.copy(stage = Stage.EATING, stageSince = time, until = time + EAT, heldBy = null) }
                     updateWaiter { it.copy(hands = it.hands - HandItem.Plate(party.id)) }
-                } else if (party != null && party.stage == Stage.READY_TO_ORDER && errand.table in waiter.tables) {
+                } else if (party == null && errand.table in night.dirtyTables && waiter.freeHands > 0) {
+                    // Clear the table: its dirty plates go in one hand.
+                    night = night.copy(dirtyTables = night.dirtyTables - errand.table)
+                    updateWaiter { it.copy(hands = it.hands + HandItem.DirtyDishes(errand.table)) }
+                } else if (waiter.kind != Kind.DISHWASHER && party != null && party.stage == Stage.READY_TO_ORDER && errand.table in waiter.tables) {
                     val orders = party.preferences.map { prefs -> prefs.firstOrNull { id -> night.menu.any { it.id == id && it.available } } }
                     night = night.updateParty(party.id) { it.copy(stage = Stage.ORDER_TAKEN, stageSince = time, orderedAt = time, orders = orders, heldBy = waiterId) }
                     updateWaiter { it.copy(tickets = it.tickets + party.id) }
@@ -384,19 +414,45 @@ data class ServiceNight(
                 ready.forEach { party -> night = night.updateParty(party.id) { it.copy(stage = Stage.CARRIED, stageSince = time, heldBy = waiterId) } }
                 updateWaiter { it.copy(hands = it.hands + ready.map { p -> HandItem.Plate(p.id) }) }
             }
-            Errand.Rest, null -> {}
+            Errand.VisitDishStation -> {
+                val stacks = waiter.dirtyDishes.size
+                if (stacks > 0) {
+                    // Washing up takes a moment per table's worth, standing at the station.
+                    updateWaiter {
+                        val here = it.position(time)
+                        it.copy(hands = it.hands.filterNot { item -> item is HandItem.DirtyDishes }, route = listOf(here), routeStart = time, routeEnd = time + WASH * stacks, errand = Errand.Wash)
+                    }
+                }
+            }
+            Errand.Wash, Errand.Rest, null -> {}
         }
         return night
     }
 
-    /** Food runners, whenever they're free: deliver what they're carrying, or fetch plates that have been waiting too long. */
+    /**
+     * Hired staff, whenever they're free. Food runners deliver what they're
+     * carrying or fetch plates that have waited too long; dishwashers clear
+     * dirty tables and wash up.
+     */
     private fun directStaff(): ServiceNight {
         var night = this
         for (waiter in waiters.filter { !it.isPlayer && it.errand == null }) {
-            val next: Errand? = when {
-                waiter.plates.isNotEmpty() -> night.parties.first { it.id == waiter.plates.first() }.table?.let { Errand.Serve(it) }
-                night.parties.any { it.stage == Stage.READY_AT_PASS && time - it.stageSince >= RUNNER_DELAY } -> Errand.VisitPass
-                else -> null
+            val next: Errand? = when (waiter.kind) {
+                Kind.DISHWASHER -> {
+                    // A table nobody else is already on their way to clear.
+                    val claimed = night.waiters.flatMap { listOfNotNull(it.errand) + it.queue }.filterIsInstance<Errand.VisitTable>().map { it.table }.toSet()
+                    val table = night.dirtyTables.firstOrNull { it !in claimed }
+                    when {
+                        waiter.dirtyDishes.isNotEmpty() && (waiter.freeHands == 0 || table == null) -> Errand.VisitDishStation
+                        table != null && waiter.freeHands > 0 -> Errand.VisitTable(table)
+                        else -> null
+                    }
+                }
+                else -> when {
+                    waiter.plates.isNotEmpty() -> night.parties.first { it.id == waiter.plates.first() }.table?.let { Errand.Serve(it) }
+                    night.parties.any { it.stage == Stage.READY_AT_PASS && time - it.stageSince >= RUNNER_DELAY } -> Errand.VisitPass
+                    else -> null
+                }
             }
             val here = waiter.position(time)
             night = when {
@@ -453,6 +509,9 @@ data class ServiceNight(
         private const val PLAYER_SPEED = 60f
         private const val STAFF_SPEED = 42f
         private const val EAT = 6f
+
+        /** Seconds to wash one table's dirty plates. */
+        private const val WASH = 1.5f
         private const val LEAVE = 1.6f
         private const val COOK_BASE = 2f
         private const val FOOD_PATIENCE = 1.8f
@@ -505,6 +564,12 @@ data class ServiceNight(
                 val pace = (EmployeePerformance.effectiveServiceSpeed(employee) / 50.0).toFloat().coerceIn(0.6f, 1.3f)
                 Waiter(employee.id.value, isPlayer = false, tables = allTables, speed = STAFF_SPEED * pace, restSpot = rest,
                     route = listOf(rest), routeStart = 0f, routeEnd = 0f, errand = null)
+            } + state.employees.filter { it.status == EmployeeStatus.ACTIVE && it.role == Role.DISHWASHER }.take(2).mapIndexed { k, employee ->
+                // Dishwashers wait by the dish station and come out to clear tables.
+                val rest = FloorPoint(78f - k * 8f, ServiceFloor.pass.y + 1f)
+                val pace = (EmployeePerformance.effectiveServiceSpeed(employee) / 50.0).toFloat().coerceIn(0.6f, 1.3f)
+                Waiter(employee.id.value, isPlayer = false, tables = allTables, speed = STAFF_SPEED * pace, restSpot = rest,
+                    route = listOf(rest), routeStart = 0f, routeEnd = 0f, errand = null, kind = Kind.DISHWASHER)
             }
             // Kitchen pace: one dish at a time per cook, quicker with better cooks, slower with broken kit.
             val cooks = state.employees.filter { it.status == EmployeeStatus.ACTIVE && it.role == Role.COOK }

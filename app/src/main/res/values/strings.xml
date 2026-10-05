@@ -17,7 +17,7 @@
     <string name="intro_step1_title">Morning</string>
     <string name="intro_step1">Look around your restaurant. Anything with a red ! needs you: tap it to sort it out.</string>
     <string name="intro_step2_title">Service</string>
-    <string name="intro_step2">Open the doors and serve. Tap a table with a ? to take its order, tap the counter to give it to the chef, then tap the counter again when the food is ready and take it to the table. If you\'re busy, your servers will run waiting food out for you.</string>
+    <string name="intro_step2">Open the doors and serve. Tap a table with a ? to take its order, tap the counter to give it to the chef, then tap the counter again when the food is ready and take it to the table. When guests leave, clear their plates and wash them at the dish station. If you\'re busy, your servers will run waiting food out for you.</string>
     <string name="intro_step3_title">The bill</string>
     <string name="intro_step3">See how much you made, then on to the next day.</string>
     <string name="intro_goal">Keep your money above zero and your guests happy. How many days can you last?</string>
@@ -36,6 +36,9 @@
     <string name="hint_hand_in">Take the order to the kitchen. Tap the counter.</string>
     <string name="hint_pick_up">Table %1$d\'s food is ready. Tap the counter.</string>
     <string name="hint_serve">Take the food to table %1$d. Tap the table.</string>
+    <string name="hint_clear">Table %1$d needs clearing. Tap it to pick up the dirty plates.</string>
+    <string name="hint_wash">Take the dirty plates to the dish station (top right).</string>
+    <string name="hint_washing">Washing up…</string>
     <string name="hint_waiting">Waiting for guests to come in…</string>
     <string name="hint_cooking">The kitchen is cooking…</string>
     <string name="night_table">Table %1$d: %2$s</string>
@@ -45,6 +48,9 @@
     <string name="night_food_ready">food ready at the counter</string>
     <string name="night_eating">eating</string>
     <string name="night_empty">empty</string>
+    <string name="night_needs_clearing">needs clearing</string>
+    <string name="night_dish_station">Dish station: wash dirty plates</string>
+    <string name="night_dish_sign">DISHES</string>
     <string name="night_you">YOU</string>
     <string name="end_fed">%1$d of %2$d guests fed</string>
     <string name="scene_menu_sign" translatable="false">MENU</string>
