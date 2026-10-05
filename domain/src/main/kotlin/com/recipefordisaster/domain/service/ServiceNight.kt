@@ -91,6 +91,12 @@ data class ServiceNight(
         val occupiesTable: Boolean get() = table != null && stage in Stage.WALKING_TO_TABLE..Stage.LEAVING_ANGRY
     }
 
+    /** Something a waiter can hold in one hand. */
+    sealed interface HandItem {
+        /** A party's food (one hand holds a whole table's order). */
+        data class Plate(val partyId: Int) : HandItem
+    }
+
     sealed interface Errand {
         data class TakeOrder(val table: Int) : Errand
         data object VisitPass : Errand
@@ -109,11 +115,14 @@ data class ServiceNight(
         val routeStart: Float,
         val routeEnd: Float,
         val errand: Errand?,
-        /** Party ids whose order this waiter has taken but not yet handed in. */
+        /** Party ids whose order this waiter has taken but not yet handed in — notes on a notepad, not in a hand. */
         val tickets: List<Int> = emptyList(),
-        /** Party ids whose plates this waiter is carrying. */
-        val plates: List<Int> = emptyList(),
+        /** What's in this waiter's two hands, left then right. */
+        val hands: List<HandItem> = emptyList(),
     ) {
+        /** Party ids whose plates this waiter is carrying. */
+        val plates: List<Int> get() = hands.filterIsInstance<HandItem.Plate>().map { it.partyId }
+        val freeHands: Int get() = (HANDS - hands.size).coerceAtLeast(0)
         fun position(time: Float): FloorPoint = when {
             time >= routeEnd || routeEnd <= routeStart -> route.last()
             else -> ServiceFloor.along(route, (time - routeStart) / (routeEnd - routeStart))
@@ -242,7 +251,7 @@ data class ServiceNight(
         val inLine = party.stage == Stage.QUEUEING
         return copy(
             results = results,
-            waiters = waiters.map { it.copy(tickets = it.tickets - partyId, plates = it.plates - partyId) },
+            waiters = waiters.map { it.copy(tickets = it.tickets - partyId, hands = it.hands - HandItem.Plate(partyId)) },
         ).updateParty(partyId) {
             if (inLine) it.copy(stage = Stage.DONE, stageSince = time) else it.copy(stage = Stage.LEAVING_ANGRY, stageSince = time, until = time + LEAVE, heldBy = null)
         }
@@ -335,7 +344,7 @@ data class ServiceNight(
                 val party = night.partyAt(errand.table)
                 if (party != null && party.id in waiter.plates) {
                     night = night.updateParty(party.id) { it.copy(stage = Stage.EATING, stageSince = time, until = time + EAT, heldBy = null) }
-                    updateWaiter { it.copy(plates = it.plates - party.id) }
+                    updateWaiter { it.copy(hands = it.hands - HandItem.Plate(party.id)) }
                 }
             }
             Errand.VisitPass -> {
@@ -347,9 +356,9 @@ data class ServiceNight(
                 val ready = night.parties
                     .filter { it.stage == Stage.READY_AT_PASS && (waiter.isPlayer || time - it.stageSince >= RUNNER_DELAY) }
                     .sortedBy { it.stageSince }
-                    .take((MAX_PLATES - waiter.plates.size).coerceAtLeast(0))
+                    .take(waiter.freeHands)
                 ready.forEach { party -> night = night.updateParty(party.id) { it.copy(stage = Stage.CARRIED, stageSince = time, heldBy = waiterId) } }
-                updateWaiter { it.copy(plates = it.plates + ready.map { p -> p.id }) }
+                updateWaiter { it.copy(hands = it.hands + ready.map { p -> HandItem.Plate(p.id) }) }
             }
             Errand.Rest, null -> {}
         }
@@ -398,7 +407,8 @@ data class ServiceNight(
 
     companion object {
         const val PLAYER_ID = "you"
-        private const val MAX_PLATES = 2
+        /** Everyone has two hands: two plates, or a plate and a stack of dirty dishes, and so on. */
+        const val HANDS = 2
 
         /** Seconds between parties arriving, plus up to [ARRIVAL_JITTER] more so it doesn't feel like clockwork. */
         private const val ARRIVAL_GAP = 6f

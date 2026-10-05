@@ -65,14 +65,24 @@ class ServiceNightTest {
     }
 
     @Test
-    fun `the player can only carry two plates`() {
-        var n = open()
-        var maxCarried = 0
-        n = play(n) { current ->
-            maxCarried = maxOf(maxCarried, current.player.plates.size)
-            busyPlayer(current)
+    fun `the player has two hands, and can carry two tables' food at once`() {
+        // No food runners, so nobody else picks the plates up first.
+        var n = open(start.copy(employees = start.employees.filter { it.role != com.recipefordisaster.domain.employee.Role.SERVER }), seed = 3)
+        fun waitUntil(condition: (ServiceNight) -> Boolean) { var guard = 0; while (!condition(n) && guard++ < 20_000) n = n.advance(0.05f) }
+        fun walk() = waitUntil { !it.player.walking }
+
+        // Take two tables' orders…
+        repeat(2) {
+            waitUntil { night -> night.parties.any { it.stage == Stage.READY_TO_ORDER } }
+            n = n.tapTable(n.parties.first { it.stage == Stage.READY_TO_ORDER }.table!!)
+            walk()
         }
-        assertTrue(maxCarried <= 2)
+        assertEquals(2, n.player.tickets.size)
+        // …hand both in, wait for both plates, and collect them in one trip.
+        n = n.tapPass(); walk()
+        waitUntil { night -> night.parties.count { it.stage == Stage.READY_AT_PASS } >= 2 }
+        n = n.tapPass(); walk()
+        assertEquals(ServiceNight.HANDS, n.player.plates.size)
     }
 
     @Test

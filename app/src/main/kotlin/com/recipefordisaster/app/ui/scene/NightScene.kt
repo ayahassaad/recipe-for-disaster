@@ -169,8 +169,13 @@ fun NightScene(
                             walkPhase = if (walking) time * 2.4f else null,
                             apron = if (waiter.isPlayer) PlayerColor else Palette.serverRed,
                         )
-                        // What they're carrying: plates in hand, a notepad for tickets not yet handed in.
-                        waiter.plates.forEachIndexed { k, _ -> drawPlate(Point(at.x - 4.4f + k * 8.8f, at.y + 2.6f)) }
+                        // What's in each hand (left, then right), and a notepad for tickets not yet handed in.
+                        waiter.hands.forEachIndexed { k, item ->
+                            val hand = Point(at.x + (if (k == 0) -4.6f else 4.6f), at.y + 2.6f)
+                            when (item) {
+                                is ServiceNight.HandItem.Plate -> drawPlate(hand)
+                            }
+                        }
                         if (waiter.tickets.isNotEmpty()) {
                             box(at.x + 3.6f, at.y - 1f, 3f, 3.8f, Color(0xFFFFFCF2), radius = 0.3f)
                             for (k in 0..2) line(at.x + 4.1f, at.y + 0.1f + k * 0.9f, at.x + 6f, at.y + 0.1f + k * 0.9f, Color(0x88000000), 0.2f)
