@@ -150,7 +150,12 @@ fun RestaurantScene(
                         spot
                     }
                     val working = service != null && (figure.role == StaffRole.COOK && busy)
-                    val bob = if (working) (sin(time * 12f) * 0.6f) else (sin(time * 1.6f + figure.id.hashCode()) * 0.25f)
+                    val walking = service != null && serverIndex >= 0 && position != spot
+                    val bob = when {
+                        working -> sin(time * 12f) * 0.6f
+                        walking -> kotlin.math.abs(sin(time * 12f)) * 0.5f
+                        else -> sin(time * 1.6f + figure.id.hashCode()) * 0.25f
+                    }
                     drawPerson(
                         at = position,
                         outfit = outfitFor(figure.role),
@@ -158,6 +163,8 @@ fun RestaurantScene(
                         bob = bob,
                         sweat = figure.stress >= 70,
                         slumped = figure.stress >= 85,
+                        variant = figure.name.hashCode().mod(5),
+                        walkPhase = if (walking) time * 2.2f else null,
                     )
                 }
 
@@ -180,6 +187,8 @@ fun RestaurantScene(
                         },
                         angry = frame.look == ServiceChoreography.Look.ANGRY || frame.look == ServiceChoreography.Look.STORMING_OUT,
                         backTurned = frame.look == ServiceChoreography.Look.TURNING_AWAY && serviceTime - track.start > 1.1f,
+                        variant = track.colorIndex,
+                        walkPhase = if (walking) (serviceTime - track.start) * 2.2f else null,
                     )
                     frame.coins?.let { (where, progress) -> if (progress < 1f) drawCoins(text, where, progress, track.visit.paid) }
                 }
