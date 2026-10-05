@@ -219,11 +219,18 @@ private fun Pen.drawCounter() {
         line(x + 0.8f, c.top + 1.2f, x + 3.4f, c.top + 1.2f, Color(0x66000000), 0.2f)
         line(x + 0.8f, c.top + 2.4f, x + 2.8f, c.top + 2.4f, Color(0x66000000), 0.2f)
     }
-    // A stack of clean plates waiting at the pass.
-    for (k in 0..2) {
-        oval(84f, c.top + 2.6f - k * 0.5f, 3f, 1.1f, Color.White)
-        ring(84f, c.top + 2.6f - k * 0.5f, 1.4f, Color(0x22000000), 0.15f)
-    }
+}
+
+/** The dish station at the right end of the counter: a deep basin with suds, a drying rack, and a sign. */
+internal fun Pen.drawDishStation(text: TextMeasurer, sign: String) {
+    val c = SceneLayout.counter
+    val x = 80f
+    box(x, c.top - 1f, 14f, 6f, Palette.steel, radius = 0.6f)
+    box(x + 1f, c.top - 0.2f, 7f, 4.4f, Palette.steelDark, radius = 0.6f)
+    for (k in 0..2) dot(x + 2.6f + k * 1.6f, c.top + 1.6f + (k % 2) * 0.6f, 0.6f, Color(0xCCFFFFFF)) // suds
+    for (k in 0..3) line(x + 9.2f + k * 1.2f, c.top - 0.4f, x + 9.2f + k * 1.2f, c.top + 4.6f, Palette.steelMid, 0.3f) // drying rack
+    box(x + 2f, c.top - 6.6f, 10f, 4f, Color(0xFF2F6188), radius = 0.5f)
+    centeredText(text, sign, Point(x + 7f, c.top - 4.6f), size = 2.3f, color = Color.White, bold = true)
 }
 
 private fun Pen.drawPlant(at: Point) {

@@ -71,6 +71,7 @@ data class SceneLabels(
     val pantry: String,
     val mop: String,
     val hiringSign: String,
+    val dishSign: String,
     val staff: (StaffFigure) -> String,
 )
 
@@ -119,6 +120,7 @@ fun RestaurantScene(
                 drawOven(model.ovenCondition, time, model.ovenOnFire, model.ovenLevel)
                 drawStove(false, time)
                 drawSink()
+                drawDishStation(text, labels.dishSign)
                 drawPantry(model.pantryFullness)
                 drawTables()
                 drawMenuBoard(text, labels.menu)

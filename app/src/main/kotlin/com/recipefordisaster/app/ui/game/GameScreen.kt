@@ -251,6 +251,7 @@ private fun sceneLabels(need: MorningAdvisor.Need? = null): SceneLabels {
         pantry = stringResource(R.string.scene_pantry),
         mop = stringResource(R.string.scene_mop),
         hiringSign = stringResource(R.string.scene_hiring),
+        dishSign = stringResource(R.string.night_dish_sign),
         staff = { figure -> String.format(staffLabel, figure.name, roles[figure.role] ?: "") },
     )
 }

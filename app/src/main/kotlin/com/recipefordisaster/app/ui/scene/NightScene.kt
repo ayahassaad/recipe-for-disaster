@@ -422,15 +422,9 @@ private fun Pen.drawDirtyStack(at: Point) {
 }
 
 /** The dish station at the right end of the counter: a deep basin, a drying rack, and a sign. */
+/** The dish station, plus a ring over anyone washing up there. */
 private fun Pen.drawDishStation(text: TextMeasurer, sign: String, night: ServiceNight, clock: Float) {
-    val c = SceneLayout.counter
-    val x = 80f
-    box(x, c.top - 1f, 14f, 6f, Palette.steel, radius = 0.6f)
-    box(x + 1f, c.top - 0.2f, 7f, 4.4f, Palette.steelDark, radius = 0.6f)
-    for (k in 0..2) dot(x + 2.6f + k * 1.6f, c.top + 1.6f + (k % 2) * 0.6f, 0.6f, Color(0xCCFFFFFF)) // suds
-    for (k in 0..3) line(x + 9.2f + k * 1.2f, c.top - 0.4f, x + 9.2f + k * 1.2f, c.top + 4.6f, Palette.steelMid, 0.3f) // drying rack
-    box(x + 2f, c.top - 6.6f, 10f, 4f, Color(0xFF2F6188), radius = 0.5f)
-    centeredText(text, sign, Point(x + 7f, c.top - 4.6f), size = 2.3f, color = Color.White, bold = true)
+    drawDishStation(text, sign)
     // Someone washing up: a ring that fills as the dishes get done.
     night.waiters.filter { it.errand == ServiceNight.Errand.Wash }.forEach { w ->
         val progress = ((night.time - w.routeStart) / (w.routeEnd - w.routeStart).coerceAtLeast(0.01f)).coerceIn(0f, 1f)
