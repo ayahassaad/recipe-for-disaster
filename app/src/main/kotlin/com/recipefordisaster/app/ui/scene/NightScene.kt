@@ -243,9 +243,16 @@ fun NightScene(
                                 }
                             }
                         }
-                        if (waiter.tickets.isNotEmpty()) {
-                            box(at.x + 3.6f, at.y - 1f, 3f, 3.8f, Color(0xFFFFFCF2), radius = 0.3f)
-                            for (k in 0..2) line(at.x + 4.1f, at.y + 0.1f + k * 0.9f, at.x + 6f, at.y + 0.1f + k * 0.9f, Color(0x88000000), 0.2f)
+                        // One order note per ticket not yet handed in, fanned out, each with its table number.
+                        waiter.tickets.forEachIndexed { k, partyId ->
+                            val nx = at.x + 3.4f + k * 2.6f
+                            val ny = at.y - 2.4f - k * 1.2f
+                            box(nx, ny, 3.4f, 4.4f, Color(0xFFFFFCF2), radius = 0.3f)
+                            line(nx + 0.5f, ny + 3.2f, nx + 2.9f, ny + 3.2f, Color(0x88000000), 0.2f)
+                            line(nx + 0.5f, ny + 3.9f, nx + 2.4f, ny + 3.9f, Color(0x88000000), 0.2f)
+                            night.parties.firstOrNull { it.id == partyId }?.table?.let { table ->
+                                centeredText(text, (table + 1).toString(), Point(nx + 1.7f, ny + 1.4f), size = 2.2f, color = Palette.ink, bold = true)
+                            }
                         }
                         if (waiter.isPlayer) drawYouMarker(text, labels.you, Point(at.x, at.y - 12f), clock)
                         else {
