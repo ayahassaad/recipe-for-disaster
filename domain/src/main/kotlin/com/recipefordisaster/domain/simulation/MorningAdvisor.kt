@@ -3,6 +3,7 @@ package com.recipefordisaster.domain.simulation
 import com.recipefordisaster.domain.decision.DecisionApplier
 import com.recipefordisaster.domain.employee.Employee
 import com.recipefordisaster.domain.employee.EmployeeStatus
+import com.recipefordisaster.domain.employee.Role
 import com.recipefordisaster.domain.equipment.Equipment
 import com.recipefordisaster.domain.equipment.EquipmentOperations
 import com.recipefordisaster.domain.inventory.Ingredient
@@ -112,6 +113,21 @@ object MorningAdvisor {
         if (perCustomer <= 0.0) return null
         val perNight = perCustomer * OutlookCalculator.forTonight(state).expectedCustomers.coerceAtLeast(1)
         return ingredient.quantityOnHand / perNight
+    }
+
+    /** What the restaurant is short of, if anything — so the hiring sign can say what kind of help is wanted. */
+    enum class Need { COOK, SERVER, DISHWASHER }
+
+    fun staffNeed(state: GameState): Need? {
+        val working = state.employees.filter { it.status == EmployeeStatus.ACTIVE }
+        val outlook = OutlookCalculator.forTonight(state)
+        val floorStaff = working.count { it.role == Role.SERVER || it.role == Role.MANAGER }
+        return when {
+            outlook.kitchenTooSmall -> Need.COOK
+            floorStaff == 0 || outlook.expectedCustomers > floorStaff * 12 -> Need.SERVER
+            state.restaurant.cleanliness < 55 && working.none { it.role == Role.DISHWASHER } -> Need.DISHWASHER
+            else -> null
+        }
     }
 
     fun forecast(state: GameState): MoneyForecast {

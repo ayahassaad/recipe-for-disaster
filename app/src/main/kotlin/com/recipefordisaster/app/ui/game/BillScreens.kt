@@ -16,12 +16,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -42,89 +37,43 @@ import com.recipefordisaster.domain.simulation.GameState
 private val receiptText = TextStyle(fontFamily = ReceiptFont, fontSize = 15.sp, lineHeight = 22.sp, color = ReceiptInk)
 
 /**
- * The end of a day, printed like a till receipt: the profit big at the
- * top, three short lines (guests, reputation, anything that happened
- * overnight), and the itemised bill one tap away for anyone who wants it.
+ * The day's full bill, printed like a till receipt: profit, guests fed (and
+ * why any weren't), reputation, the overnight event, and every line of
+ * money in and out. Opened from the end-of-night panel for anyone who wants
+ * the detail; the scene itself already showed what happened.
  */
 @Composable
-internal fun BillScreen(report: DayReport, gameOver: Boolean, onContinue: () -> Unit, modifier: Modifier = Modifier) {
+internal fun BillReceipt(report: DayReport, modifier: Modifier = Modifier) {
     val summary = report.summary
     val books = report.books
     val profit = books.profitOrLoss
-    var showDetails by rememberSaveable { mutableStateOf(false) }
-
-    Column(
-        modifier = modifier.fillMaxSize().background(WoodBrown).statusBarsPadding().navigationBarsPadding(),
-    ) {
-        Column(
-            modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 16.dp),
-        ) {
-            Receipt {
-                Text(
-                    text = stringResource(R.string.app_name).uppercase(),
-                    style = receiptText.copy(fontWeight = FontWeight.Bold, letterSpacing = 2.sp),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Text(
-                    text = stringResource(R.string.bill_title, summary.day),
-                    style = receiptText,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Dashes()
-                Text(
-                    text = stringResource(if (profit >= 0) R.string.bill_made else R.string.bill_lost),
-                    style = receiptText,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Text(
-                    text = signedCoins(profit),
-                    style = receiptText.copy(fontSize = 34.sp, lineHeight = 42.sp, fontWeight = FontWeight.Bold, color = moneyColor(profit)),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Dashes()
-                ReceiptLine(stringResource(R.string.bill_fed), stringResource(R.string.bill_fed_value, summary.customersFed, summary.customersArrived))
-                if (summary.unfedKitchenFull > 0) ReceiptNote(stringResource(R.string.bill_hungry_kitchen, summary.unfedKitchenFull))
-                if (summary.unfedOutOfStock > 0) ReceiptNote(stringResource(R.string.bill_hungry_stock, summary.unfedOutOfStock))
-                if (summary.walkedOut > 0) ReceiptNote(stringResource(R.string.bill_walked_out, summary.walkedOut))
-                val change = summary.reputationAfter - summary.reputationBefore
-                ReceiptLine(stringResource(R.string.bill_reputation), (if (change > 0) "+" else "") + change)
-                report.event?.let { event ->
-                    Dashes()
-                    Text(text = event.title.uppercase(), style = receiptText.copy(fontWeight = FontWeight.Bold))
-                    Text(text = event.description, style = receiptText)
-                }
-
-                if (showDetails) {
-                    Dashes()
-                    val oneOff = report.morningSpending.staffing + report.morningSpending.cleaning + report.morningSpending.menu
-                    ReceiptLine(stringResource(R.string.bill_earned), signedCoins(books.revenue))
-                    ReceiptLine(stringResource(R.string.bill_wages), signedCoins(-books.wages))
-                    ReceiptLine(stringResource(R.string.bill_premises), signedCoins(-(books.rent + books.utilities + books.maintenance + books.miscellaneous - oneOff)))
-                    if (books.ingredientCosts > 0) ReceiptLine(stringResource(R.string.bill_groceries), signedCoins(-books.ingredientCosts))
-                    if (books.upgrades > 0) ReceiptLine(stringResource(R.string.bill_repairs), signedCoins(-books.upgrades))
-                    if (oneOff > 0) ReceiptLine(stringResource(R.string.bill_other), signedCoins(-oneOff))
-                    if (books.eventCashDelta != 0L) ReceiptLine(stringResource(R.string.bill_events), signedCoins(books.eventCashDelta))
-                    Dashes()
-                    ReceiptLine(stringResource(R.string.bill_total), signedCoins(profit), bold = true)
-                    ReceiptLine(stringResource(R.string.bill_cash), coins(summary.cashAfter))
-                }
-                TextButton(onClick = { showDetails = !showDetails }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                    Text(
-                        text = stringResource(if (showDetails) R.string.bill_details_hide else R.string.bill_details_show),
-                        color = ReceiptInk,
-                    )
-                }
-            }
-        }
-        SignButton(
-            text = stringResource(if (gameOver) R.string.bill_game_over else R.string.bill_next),
-            onClick = onContinue,
-            modifier = Modifier.padding(16.dp),
+    Receipt(modifier = modifier.padding(horizontal = 16.dp)) {
+        Text(
+            text = stringResource(R.string.app_name).uppercase(),
+            style = receiptText.copy(fontWeight = FontWeight.Bold, letterSpacing = 2.sp),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
         )
+        Text(text = stringResource(R.string.bill_title, summary.day), style = receiptText, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Dashes()
+        ReceiptLine(stringResource(R.string.bill_fed), stringResource(R.string.bill_fed_value, summary.customersFed, summary.customersArrived))
+        if (summary.unfedKitchenFull > 0) ReceiptNote(stringResource(R.string.bill_hungry_kitchen, summary.unfedKitchenFull))
+        if (summary.unfedOutOfStock > 0) ReceiptNote(stringResource(R.string.bill_hungry_stock, summary.unfedOutOfStock))
+        if (summary.walkedOut > 0) ReceiptNote(stringResource(R.string.bill_walked_out, summary.walkedOut))
+        val change = summary.reputationAfter - summary.reputationBefore
+        ReceiptLine(stringResource(R.string.bill_reputation), (if (change > 0) "+" else "") + change)
+        Dashes()
+        val oneOff = report.morningSpending.staffing + report.morningSpending.cleaning + report.morningSpending.menu
+        ReceiptLine(stringResource(R.string.bill_earned), signedCoins(books.revenue))
+        ReceiptLine(stringResource(R.string.bill_wages), signedCoins(-books.wages))
+        ReceiptLine(stringResource(R.string.bill_premises), signedCoins(-(books.rent + books.utilities + books.maintenance + books.miscellaneous - oneOff)))
+        if (books.ingredientCosts > 0) ReceiptLine(stringResource(R.string.bill_groceries), signedCoins(-books.ingredientCosts))
+        if (books.upgrades > 0) ReceiptLine(stringResource(R.string.bill_repairs), signedCoins(-books.upgrades))
+        if (oneOff > 0) ReceiptLine(stringResource(R.string.bill_other), signedCoins(-oneOff))
+        if (books.eventCashDelta != 0L) ReceiptLine(stringResource(R.string.bill_events), signedCoins(books.eventCashDelta))
+        Dashes()
+        ReceiptLine(stringResource(R.string.bill_total), signedCoins(profit), bold = true)
+        ReceiptLine(stringResource(R.string.bill_cash), coins(summary.cashAfter))
     }
 }
 

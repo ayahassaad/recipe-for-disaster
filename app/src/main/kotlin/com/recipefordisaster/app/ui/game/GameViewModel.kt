@@ -78,6 +78,8 @@ data class DayReport(
     val books: DailyFinancials,
     val event: FiredEvent?,
     val morningSpending: DecisionSpending,
+    /** The restaurant as it was when the doors opened — what the service animation shows. */
+    val startOfService: GameState,
 )
 
 /**
@@ -144,7 +146,7 @@ class GameViewModel(
             val result = dayTickEngine.advanceDay(current.state, current.plan, rng)
             gameRepository.save(result.newState)
             val report = result.summary?.let { summary ->
-                result.newState.ledger.history.lastOrNull()?.let { books -> DayReport(summary, books, result.event, current.preview.spending) }
+                result.newState.ledger.history.lastOrNull()?.let { books -> DayReport(summary, books, result.event, current.preview.spending, current.preview.state) }
             }
             _uiState.value = GameUiState.Playing(result.newState, dayLog = result.log, lastEvent = result.event, report = report)
         }

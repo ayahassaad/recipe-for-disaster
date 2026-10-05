@@ -10,48 +10,49 @@
     <string name="coins">%1$s coins</string>
     <string name="coins_per_day">%1$s a day</string>
     <string name="undo">Undo</string>
-    <string name="back">Back</string>
     <string name="cant_afford">Not enough money</string>
 
     <!-- How to play -->
     <string name="intro_title">How to play</string>
     <string name="intro_step1_title">Morning</string>
-    <string name="intro_step1">Get ready. Do the jobs on the chalkboard: buy food, hire staff, fix things.</string>
+    <string name="intro_step1">Look around your restaurant. Anything with a red ! needs you: tap it to sort it out.</string>
     <string name="intro_step2_title">Service</string>
-    <string name="intro_step2">Open the doors. Guests come in, eat, and pay.</string>
+    <string name="intro_step2">Open the doors and watch. Guests come in, eat, pay, and leave happy (or not).</string>
     <string name="intro_step3_title">The bill</string>
-    <string name="intro_step3">See how the day went, then start the next morning.</string>
+    <string name="intro_step3">See how much you made, then on to the next day.</string>
     <string name="intro_goal">Keep your money above zero and your guests happy. How many days can you last?</string>
     <string name="intro_start">Let\'s cook</string>
 
     <!-- Morning screen -->
     <string name="day">Day %1$d</string>
     <string name="daily_costs">Costs %1$s a day</string>
-    <string name="guests_happy">Guests are happy</string>
-    <string name="guests_ok">Guests are okay</string>
-    <string name="guests_unhappy">Guests are unhappy</string>
-    <string name="overnight">Overnight</string>
-    <string name="jobs_title">Today\'s jobs</string>
-    <string name="jobs_done">All set. Open the doors when you\'re ready.</string>
-    <string name="jobs_more">More to do in Staff, Food or Kitchen</string>
-    <string name="job_restock">Running low on %1$s</string>
-    <string name="job_restock_action">Restock (%1$s)</string>
-    <string name="job_cooks">Not enough cooks for tonight</string>
-    <string name="job_cooks_action">Hire</string>
-    <string name="job_losing">You\'ll lose money tonight. Too many staff?</string>
-    <string name="job_losing_action">Staff</string>
-    <string name="job_broken">The %1$s is broken</string>
-    <string name="job_worn">The %1$s is wearing out</string>
-    <string name="job_fix_action">Fix (%1$s)</string>
-    <string name="job_dirty">The place is getting dirty</string>
-    <string name="job_clean_action">Clean (%1$s)</string>
-    <string name="job_tired">%1$s is exhausted</string>
-    <string name="job_tired_action">Day off</string>
-    <string name="tonight">Tonight\'s guests: about %1$d. Expected profit: %2$s.</string>
     <string name="open_doors">Open the doors</string>
-    <string name="nav_staff">Staff</string>
-    <string name="nav_food">Food</string>
-    <string name="nav_kitchen">Kitchen</string>
+
+    <!-- The restaurant scene -->
+    <string name="hint_alerts">Tap anything with a red ! to sort it out</string>
+    <string name="hint_ready">All ready. Open the doors!</string>
+    <string name="tonight_takings">Tonight %1$s</string>
+    <string name="speed_fast">Faster</string>
+    <string name="speed_normal">Normal speed</string>
+    <string name="skip">Skip to the end</string>
+    <string name="end_fed">%1$d of %2$d guests fed</string>
+    <string name="scene_menu_sign" translatable="false">MENU</string>
+    <string name="scene_hiring_sign">HELP WANTED</string>
+    <string name="scene_hiring_sign_cook">COOK WANTED</string>
+    <string name="scene_hiring_sign_server">SERVER WANTED</string>
+    <string name="scene_hiring_sign_dishwasher">DISHWASHER WANTED</string>
+    <string name="need_cook">You need another cook. Your kitchen can cook about %1$d meals, but about %2$d guests are coming.</string>
+    <string name="need_server">You need another server. There are too many guests for your floor staff to look after.</string>
+    <string name="need_dishwasher">You need a dishwasher. The place is getting dirty and nobody\'s keeping up with it.</string>
+    <string name="need_none">You have enough staff for now. Everyone you hire adds to your daily costs.</string>
+    <string name="recommended">Recommended</string>
+    <string name="applicant_wage">%1$s now, then %2$s</string>
+    <string name="scene_oven">Oven</string>
+    <string name="scene_pantry">Pantry shelves: food</string>
+    <string name="scene_mop">Mop and bucket: cleaning</string>
+    <string name="scene_hiring">Help wanted sign: hire staff</string>
+    <string name="scene_staff">%1$s, %2$s</string>
+    <string name="cleaning_hint">Every night makes a mess. A dishwasher keeps up with it. Let it get too dirty and the rats move in.</string>
 
     <!-- The bill (end of day) -->
     <string name="bill_title">Day %1$d</string>
@@ -64,7 +65,6 @@
     <string name="bill_walked_out">%1$d walked out (nothing for them)</string>
     <string name="bill_reputation">Reputation</string>
     <string name="bill_details_show">Show the full bill</string>
-    <string name="bill_details_hide">Hide the full bill</string>
     <string name="bill_earned">Meals sold</string>
     <string name="bill_wages">Wages</string>
     <string name="bill_premises">Rent and bills</string>
@@ -78,8 +78,6 @@
     <string name="bill_game_over">See the final bill</string>
 
     <!-- Staff -->
-    <string name="staff_title">Staff</string>
-    <string name="staff_costs">Your team costs %1$s a day</string>
     <string name="staff_role_wage">%1$s, %2$s</string>
     <string name="staff_new">New, starts today</string>
     <string name="staff_leaving">Leaving today</string>
@@ -108,7 +106,6 @@
     <string name="trait_anxious">Anxious</string>
 
     <!-- Food -->
-    <string name="food_title">Food</string>
     <string name="food_restock_all">Restock all (%1$s)</string>
     <string name="food_stocked">Shelves are stocked</string>
     <string name="food_undo">Undo today\'s shopping</string>
@@ -130,7 +127,6 @@
     <string name="new_dish_needs">Needs %1$s</string>
 
     <!-- Kitchen -->
-    <string name="kitchen_title">Kitchen</string>
     <string name="cleanliness">Cleanliness</string>
     <string name="clean">Deep clean (%1$s)</string>
     <string name="condition">Condition</string>

@@ -80,6 +80,9 @@ class MorningAdvisorTest {
         assertEquals(summary.customersArrived, summary.customersFed + summary.unfedKitchenFull + summary.unfedOutOfStock + summary.walkedOut)
         assertEquals(result.newState.restaurant.cash, summary.cashAfter)
         assertEquals(start.restaurant.cash + result.newState.ledger.history.last().profitOrLoss, summary.cashAfter)
+        assertEquals(summary.customersArrived, summary.guests.size)
+        assertEquals(summary.customersFed, summary.guests.count { it.outcome == GuestOutcome.FED })
+        assertEquals(result.newState.ledger.history.last().revenue, summary.guests.sumOf { it.paid })
     }
 
     @Test
@@ -100,5 +103,20 @@ class MorningAdvisorTest {
 
         assertEquals(null, MorningAdvisor.nightsOfStock(start, eggs))
         assertTrue(MorningAdvisor.nightsOfStock(start, flour)!! > 0.0)
+    }
+
+    @Test
+    fun `the hiring sign asks for a cook when the kitchen can't keep up, and nothing when all is well`() {
+        val busy = start.copy(restaurant = start.restaurant.copy(reputation = 100))
+        assertEquals(MorningAdvisor.Need.COOK, MorningAdvisor.staffNeed(busy))
+
+        val quiet = start.copy(restaurant = start.restaurant.copy(reputation = 30))
+        assertEquals(null, MorningAdvisor.staffNeed(quiet))
+    }
+
+    @Test
+    fun `a dirty restaurant with no dishwasher asks for one`() {
+        val dirty = start.copy(restaurant = start.restaurant.copy(reputation = 30, cleanliness = 40))
+        assertEquals(MorningAdvisor.Need.DISHWASHER, MorningAdvisor.staffNeed(dirty))
     }
 }

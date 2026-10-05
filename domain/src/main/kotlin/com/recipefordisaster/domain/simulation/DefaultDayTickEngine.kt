@@ -171,6 +171,19 @@ class DefaultDayTickEngine(
             reputationAfter = end.restaurant.reputation,
             cashBefore = state.restaurant.cash,
             cashAfter = end.restaurant.cash,
+            guests = serviceResult.outcomes.map { outcome ->
+                GuestVisit(
+                    outcome = when (outcome.missedReason) {
+                        null -> GuestOutcome.FED
+                        MissedMealReason.KITCHEN_OVERWHELMED -> GuestOutcome.HUNGRY_KITCHEN_FULL
+                        MissedMealReason.OUT_OF_STOCK -> GuestOutcome.HUNGRY_OUT_OF_STOCK
+                        MissedMealReason.NOTHING_SUITABLE -> GuestOutcome.WALKED_OUT
+                    },
+                    dishName = outcome.dish?.name,
+                    paid = outcome.dish?.sellingPrice ?: 0,
+                    satisfaction = outcome.satisfaction,
+                )
+            },
         )
 
         // 4. Overnight — but not once the run is already over.

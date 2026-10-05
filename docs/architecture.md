@@ -159,29 +159,38 @@ can't cover. It's pure, so `GameViewModel` runs it on the draft plan to
 preview costs, and the day-tick runs the same function for real. The
 preview and the outcome can't disagree.
 
-**The day loop on screen (UI simplification, October 2026).** Two rounds
-of playtesting on a real phone said the dashboard was confusing and too
-busy, so the screens were cut back to one thing at a time:
+**The day loop on screen: an animated 2D restaurant (October 2026).**
+Playtesting showed that text dashboards, even simple ones, didn't feel like
+a game. The restaurant is now drawn and animated (`ui/scene/`):
 
-- **How to play**, once, on a new game: three steps and the goal.
-- **Morning**: a single screen. It shows the day, the money, and daily
-  running costs (`DailyCosts`), a star rating, and *today's jobs* on a
-  chalkboard: at most three, from `MorningAdvisor` in `:domain`, each with
-  one button ("Restock", "Fix", "Hire"...). Below that is a one-line
-  forecast and the "Open the doors" button. Staff, Food and Kitchen are one
-  tap away as separate pages. Choices take effect on screen immediately
-  and can be undone until service starts. Under the hood this is still a
-  `PlayerDecisions` plan applied by `DecisionApplier` to the morning's
-  starting state (`GameUiState.Playing.morning` / `cashNow`).
-- **The bill**: a till receipt with the day's profit, guests fed (and why
-  any weren't), reputation change, the overnight event, and the itemised
-  breakdown behind one tap (`DayResult.summary`).
+- **Morning:** a top-down view of the dining room and kitchen
+  (`RestaurantScene`, drawn in `SceneDrawing.kt` from the floor plan in
+  `SceneLayout`). Staff stand at their stations with faces that follow
+  morale and sweat when stressed. Problems are visible: a broken oven
+  smokes, shelves empty out, the floor stains (and a rat appears) as
+  cleanliness drops, and a sign says what kind of help is wanted
+  (`MorningAdvisor.staffNeed`). Anything flagged by `MorningAdvisor` gets a
+  pulsing "!". Tapping an object opens a small popup (`Sheets.kt`) with one
+  or two choices, which show in the scene straight away and can be undone
+  until service. Under the hood this is still a `PlayerDecisions` plan
+  applied by `DecisionApplier` to the morning's starting state.
+- **Service:** the night replays the simulation's real guest list
+  (`DaySummary.guests`, one `GuestVisit` each). `ServiceChoreography` stages
+  it and is unit-tested. Guests walk the aisles to their seats; each server
+  carries one plate at a time at walking pace, so a thin floor team visibly
+  slows service; coins float up as guests pay; hungry guests get angry and
+  storm out. Busy nights play faster rather than longer (about 20 seconds),
+  with buttons to speed up or skip. Nothing here decides an outcome; it
+  only shows what the day-tick already worked out.
+- **End of night:** a receipt slides up over the room with the profit,
+  guests fed and the overnight event (some events also show in the room,
+  like a rat or an oven fire). The itemised bill is one tap away.
 
-The look is a restaurant drawn with Compose shapes (`RestaurantDecor.kt`:
-awning, chalkboard, receipt paper, mood faces), with serif headings. There
-are deliberately no emoji: older Android versions (the test phone runs
-Android 9) can't draw newer ones. Forecasts come from `:domain`
-(`OutlookCalculator`, `MorningAdvisor`), so Composables don't
+Everything is drawn with Compose shapes; there are no image assets and no
+emoji, because older Android versions (the test phone runs Android 9) can't
+draw newer emoji. Invisible, labelled tap areas over each object make the
+scene usable with a screen reader. Forecasts and advice come from
+`:domain` (`OutlookCalculator`, `MorningAdvisor`), so Composables don't
 reimplement rules.
 
 `GameViewModel` derives each day's `RandomSource` from `GameState.seed`

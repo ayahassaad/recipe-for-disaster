@@ -155,7 +155,30 @@ data class DaySummary(
     val reputationAfter: Int,
     val cashBefore: Long,
     val cashAfter: Long,
+    /** Every guest in the order they arrived — what the service animation replays. */
+    val guests: List<GuestVisit> = emptyList(),
 )
+
+/** One guest's evening, as the player gets to watch it. */
+data class GuestVisit(
+    val outcome: GuestOutcome,
+    /** What they ordered, if they were fed. */
+    val dishName: String?,
+    /** Coins they paid (0 if they weren't fed). */
+    val paid: Long,
+    /** 0-100: how happy they left. */
+    val satisfaction: Int,
+)
+
+enum class GuestOutcome {
+    FED,
+    /** Sat down; the kitchen had already cooked all it could. */
+    HUNGRY_KITCHEN_FULL,
+    /** Sat down; the ingredients had run out. */
+    HUNGRY_OUT_OF_STOCK,
+    /** Looked at the menu at the door and left. */
+    WALKED_OUT,
+}
 
 data class FiredEvent(
     val ruleId: String,
