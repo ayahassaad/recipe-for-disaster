@@ -42,6 +42,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.recipefordisaster.app.R
@@ -53,6 +55,7 @@ import com.recipefordisaster.app.ui.scene.SceneLabels
 import com.recipefordisaster.app.ui.scene.SceneModel
 import com.recipefordisaster.app.ui.scene.SceneTarget
 import com.recipefordisaster.app.ui.scene.StaffFigure
+import com.recipefordisaster.app.ui.theme.DisasterRed
 import com.recipefordisaster.app.ui.theme.ReceiptInk
 import com.recipefordisaster.domain.employee.EmployeeId
 import com.recipefordisaster.domain.employee.EmployeeStatus
@@ -163,9 +166,21 @@ private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, modi
         Hud(day = uiState.state.day, cash = uiState.cashNow, reputation = morning.restaurant.reputation, subtitle = stringResource(R.string.daily_costs, coins(costs.total)))
         val need = remember(morning) { MorningAdvisor.staffNeed(morning) }
         RestaurantScene(model = model, labels = sceneLabels(need), onTap = { open = it }, modifier = Modifier.weight(1f))
+        // Opening with nothing the kitchen can cook means every guest walks straight back out.
+        val noFood = remember(morning) {
+            morning.menu.filter { it.available }.none { com.recipefordisaster.domain.inventory.InventoryOperations.canFulfill(morning.inventory, it.recipe) }
+        }
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
             Text(
-                text = stringResource(if (model.alerts.isEmpty()) R.string.hint_ready else R.string.hint_alerts),
+                text = stringResource(
+                    when {
+                        noFood -> R.string.hint_no_food
+                        model.alerts.isEmpty() -> R.string.hint_ready
+                        else -> R.string.hint_alerts
+                    },
+                ),
+                color = if (noFood) DisasterRed else Color.Unspecified,
+                fontWeight = if (noFood) FontWeight.SemiBold else null,
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
@@ -344,6 +359,7 @@ private fun nightHint(night: ServiceNight): String {
         spill && !me.holdingMop && ServiceNight.Errand.VisitMopBucket !in plans -> stringResource(R.string.hint_get_mop)
         dirty != null && nobodyClears -> stringResource(R.string.hint_clear, number(dirty))
         me.holdingMop && night.messesOnFloor.isEmpty() && ServiceNight.Errand.VisitMopBucket !in plans -> stringResource(R.string.hint_put_mop_back)
+        !night.kitchenHasFood -> stringResource(R.string.hint_out_of_food)
         night.parties.any { it.stage == ServiceNight.Stage.NOT_YET_ARRIVED || it.stage == ServiceNight.Stage.QUEUEING } -> stringResource(R.string.hint_waiting)
         else -> stringResource(R.string.hint_cooking)
     }

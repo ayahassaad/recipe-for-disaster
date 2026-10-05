@@ -263,10 +263,13 @@ data class ServiceNight(
                 if (time - party.arriveAt > GIVE_UP_COMING) night = night.stayAway(party)
                 continue
             }
-            // Anyone with nothing on the menu they can eat or afford reads it at the door and leaves.
-            val (staying, leaving) = party.guests.zip(party.preferences).partition { (_, prefs) -> prefs.isNotEmpty() }
+            // Anyone with nothing on the menu they can eat or afford reads it at the door and leaves —
+            // and so does anyone whose dishes have all sold out (the kitchen has run out of ingredients).
+            val (staying, leaving) = party.guests.zip(party.preferences).partition { (_, prefs) -> prefs.any { night.canMake(it, night.inventory) } }
             var results = night.results
-            leaving.forEach { (guest, _) -> results = results + (guest to missed(guest, MissedMealReason.NOTHING_SUITABLE)) }
+            leaving.forEach { (guest, prefs) ->
+                results = results + (guest to missed(guest, if (prefs.isEmpty()) MissedMealReason.NOTHING_SUITABLE else MissedMealReason.OUT_OF_STOCK))
+            }
             night = night.copy(results = results).updateParty(party.id) {
                 if (staying.isEmpty()) {
                     it.copy(stage = Stage.DONE, stageSince = time)
@@ -333,6 +336,15 @@ data class ServiceNight(
         }
     }
 
+    /** Whether the kitchen could cook this dish from [stock]: it's on tonight's menu and the ingredients are there. */
+    private fun canMake(dishId: DishId, stock: InventoryState): Boolean {
+        val dish = menu.firstOrNull { it.id == dishId } ?: return false
+        return dish.available && InventoryOperations.canFulfill(stock, dish.recipe)
+    }
+
+    /** Whether anything on the menu can still be cooked tonight. */
+    val kitchenHasFood: Boolean get() = menu.any { canMake(it.id, inventory) }
+
     private fun runKitchen(): ServiceNight {
         var night = this
         // Finished cooking: plates go up on the pass.
@@ -343,20 +355,8 @@ data class ServiceNight(
         val busy = night.parties.count { it.stage == Stage.COOKING }
         val waiting = night.parties.filter { it.stage == Stage.IN_KITCHEN }.sortedBy { it.stageSince }
         for (party in waiting.take((night.kitchenSlots - busy).coerceAtLeast(0))) {
-            // Only now do we find out whether there's stock for each dish.
-            var stock = night.inventory
-            val cooked = party.orders.map { dishId ->
-                val dish = dishId?.let { id -> night.menu.firstOrNull { it.id == id } }
-                if (dish != null && InventoryOperations.canFulfill(stock, dish.recipe)) {
-                    stock = InventoryOperations.consume(stock, dish.recipe)
-                    dishId
-                } else {
-                    null
-                }
-            }
-            var results = night.results
-            party.guests.zip(cooked).forEach { (guest, dish) -> if (dish == null && guest !in results) results = results + (guest to missed(guest, MissedMealReason.OUT_OF_STOCK)) }
-            night = night.copy(inventory = stock, results = results)
+            // The ingredients were set aside when the order was taken, so whatever was ordered gets cooked.
+            val cooked = party.orders
             night = if (cooked.all { it == null }) {
                 night.updateParty(party.id) { it.copy(stage = Stage.LEAVING_ANGRY, stageSince = time, until = time + LEAVE) }
             } else {
@@ -429,9 +429,22 @@ data class ServiceNight(
                     night = night.copy(dirtyTables = night.dirtyTables - errand.table)
                     updateWaiter { it.copy(hands = it.hands + HandItem.DirtyDishes(errand.table)) }
                 } else if ((waiter.kind == Kind.PLAYER || waiter.kind == Kind.RUNNER) && party != null && party.stage == Stage.READY_TO_ORDER && errand.table in waiter.tables) {
-                    val orders = party.preferences.map { prefs -> prefs.firstOrNull { id -> night.menu.any { it.id == id && it.available } } }
-                    night = night.updateParty(party.id) { it.copy(stage = Stage.ORDER_TAKEN, stageSince = time, orderedAt = time, orders = orders, heldBy = waiterId) }
-                    updateWaiter { it.copy(tickets = it.tickets + party.id) }
+                    // Each guest has the first thing they like that the kitchen can still make, and its
+                    // ingredients are set aside now — so nobody is told later that their food has run out.
+                    var stock = night.inventory
+                    val orders = party.preferences.map { prefs ->
+                        prefs.firstOrNull { night.canMake(it, stock) }?.also { id -> stock = InventoryOperations.consume(stock, night.menu.first { it.id == id }.recipe) }
+                    }
+                    var results = night.results
+                    party.guests.zip(orders).forEach { (guest, dish) -> if (dish == null && guest !in results) results = results + (guest to missed(guest, MissedMealReason.OUT_OF_STOCK)) }
+                    night = night.copy(inventory = stock, results = results)
+                    night = if (orders.all { it == null }) {
+                        // Everything they wanted sold out while they sat down; they leave disappointed.
+                        night.updateParty(party.id) { it.copy(stage = Stage.LEAVING_ANGRY, stageSince = time, until = time + LEAVE) }
+                    } else {
+                        updateWaiter { it.copy(tickets = it.tickets + party.id) }
+                        night.updateParty(party.id) { it.copy(stage = Stage.ORDER_TAKEN, stageSince = time, orderedAt = time, orders = orders, heldBy = waiterId) }
+                    }
                 }
             }
             is Errand.Serve -> {

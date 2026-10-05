@@ -305,4 +305,33 @@ class ServiceNightTest {
         assertTrue("dirty tables left: ${served.dirtyTables}", served.dirtyTables.size <= 1)
         assertTrue(served.messesOnFloor.isNotEmpty())
     }
+
+    @Test
+    fun `with an empty pantry guests leave at the door instead of storming out after ordering`() {
+        val empty = start.copy(inventory = start.inventory.copy(ingredients = start.inventory.ingredients.mapValues { it.value.copy(quantityOnHand = 0.0) }))
+        var n = open(empty)
+        assertTrue(!n.kitchenHasFood)
+        var everSeated = false
+        while (!n.finished) {
+            n = busyPlayer(n).advance(0.05f)
+            if (n.parties.any { it.table != null }) everSeated = true
+        }
+        assertTrue(!everSeated)
+        assertTrue(n.result().outcomes.all { it.missedReason == MissedMealReason.OUT_OF_STOCK || it.missedReason == MissedMealReason.NOTHING_SUITABLE })
+    }
+
+    @Test
+    fun `once an order is taken its food is never found missing in the kitchen`() {
+        // Barely any stock: a few dishes' worth at most.
+        val scarce = start.copy(inventory = start.inventory.copy(ingredients = start.inventory.ingredients.mapValues { it.value.copy(quantityOnHand = it.value.quantityOnHand.coerceAtMost(0.6)) }))
+        var n = open(scarce)
+        val ordered = mutableSetOf<Int>()
+        while (!n.finished) {
+            n = busyPlayer(n).advance(0.05f)
+            n.parties.filter { it.stage >= Stage.ORDER_TAKEN && it.orders.any { o -> o != null } }.forEach { ordered += it.id }
+        }
+        val fedOrTired = n.parties.filter { it.id in ordered }.flatMap { it.guests.zip(it.orders) }.filter { it.second != null }
+        assertTrue(fedOrTired.isNotEmpty())
+        assertTrue(fedOrTired.none { (guest, _) -> n.results.getValue(guest).missedReason == MissedMealReason.OUT_OF_STOCK })
+    }
 }
