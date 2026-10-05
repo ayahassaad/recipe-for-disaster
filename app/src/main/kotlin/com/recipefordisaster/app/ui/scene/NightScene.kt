@@ -153,6 +153,23 @@ fun NightScene(
                         }
                     }
 
+                    // Where you're heading, and the stops you've queued after it.
+                    val me = night.player
+                    (listOfNotNull(me.errand) + me.queue).forEachIndexed { k, errand ->
+                        val spot = when (errand) {
+                            is ServiceNight.Errand.VisitTable -> ServiceFloor.stand(errand.table)
+                            ServiceNight.Errand.VisitPass -> ServiceFloor.pass
+                            else -> null
+                        } ?: return@forEachIndexed
+                        val at = Point(spot.x, spot.y + 3.5f)
+                        if (k == 0) {
+                            ring(at.x, at.y, 2.2f + 0.3f * sin(clock * 6f), PlayerColor, 0.5f)
+                        } else {
+                            dot(at, 2.2f, PlayerColor)
+                            centeredText(text, k.toString(), at, size = 2.6f, color = Color.White, bold = true)
+                        }
+                    }
+
                     // Waiters: hired servers in red aprons, you in green with a marker overhead.
                     night.waiters.forEach { waiter ->
                         val at = waiter.position(time).toPoint().let { Point(it.x, it.y - 2f) }

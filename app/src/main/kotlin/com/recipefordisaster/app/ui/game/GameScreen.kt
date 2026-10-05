@@ -319,7 +319,7 @@ private fun nightHint(night: ServiceNight): String {
     val ordering = mine.filter { it.stage == ServiceNight.Stage.READY_TO_ORDER }.minByOrNull { it.stageSince }
     return when {
         carrying != null -> stringResource(R.string.hint_serve, number(carrying.table))
-        me.tickets.isNotEmpty() -> stringResource(R.string.hint_hand_in)
+        me.tickets.isNotEmpty() && me.queue.none { it == ServiceNight.Errand.VisitPass } && me.errand != ServiceNight.Errand.VisitPass -> stringResource(R.string.hint_hand_in)
         ready != null -> stringResource(R.string.hint_pick_up, number(ready.table))
         ordering != null -> stringResource(R.string.hint_take_order, number(ordering.table))
         night.parties.any { it.stage == ServiceNight.Stage.NOT_YET_ARRIVED || it.stage == ServiceNight.Stage.QUEUEING } -> stringResource(R.string.hint_waiting)

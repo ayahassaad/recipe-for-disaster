@@ -155,4 +155,25 @@ class ServiceNightTest {
         val arrivals = open().parties.map { it.arriveAt }
         arrivals.zipWithNext().forEach { (a, b) -> assertTrue(b - a >= 6f) }
     }
+
+    @Test
+    fun `a second tap queues up instead of interrupting`() {
+        var n = open()
+        n = n.tapTable(0)
+        val firstDestination = n.player.route.last()
+        n = n.tapTable(5)
+        assertEquals(firstDestination, n.player.route.last())
+        assertEquals(listOf<ServiceNight.Errand>(ServiceNight.Errand.VisitTable(5)), n.player.queue)
+
+        // Once the first stop is reached, the queued one starts.
+        while (n.player.errand == ServiceNight.Errand.VisitTable(0)) n = n.advance(0.05f)
+        assertEquals(ServiceNight.Errand.VisitTable(5), n.player.errand)
+        assertTrue(n.player.queue.isEmpty())
+    }
+
+    @Test
+    fun `tapping the same stop twice doesn't queue it twice`() {
+        var n = open().tapTable(0).tapPass().tapPass().tapTable(0)
+        assertEquals(listOf<ServiceNight.Errand>(ServiceNight.Errand.VisitPass), n.player.queue)
+    }
 }

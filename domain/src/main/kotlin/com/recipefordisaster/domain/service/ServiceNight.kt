@@ -98,7 +98,8 @@ data class ServiceNight(
     }
 
     sealed interface Errand {
-        data class TakeOrder(val table: Int) : Errand
+        /** Go to a table and do whatever it needs: serve it if you're carrying its food, otherwise take its order. */
+        data class VisitTable(val table: Int) : Errand
         data object VisitPass : Errand
         data class Serve(val table: Int) : Errand
         data object Rest : Errand
@@ -119,6 +120,8 @@ data class ServiceNight(
         val tickets: List<Int> = emptyList(),
         /** What's in this waiter's two hands, left then right. */
         val hands: List<HandItem> = emptyList(),
+        /** Where the player has asked to go next, after the current errand — taps queue up rather than interrupt. */
+        val queue: List<Errand> = emptyList(),
     ) {
         /** Party ids whose plates this waiter is carrying. */
         val plates: List<Int> get() = hands.filterIsInstance<HandItem.Plate>().map { it.partyId }
@@ -141,11 +144,23 @@ data class ServiceNight(
 
     // ------------------------------------------------------------ the player's commands
 
-    /** Walk to a table: take their order if they're ready, or serve them if you're carrying their food. */
-    fun tapTable(table: Int): ServiceNight = send(player.id, Errand.TakeOrder(table).takeUnless { player.plates.any { partyTable(it) == table } } ?: Errand.Serve(table))
+    /** Go to a table: take their order if they're ready, or serve them if you're carrying their food. */
+    fun tapTable(table: Int): ServiceNight = enqueue(Errand.VisitTable(table))
 
-    /** Walk to the pass: hand in any tickets you're holding and pick up plates that are ready for your tables. */
-    fun tapPass(): ServiceNight = send(player.id, Errand.VisitPass)
+    /** Go to the pass: hand in any tickets you're holding and pick up plates that are ready. */
+    fun tapPass(): ServiceNight = enqueue(Errand.VisitPass)
+
+    /**
+     * Taps queue up: if the player is already on their way somewhere, the
+     * new stop goes on the end of the list instead of cutting the current
+     * errand short. Tapping a stop that's already planned does nothing.
+     */
+    private fun enqueue(errand: Errand): ServiceNight {
+        val me = player
+        if (me.errand == null) return send(me.id, errand)
+        if (errand == me.errand || errand in me.queue || me.queue.size >= MAX_QUEUED) return this
+        return copy(waiters = waiters.map { if (it.isPlayer) it.copy(queue = it.queue + errand) else it })
+    }
 
     private fun partyTable(partyId: Int): Int? = parties.firstOrNull { it.id == partyId }?.table
 
@@ -153,7 +168,7 @@ data class ServiceNight(
         val waiter = waiters.first { it.id == waiterId }
         val here = waiter.position(time)
         val destination = when (errand) {
-            is Errand.TakeOrder -> ServiceFloor.stand(errand.table)
+            is Errand.VisitTable -> ServiceFloor.stand(errand.table)
             is Errand.Serve -> ServiceFloor.stand(errand.table)
             Errand.VisitPass -> ServiceFloor.pass
             Errand.Rest -> waiter.restSpot
@@ -320,6 +335,12 @@ data class ServiceNight(
         for (waiter in waiters) {
             if (waiter.errand == null || time < waiter.routeEnd) continue
             night = night.arrive(waiter.id)
+            // Then on to the next stop the player queued up, if any.
+            val next = night.waiters.first { it.id == waiter.id }.queue.firstOrNull()
+            if (next != null) {
+                night = night.copy(waiters = night.waiters.map { if (it.id == waiter.id) it.copy(queue = it.queue.drop(1)) else it })
+                    .send(waiter.id, next)
+            }
         }
         return night
     }
@@ -332,9 +353,12 @@ data class ServiceNight(
             night = night.copy(waiters = night.waiters.map { if (it.id == waiterId) transform(it) else it })
         }
         when (val errand = waiter.errand) {
-            is Errand.TakeOrder -> {
+            is Errand.VisitTable -> {
                 val party = night.partyAt(errand.table)
-                if (party != null && party.stage == Stage.READY_TO_ORDER && errand.table in waiter.tables) {
+                if (party != null && party.id in waiter.plates) {
+                    night = night.updateParty(party.id) { it.copy(stage = Stage.EATING, stageSince = time, until = time + EAT, heldBy = null) }
+                    updateWaiter { it.copy(hands = it.hands - HandItem.Plate(party.id)) }
+                } else if (party != null && party.stage == Stage.READY_TO_ORDER && errand.table in waiter.tables) {
                     val orders = party.preferences.map { prefs -> prefs.firstOrNull { id -> night.menu.any { it.id == id && it.available } } }
                     night = night.updateParty(party.id) { it.copy(stage = Stage.ORDER_TAKEN, stageSince = time, orderedAt = time, orders = orders, heldBy = waiterId) }
                     updateWaiter { it.copy(tickets = it.tickets + party.id) }
@@ -419,6 +443,9 @@ data class ServiceNight(
 
         /** How long a party will hold off coming in before going somewhere else. */
         private const val GIVE_UP_COMING = 15f
+
+        /** How many stops the player can line up ahead. */
+        const val MAX_QUEUED = 5
 
         /** How long a plate sits on the pass before a runner takes it out instead of waiting for the player. */
         private const val RUNNER_DELAY = 3f
