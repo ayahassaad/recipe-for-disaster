@@ -33,6 +33,7 @@ import com.recipefordisaster.domain.decision.DecisionApplier
 import com.recipefordisaster.domain.employee.Employee
 import com.recipefordisaster.domain.employee.EmployeeStatus
 import com.recipefordisaster.domain.employee.StaffingMarket
+import com.recipefordisaster.domain.equipment.EquipmentCatalog
 import com.recipefordisaster.domain.equipment.EquipmentOperations
 import com.recipefordisaster.domain.inventory.Ingredient
 import com.recipefordisaster.domain.menu.Dish
@@ -67,17 +68,39 @@ internal fun SheetContent(target: SceneTarget, uiState: GameUiState.Playing, act
 @Composable
 private fun OvenSheet(uiState: GameUiState.Playing, actions: GameActions) {
     val equipment = uiState.state.equipment.firstOrNull() ?: return
-    val repairing = equipment.id in uiState.plan.repairs
+    val upgrading = equipment.id in uiState.plan.upgrades
+    val repairing = equipment.id in uiState.plan.repairs && !upgrading
     val cost = EquipmentOperations.repairCost(equipment)
-    SectionTitle(equipment.name)
-    Meter(stringResource(R.string.condition), if (repairing) 100 else equipment.condition)
-    if (EquipmentOperations.isBroken(equipment) && !repairing) {
+    val next = EquipmentCatalog.nextModel(equipment)
+    SectionTitle(if (upgrading && next != null) next.name else equipment.name)
+    Meter(stringResource(R.string.condition), if (repairing || upgrading) 100 else equipment.condition)
+    if (EquipmentOperations.isBroken(equipment) && !repairing && !upgrading) {
         Text(stringResource(R.string.broken), style = MaterialTheme.typography.bodyLarge, color = DisasterRed)
     }
     when {
+        upgrading -> {}
         repairing -> OutlinedButton(onClick = { actions.onToggleRepair(equipment.id) }) { Text(stringResource(R.string.undo)) }
         cost > 0 -> BigAction(stringResource(R.string.fix, coins(cost)), enabled = uiState.cashNow >= cost) { actions.onToggleRepair(equipment.id) }
         else -> Text(stringResource(R.string.fine), style = MaterialTheme.typography.bodyLarge)
+    }
+
+    // Buying something better.
+    SectionTitle(stringResource(R.string.upgrade_title))
+    when {
+        upgrading -> {
+            Text(stringResource(R.string.upgrade_ordered, next?.name ?: ""), style = MaterialTheme.typography.bodyLarge, color = LeafGreen)
+            OutlinedButton(onClick = { actions.onToggleUpgrade(equipment.id) }) { Text(stringResource(R.string.undo)) }
+        }
+        next == null -> Text(stringResource(R.string.upgrade_best), style = MaterialTheme.typography.bodyLarge)
+        else -> {
+            Text(stringResource(R.string.upgrade_pitch, next.name), style = MaterialTheme.typography.bodyLarge)
+            val affordable = uiState.cashNow >= next.price
+            BigAction(stringResource(R.string.upgrade_buy, next.name, coins(next.price)), enabled = affordable) {
+                if (repairing) actions.onToggleRepair(equipment.id) // no need to fix the old one too
+                actions.onToggleUpgrade(equipment.id)
+            }
+            if (!affordable) Text(stringResource(R.string.upgrade_cant_afford), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+        }
     }
 }
 

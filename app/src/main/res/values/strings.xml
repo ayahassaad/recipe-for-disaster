@@ -92,7 +92,7 @@
     <string name="bill_wages">Wages</string>
     <string name="bill_premises">Rent and bills</string>
     <string name="bill_groceries">Groceries</string>
-    <string name="bill_repairs">Repairs</string>
+    <string name="bill_repairs">Repairs and upgrades</string>
     <string name="bill_other">Hiring, cleaning, menu</string>
     <string name="bill_events">Overnight</string>
     <string name="bill_total">Total</string>
@@ -156,6 +156,12 @@
     <string name="broken">Broken. The kitchen works at half speed.</string>
     <string name="fix">Fix (%1$s)</string>
     <string name="fine">Working fine</string>
+    <string name="upgrade_title">Get a better one</string>
+    <string name="upgrade_pitch">A %1$s cooks faster, breaks down less and wears out more slowly.</string>
+    <string name="upgrade_buy">Buy a %1$s (%2$s)</string>
+    <string name="upgrade_ordered">A new %1$s is going in this morning.</string>
+    <string name="upgrade_best">This is the best oven money can buy.</string>
+    <string name="upgrade_cant_afford">You can\'t afford it yet.</string>
     <string name="meter_value">%1$s %2$d out of 100</string>
 
     <!-- Game over -->

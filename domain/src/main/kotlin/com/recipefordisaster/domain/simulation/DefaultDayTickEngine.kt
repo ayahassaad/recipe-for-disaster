@@ -127,7 +127,7 @@ class DefaultDayTickEngine(
             operatingCosts = start.restaurant.operatingCosts,
             equipment = equipmentAfterFailureChecks,
             miscellaneous = morning.spending.staffing + morning.spending.cleaning + morning.spending.menu,
-            upgrades = morning.spending.repairs,
+            upgrades = morning.spending.repairs + morning.spending.upgrades,
         )
 
         val newCash = start.restaurant.cash + financials.profitOrLoss

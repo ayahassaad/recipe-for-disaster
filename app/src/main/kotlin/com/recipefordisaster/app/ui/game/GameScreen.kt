@@ -85,6 +85,7 @@ data class GameActions(
     val onToggleFire: (EmployeeId) -> Unit = {},
     val onToggleRestDay: (EmployeeId) -> Unit = {},
     val onToggleRepair: (EquipmentId) -> Unit = {},
+    val onToggleUpgrade: (EquipmentId) -> Unit = {},
     val onToggleDeepClean: () -> Unit = {},
 )
 
@@ -103,6 +104,7 @@ fun GameViewModel.actions(): GameActions = GameActions(
     onToggleFire = ::toggleFire,
     onToggleRestDay = ::toggleRestDay,
     onToggleRepair = ::toggleRepair,
+    onToggleUpgrade = ::toggleUpgrade,
     onToggleDeepClean = ::toggleDeepClean,
 )
 
@@ -216,6 +218,7 @@ internal fun sceneModelFor(state: GameState, advice: List<Advice>, hiringOpen: B
     return SceneModel(
         staff = working.map { StaffFigure(it.id, it.name, it.role, it.morale, it.stress) },
         ovenCondition = state.equipment.firstOrNull()?.condition ?: 100,
+        ovenLevel = state.equipment.firstOrNull()?.upgradeLevel ?: 1,
         pantryFullness = fullness,
         cleanliness = state.restaurant.cleanliness,
         hiring = hiringOpen,

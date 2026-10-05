@@ -27,7 +27,8 @@ object KitchenModel {
         }
         // Every broken machine halves what the kitchen can get out.
         val brokenCount = equipment.count { EquipmentOperations.isBroken(it) }
-        return (rawMeals * 0.5.pow(brokenCount)).toInt()
+        // Better kit gets more out of the same cooks.
+        return (rawMeals * 0.5.pow(brokenCount) * com.recipefordisaster.domain.equipment.EquipmentCatalog.cookingSpeed(equipment)).toInt()
     }
 
     /**
@@ -38,7 +39,7 @@ object KitchenModel {
     fun qualityBonus(employees: List<Employee>, equipment: List<Equipment>, cleanliness: Int): Int {
         val cooks = employees.filter { it.status == EmployeeStatus.ACTIVE && it.role == Role.COOK }
         val skillEffect = if (cooks.isEmpty()) -15 else ((cooks.map { it.skill }.average() - 55) / 3).toInt()
-        val equipmentEffect = if (equipment.any { EquipmentOperations.isBroken(it) }) -10 else 0
+        val equipmentEffect = if (equipment.any { EquipmentOperations.isBroken(it) }) -10 else 3 * equipment.sumOf { it.capacityEffect }
         val cleanlinessEffect = if (cleanliness < 40) -5 else 0
         return skillEffect + equipmentEffect + cleanlinessEffect
     }

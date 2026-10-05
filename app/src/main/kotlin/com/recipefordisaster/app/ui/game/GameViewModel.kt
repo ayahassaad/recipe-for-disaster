@@ -220,6 +220,7 @@ class GameViewModel(
     fun toggleRestDay(id: EmployeeId) = editPlan { it.copy(restDays = it.restDays.toggle(id), fires = it.fires - id) }
 
     fun toggleRepair(id: EquipmentId) = editPlan { it.copy(repairs = it.repairs.toggle(id)) }
+    fun toggleUpgrade(id: EquipmentId) = editPlan { it.copy(upgrades = it.upgrades.toggle(id)) }
 
     fun toggleDeepClean() = editPlan { it.copy(deepClean = !it.deepClean) }
 

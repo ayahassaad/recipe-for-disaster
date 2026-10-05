@@ -258,19 +258,37 @@ internal fun Pen.drawRat(at: Point, time: Float) {
 
 // ---------------------------------------------------------------- the kitchen
 
-internal fun Pen.drawOven(condition: Int, time: Float, onFire: Boolean) {
+/**
+ * The oven, by model: the ancient one is a battered black box; the sturdy
+ * one is brushed steel with red knobs; the convection oven is sleek black
+ * glass with a fan and a glowing blue display.
+ */
+internal fun Pen.drawOven(condition: Int, time: Float, onFire: Boolean, level: Int = 1) {
     val o = SceneLayout.oven
     oval(o.center.x, o.bottom + 0.6f, o.width / 2, 1f, Palette.shadow)
-    box(o, Palette.steelMid)
-    box(o.left + 0.6f, o.top + 0.6f, o.width - 1.2f, o.height - 1.2f, Palette.ovenBody, radius = 1.2f)
-    // Control panel with knobs and a little clock.
-    box(o.left + 1.2f, o.top + 1.2f, o.width - 2.4f, 4f, Color(0xFF2A2827), radius = 0.6f)
-    for (i in 0..3) {
-        val kx = o.left + 3.4f + i * 3.4f
-        dot(kx, o.top + 3.2f, 1f, Palette.steel)
-        line(kx, o.top + 3.2f, kx, o.top + 2.4f, Palette.ink, 0.25f)
+    val (frame, body, panel, knob) = when {
+        level >= 3 -> listOf(Color(0xFF1B1D22), Color(0xFF2B2F38), Color(0xFF111317), Color(0xFF9AA3AD))
+        level == 2 -> listOf(Palette.steelMid, Color(0xFFB9C0C6), Color(0xFF8D959C), Color(0xFFC0392B))
+        else -> listOf(Palette.steelMid, Palette.ovenBody, Color(0xFF2A2827), Palette.steel)
     }
-    box(o.right - 5f, o.top + 2.2f, 3.2f, 2f, Color(0xFF1A3A2A), radius = 0.3f)
+    box(o, frame)
+    box(o.left + 0.6f, o.top + 0.6f, o.width - 1.2f, o.height - 1.2f, body, radius = 1.2f)
+    if (level == 2) for (k in 0..5) line(o.left + 1f, o.top + 6f + k * 1.6f, o.right - 1f, o.top + 6f + k * 1.6f, Color(0x22FFFFFF), 0.2f) // brushed steel
+    // Control panel with knobs and a little clock.
+    box(o.left + 1.2f, o.top + 1.2f, o.width - 2.4f, 4f, panel, radius = 0.6f)
+    if (level >= 3) {
+        // A touch panel instead of knobs, with a bright display.
+        box(o.left + 2.4f, o.top + 2.2f, 7f, 2f, Color(0xFF0E2F4A), radius = 0.4f)
+        line(o.left + 3f, o.top + 3.2f, o.left + 8.6f, o.top + 3.2f, Color(0xFF6FD3FF), 0.5f)
+        for (i in 0..2) dot(o.left + 12f + i * 2.4f, o.top + 3.2f, 0.5f, Color(0xFF6FD3FF))
+    } else {
+        for (i in 0..3) {
+            val kx = o.left + 3.4f + i * 3.4f
+            dot(kx, o.top + 3.2f, 1f, knob)
+            line(kx, o.top + 3.2f, kx, o.top + 2.4f, Palette.ink, 0.25f)
+        }
+    }
+    box(o.right - 5f, o.top + 2.2f, 3.2f, 2f, if (level >= 3) Color(0xFF0E2F4A) else Color(0xFF1A3A2A), radius = 0.3f)
     // Door handle and glass window — warm when it's working, dark and cracked when broken.
     box(o.left + 3f, o.top + 6.2f, o.width - 6f, 0.9f, Palette.steel, radius = 0.4f)
     val window = Rect(o.left + 3f, o.top + 8f, o.right - 3f, o.bottom - 2.5f)
@@ -283,6 +301,14 @@ internal fun Pen.drawOven(condition: Int, time: Float, onFire: Boolean) {
     } else {
         line(window.left + 2f, window.top + 1f, window.center.x, window.bottom - 1f, Color(0x88FFFFFF), 0.2f)
         line(window.center.x, window.bottom - 1f, window.right - 2f, window.top + 2f, Color(0x88FFFFFF), 0.2f)
+    }
+    if (level >= 3 && condition > 0) {
+        // The convection fan, turning.
+        val spin = time * 6f
+        for (k in 0..2) {
+            val a = spin + k * 2.094f
+            line(window.center.x, window.center.y, window.center.x + kotlin.math.cos(a) * 1.8f, window.center.y + kotlin.math.sin(a) * 1.8f, Color(0x99FFFFFF), 0.4f)
+        }
     }
     if (condition in 1..34) dot(window.center, 2.6f, Palette.flame.copy(alpha = 0.45f))
     if (condition <= 0 || onFire) drawSmoke(Point(o.center.x, o.top), time)

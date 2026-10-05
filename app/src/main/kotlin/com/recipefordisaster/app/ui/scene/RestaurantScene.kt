@@ -60,6 +60,8 @@ data class SceneModel(
     /** Things that need the player — each gets a pulsing red "!". */
     val alerts: Set<SceneTarget>,
     val ovenOnFire: Boolean = false,
+    /** Which model of oven: 1 is the ancient one, higher is better (see EquipmentCatalog). */
+    val ovenLevel: Int = 1,
 )
 
 data class SceneLabels(
@@ -113,7 +115,7 @@ fun RestaurantScene(
             val time = clock
             with(pen) {
                 drawRoom(model.cleanliness, doorOpen = false, time = time)
-                drawOven(model.ovenCondition, time, model.ovenOnFire)
+                drawOven(model.ovenCondition, time, model.ovenOnFire, model.ovenLevel)
                 drawStove(false, time)
                 drawSink()
                 drawPantry(model.pantryFullness)

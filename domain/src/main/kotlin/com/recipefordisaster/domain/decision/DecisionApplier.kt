@@ -2,6 +2,7 @@ package com.recipefordisaster.domain.decision
 
 import com.recipefordisaster.domain.employee.EmployeeStatus
 import com.recipefordisaster.domain.employee.StaffingMarket
+import com.recipefordisaster.domain.equipment.EquipmentCatalog
 import com.recipefordisaster.domain.equipment.EquipmentOperations
 import com.recipefordisaster.domain.inventory.InventoryOperations
 import com.recipefordisaster.domain.menu.Dish
@@ -24,11 +25,12 @@ object PriceRules {
 data class DecisionSpending(
     val ingredients: Long = 0,
     val repairs: Long = 0,
+    val upgrades: Long = 0,
     val staffing: Long = 0,
     val cleaning: Long = 0,
     val menu: Long = 0,
 ) {
-    val total: Long get() = ingredients + repairs + staffing + cleaning + menu
+    val total: Long get() = ingredients + repairs + upgrades + staffing + cleaning + menu
 }
 
 data class AppliedDecisions(
@@ -124,7 +126,23 @@ object DecisionApplier {
             note("Added ${dish.name} to the menu.", LogTone.GOOD)
         }
 
+        val upgraded = mutableSetOf<com.recipefordisaster.domain.equipment.EquipmentId>()
+        for (id in decisions.upgrades) {
+            val equipment = current.equipment.firstOrNull { it.id == id } ?: continue
+            val cost = EquipmentCatalog.upgradeCost(equipment) ?: continue
+            if (!canAfford(cost)) {
+                note("Couldn't afford a new ${EquipmentCatalog.nextModel(equipment)?.name}.", LogTone.BAD)
+                continue
+            }
+            val better = EquipmentCatalog.upgrade(equipment)
+            spending = spending.copy(upgrades = spending.upgrades + cost)
+            current = current.copy(equipment = current.equipment.map { if (it.id == id) better else it })
+            upgraded += id
+            note("Out with the ${equipment.name}, in with a shiny ${better.name}.", LogTone.GOOD)
+        }
+
         for (id in decisions.repairs) {
+            if (id in upgraded) continue // a brand-new machine doesn't need fixing
             val equipment = current.equipment.firstOrNull { it.id == id } ?: continue
             val cost = EquipmentOperations.repairCost(equipment)
             if (cost <= 0) continue

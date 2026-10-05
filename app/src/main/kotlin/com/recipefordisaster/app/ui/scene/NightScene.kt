@@ -89,7 +89,7 @@ fun NightScene(
                     val time = night.time
                     val cooking = night.parties.any { it.stage == Stage.COOKING }
                     drawRoom(model.cleanliness, doorOpen = true, time = clock)
-                    drawOven(model.ovenCondition, clock, onFire = false)
+                    drawOven(model.ovenCondition, clock, onFire = false, level = model.ovenLevel)
                     drawStove(cooking, clock)
                     drawSink()
                     drawPantry(model.pantryFullness)

@@ -122,6 +122,8 @@ data class PlayerDecisions(
     /** Employees given today off: unpaid, not working, and they come back much less stressed. */
     val restDays: Set<EmployeeId> = emptySet(),
     val repairs: Set<EquipmentId> = emptySet(),
+    /** Machines to replace with the next model up (see [com.recipefordisaster.domain.equipment.EquipmentCatalog]). */
+    val upgrades: Set<EquipmentId> = emptySet(),
     val deepClean: Boolean = false,
 )
 

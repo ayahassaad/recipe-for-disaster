@@ -4,6 +4,7 @@ import com.recipefordisaster.domain.customer.Customer
 import com.recipefordisaster.domain.employee.EmployeePerformance
 import com.recipefordisaster.domain.employee.EmployeeStatus
 import com.recipefordisaster.domain.employee.Role
+import com.recipefordisaster.domain.equipment.EquipmentCatalog
 import com.recipefordisaster.domain.equipment.EquipmentOperations
 import com.recipefordisaster.domain.inventory.InventoryOperations
 import com.recipefordisaster.domain.inventory.InventoryState
@@ -641,12 +642,12 @@ data class ServiceNight(
                 Waiter(employee.id.value, isPlayer = false, tables = allTables, speed = STAFF_SPEED * pace, restSpot = rest,
                     route = listOf(rest), routeStart = 0f, routeEnd = 0f, errand = null, kind = Kind.DISHWASHER)
             }
-            // Kitchen pace: one dish at a time per cook, quicker with better cooks, slower with broken kit.
+            // Kitchen pace: one dish at a time per cook, quicker with better cooks and a better oven, slower with broken kit.
             val cooks = state.employees.filter { it.status == EmployeeStatus.ACTIVE && it.role == Role.COOK }
             val slots = cooks.size.coerceAtLeast(1)
             val skill = if (cooks.isEmpty()) 0.35f else (cooks.map { EmployeePerformance.effectiveServiceSpeed(it) }.average() / 45.0).toFloat().coerceIn(0.5f, 1.6f)
             val broken = state.equipment.count { EquipmentOperations.isBroken(it) }
-            val secondsPerDish = 3.2f / skill * (if (broken > 0) 1.8f else 1f)
+            val secondsPerDish = 3.2f / skill * (if (broken > 0) 1.8f else 1f) / EquipmentCatalog.cookingSpeed(state.equipment)
 
             val active = state.employees.count { it.status == EmployeeStatus.ACTIVE }
             return ServiceNight(
