@@ -99,7 +99,6 @@ private fun OvenSheet(uiState: GameUiState.Playing, actions: GameActions) {
                 if (repairing) actions.onToggleRepair(equipment.id) // no need to fix the old one too
                 actions.onToggleUpgrade(equipment.id)
             }
-            if (!affordable) Text(stringResource(R.string.upgrade_cant_afford), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
         }
     }
 }
@@ -373,7 +372,11 @@ private fun BigAction(text: String, enabled: Boolean, onClick: () -> Unit) {
     if (enabled) {
         SignButton(text = text, onClick = onClick)
     } else {
-        Text(stringResource(R.string.cant_afford), style = MaterialTheme.typography.titleMedium, color = DisasterRed, modifier = Modifier.padding(vertical = 8.dp))
+        // Still show what it is and what it costs, so the player knows how much to save up.
+        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+            Text(text, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+            Text(stringResource(R.string.cant_afford), style = MaterialTheme.typography.bodyMedium, color = DisasterRed)
+        }
     }
     Spacer(modifier = Modifier.height(2.dp))
 }
