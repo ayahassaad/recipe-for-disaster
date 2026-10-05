@@ -173,7 +173,11 @@ fun NightScene(
                         waiter.hands.forEachIndexed { k, item ->
                             val hand = Point(at.x + (if (k == 0) -4.6f else 4.6f), at.y + 2.6f)
                             when (item) {
-                                is ServiceNight.HandItem.Plate -> drawPlate(hand)
+                                is ServiceNight.HandItem.Plate -> {
+                                    drawPlate(hand)
+                                    // The table number travels with the plate, so you always know where it's going.
+                                    night.parties.firstOrNull { it.id == item.partyId }?.table?.let { table -> drawNumberFlag(text, hand, table + 1) }
+                                }
                             }
                         }
                         if (waiter.tickets.isNotEmpty()) {
@@ -301,13 +305,17 @@ private fun Pen.drawTickets(text: TextMeasurer, night: ServiceNight) {
 private fun Pen.drawReadyPlates(text: TextMeasurer, night: ServiceNight) {
     val ready = night.parties.filter { it.stage == Stage.READY_AT_PASS }.sortedBy { it.stageSince }
     ready.take(5).forEachIndexed { i, party ->
-        val x = 56f + i * 7.4f
-        val y = SceneLayout.counter.top + 3f
-        drawPlate(Point(x, y))
-        line(x + 2f, y - 1f, x + 2f, y - 5.4f, Palette.ink, 0.25f)
-        box(x + 2f, y - 5.4f, 3.4f, 2.6f, Palette.alert, radius = 0.3f)
-        centeredText(text, ((party.table ?: 0) + 1).toString(), Point(x + 3.7f, y - 4.1f), size = 2.2f, color = Color.White, bold = true)
+        val at = Point(56f + i * 7.4f, SceneLayout.counter.top + 3f)
+        drawPlate(at)
+        drawNumberFlag(text, at, (party.table ?: 0) + 1)
     }
+}
+
+/** A little red flag on a cocktail stick in a plate, showing the table number. */
+private fun Pen.drawNumberFlag(text: TextMeasurer, plate: Point, number: Int) {
+    line(plate.x + 2f, plate.y - 1f, plate.x + 2f, plate.y - 5.4f, Palette.ink, 0.25f)
+    box(plate.x + 2f, plate.y - 5.4f, 3.4f, 2.6f, Palette.alert, radius = 0.3f)
+    centeredText(text, number.toString(), Point(plate.x + 3.7f, plate.y - 4.1f), size = 2.2f, color = Color.White, bold = true)
 }
 
 /** A bouncing green arrow with "YOU" over the player's waiter. */
