@@ -174,14 +174,25 @@ a game. The restaurant is now drawn and animated (`ui/scene/`):
   or two choices, which show in the scene straight away and can be undone
   until service. Under the hood this is still a `PlayerDecisions` plan
   applied by `DecisionApplier` to the morning's starting state.
-- **Service:** the night replays the simulation's real guest list
-  (`DaySummary.guests`, one `GuestVisit` each). `ServiceChoreography` stages
-  it and is unit-tested. Guests walk the aisles to their seats; each server
-  carries one plate at a time at walking pace, so a thin floor team visibly
-  slows service; coins float up as guests pay; hungry guests get angry and
-  storm out. Busy nights play faster rather than longer (about 20 seconds),
-  with buttons to speed up or skip. Nothing here decides an outcome; it
-  only shows what the day-tick already worked out.
+- **Service, played by you:** `ServiceNight` (in `:domain`, `service/`)
+  is a small real-time game. Guests arrive in parties and sit at six
+  numbered tables. You are a waiter: tap a table with a "?" to take its
+  order, tap the counter to hand the ticket to the kitchen, tap it again
+  when the plate is up, and tap the table to serve it. You can carry two
+  plates. Each hired server looks after two tables on their own (shown in
+  their colour); you always keep at least two. Cooks set how many dishes
+  cook at once and how fast; a broken oven slows them; stock is checked
+  when a dish starts cooking. Parties lose patience while they wait, and
+  if it runs out they storm off. `ServiceNight` is immutable and
+  deterministic: everything random (party sizes, arrival times, who orders
+  what) is rolled once in `ServiceNight.open`, so a night depends only on
+  the player's taps. Its `result()` has the same shape the automatic
+  `ServiceSimulator` produces, so the engine is split into
+  `openService` / `closeService` and closes a played night exactly like a
+  simulated one. `advanceDay` still simulates the night automatically,
+  which the balance tests rely on. `ServiceFloor` is the shared floor
+  plan (table positions, aisles, walking speed); the app draws from it,
+  so what you see and what the timing assumes can't disagree.
 - **End of night:** a receipt slides up over the room with the profit,
   guests fed and the overnight event (some events also show in the room,
   like a rat or an oven fire). The itemised bill is one tap away.

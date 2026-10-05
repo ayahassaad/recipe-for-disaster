@@ -29,6 +29,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -41,11 +45,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.recipefordisaster.app.R
+import com.recipefordisaster.domain.service.ServiceNight
+import com.recipefordisaster.app.ui.scene.NightScene
+import com.recipefordisaster.app.ui.scene.NightLabels
 import com.recipefordisaster.app.ui.scene.RestaurantScene
 import com.recipefordisaster.app.ui.scene.SceneLabels
 import com.recipefordisaster.app.ui.scene.SceneModel
 import com.recipefordisaster.app.ui.scene.SceneTarget
-import com.recipefordisaster.app.ui.scene.ServiceChoreography
 import com.recipefordisaster.app.ui.scene.StaffFigure
 import com.recipefordisaster.app.ui.theme.ReceiptInk
 import com.recipefordisaster.domain.employee.EmployeeId
@@ -66,6 +72,7 @@ import com.recipefordisaster.domain.simulation.MorningAdvisor
  */
 data class GameActions(
     val onStartService: () -> Unit = {},
+    val onFinishService: (ServiceNight) -> Unit = {},
     val onNextMorning: () -> Unit = {},
     val onDismissIntro: () -> Unit = {},
     val onRestockAll: () -> Unit = {},
@@ -83,6 +90,7 @@ data class GameActions(
 
 fun GameViewModel.actions(): GameActions = GameActions(
     onStartService = ::startService,
+    onFinishService = ::finishService,
     onNextMorning = ::nextMorning,
     onDismissIntro = ::dismissIntro,
     onRestockAll = ::restockAll,
@@ -129,7 +137,8 @@ fun GameScreen(
             val gameOver = status == RestaurantStatus.BANKRUPT || status == RestaurantStatus.CONDEMNED
             when {
                 uiState.showIntro -> IntroScreen(onStart = actions.onDismissIntro, modifier = modifier)
-                uiState.report != null -> ServicePlay(report = uiState.report, gameOver = gameOver, onContinue = actions.onNextMorning, modifier = modifier)
+                uiState.night != null -> NightPlay(session = uiState.night, onFinished = actions.onFinishService, modifier = modifier)
+                uiState.report != null -> ResultsPlay(report = uiState.report, gameOver = gameOver, onContinue = actions.onNextMorning, modifier = modifier)
                 gameOver -> FinalBillScreen(state = uiState.state, onBackToStart = onBackToStart, modifier = modifier)
                 else -> MorningPlay(uiState = uiState, actions = actions, modifier = modifier)
             }
@@ -243,22 +252,106 @@ private fun sceneLabels(need: MorningAdvisor.Need? = null): SceneLabels {
 
 // ---------------------------------------------------------------- service and the end of the night
 
+/**
+ * Tonight's service, played. The clock runs while the screen is up; taps
+ * on tables and the counter go straight to the night as commands. When the
+ * last guest has left, the finished night goes back to the ViewModel to
+ * close the day.
+ */
+@Composable
+private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit, modifier: Modifier = Modifier) {
+    var night by remember(session) { mutableStateOf(session.opening) }
+    var clock by remember { mutableFloatStateOf(0f) }
+    val model = remember(session) { sceneModelFor(session.setup.morning.state, emptyList(), hiringOpen = false) }
+    val currentOnFinished by rememberUpdatedState(onFinished)
+
+    LaunchedEffect(session) {
+        var last = withFrameNanos { it }
+        var reported = false
+        while (true) {
+            val now = withFrameNanos { it }
+            val dt = ((now - last) / 1_000_000_000f).coerceAtMost(0.1f)
+            last = now
+            clock += dt
+            if (!night.finished) {
+                night = night.advance(dt)
+            } else if (!reported) {
+                reported = true
+                currentOnFinished(night)
+            }
+        }
+    }
+
+    val labels = nightLabels()
+    Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding().navigationBarsPadding()) {
+        Hud(
+            day = session.setup.original.day,
+            cash = session.setup.original.restaurant.cash - session.morningSpending.total + night.takings,
+            reputation = session.setup.morning.state.restaurant.reputation,
+            subtitle = stringResource(R.string.tonight_takings, signedCoins(night.takings)),
+        )
+        NightScene(
+            night = night,
+            model = model,
+            labels = labels,
+            clock = clock,
+            onTapTable = { night = night.tapTable(it) },
+            onTapCounter = { night = night.tapPass() },
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = nightHint(night),
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+        )
+    }
+}
+
+/** One line telling the player the most useful thing to do right now. */
+@Composable
+private fun nightHint(night: ServiceNight): String {
+    val me = night.player
+    val mine = night.parties.filter { it.table in me.tables }
+    fun number(table: Int?) = (table ?: 0) + 1
+    val carrying = me.plates.firstOrNull()?.let { id -> night.parties.firstOrNull { it.id == id } }
+    val ready = mine.filter { it.stage == ServiceNight.Stage.READY_AT_PASS }.minByOrNull { it.stageSince }
+    val ordering = mine.filter { it.stage == ServiceNight.Stage.READY_TO_ORDER }.minByOrNull { it.stageSince }
+    return when {
+        carrying != null -> stringResource(R.string.hint_serve, number(carrying.table))
+        me.tickets.isNotEmpty() -> stringResource(R.string.hint_hand_in)
+        ready != null -> stringResource(R.string.hint_pick_up, number(ready.table))
+        ordering != null -> stringResource(R.string.hint_take_order, number(ordering.table))
+        night.parties.any { it.stage == ServiceNight.Stage.NOT_YET_ARRIVED || it.stage == ServiceNight.Stage.QUEUEING } -> stringResource(R.string.hint_waiting)
+        else -> stringResource(R.string.hint_cooking)
+    }
+}
+
+@Composable
+private fun nightLabels(): NightLabels {
+    val table = stringResource(R.string.night_table)
+    return NightLabels(
+        table = { number, state -> String.format(table, number, state) },
+        counter = stringResource(R.string.night_counter),
+        wantsToOrder = stringResource(R.string.night_wants_to_order),
+        waitingForFood = stringResource(R.string.night_waiting_food),
+        foodReady = stringResource(R.string.night_food_ready),
+        eating = stringResource(R.string.night_eating),
+        empty = stringResource(R.string.night_empty),
+        you = stringResource(R.string.night_you),
+        menu = stringResource(R.string.scene_menu_sign),
+    )
+}
+
+/** After the night: the restaurant quiet again, the receipt over it, and on to the next day. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ServicePlay(report: DayReport, gameOver: Boolean, onContinue: () -> Unit, modifier: Modifier = Modifier) {
-    val serverCount = report.startOfService.employees.count {
-        it.status == EmployeeStatus.ACTIVE && (it.role == com.recipefordisaster.domain.employee.Role.SERVER || it.role == com.recipefordisaster.domain.employee.Role.MANAGER)
-    }
-    val choreography = remember(report) { ServiceChoreography(report.summary.guests, serverCount) }
-    var finished by rememberSaveable(report.summary.day) { mutableStateOf(false) }
-    var fast by rememberSaveable { mutableStateOf(false) }
-    var tonight by remember(report) { mutableLongStateOf(0L) }
+private fun ResultsPlay(report: DayReport, gameOver: Boolean, onContinue: () -> Unit, modifier: Modifier = Modifier) {
     var showBill by remember { mutableStateOf(false) }
-
     val event = report.event
     val baseModel = remember(report) { sceneModelFor(report.startOfService, emptyList(), hiringOpen = false) }
     // Overnight, some events show up in the room itself.
-    val model = if (finished && event != null) {
+    val model = if (event != null) {
         baseModel.copy(
             cleanliness = if (event.ruleId == "rat_sighting") minOf(baseModel.cleanliness, 40) else baseModel.cleanliness,
             ovenOnFire = event.ruleId == "kitchen_fire",
@@ -266,45 +359,15 @@ private fun ServicePlay(report: DayReport, gameOver: Boolean, onContinue: () -> 
     } else {
         baseModel
     }
-    val profit = report.books.profitOrLoss
 
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding().navigationBarsPadding()) {
-        Hud(
-            day = report.summary.day,
-            cash = if (finished) report.summary.cashAfter else report.summary.cashBefore - report.morningSpending.total + tonight,
-            reputation = if (finished) report.summary.reputationAfter else report.summary.reputationBefore,
-            // Takings while guests pay; once the night's over the receipt shows the profit, so don't compete with it.
-            subtitle = if (finished) "" else stringResource(R.string.tonight_takings, signedCoins(tonight)),
-        )
+        Hud(day = report.summary.day, cash = report.summary.cashAfter, reputation = report.summary.reputationAfter, subtitle = "")
         Box(modifier = Modifier.weight(1f)) {
-            RestaurantScene(
-                model = model,
-                labels = sceneLabels(),
-                onTap = {},
-                service = if (finished) null else choreography,
-                speed = if (fast) 3f else 1f,
-                onServiceFinished = { finished = true },
-                onCoinsSoFar = { tonight = it },
-            )
-            EndOfNightPanel(
-                visible = finished,
-                report = report,
-                onShowBill = { showBill = true },
-                modifier = Modifier.align(Alignment.BottomCenter),
-            )
+            RestaurantScene(model = model, labels = sceneLabels(), onTap = {})
+            EndOfNightPanel(visible = true, report = report, onShowBill = { showBill = true }, modifier = Modifier.align(Alignment.BottomCenter))
         }
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (finished) {
-                SignButton(text = stringResource(if (gameOver) R.string.bill_game_over else R.string.bill_next), onClick = onContinue)
-            } else {
-                OutlinedButton(onClick = { fast = !fast }, shape = RoundedCornerShape(12.dp), modifier = Modifier.weight(1f).height(56.dp)) {
-                    Text(stringResource(if (fast) R.string.speed_normal else R.string.speed_fast), style = MaterialTheme.typography.titleMedium)
-                }
-                Spacer(modifier = Modifier.width(10.dp))
-                OutlinedButton(onClick = { finished = true }, shape = RoundedCornerShape(12.dp), modifier = Modifier.weight(1f).height(56.dp)) {
-                    Text(stringResource(R.string.skip), style = MaterialTheme.typography.titleMedium)
-                }
-            }
+        Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
+            SignButton(text = stringResource(if (gameOver) R.string.bill_game_over else R.string.bill_next), onClick = onContinue)
         }
     }
 

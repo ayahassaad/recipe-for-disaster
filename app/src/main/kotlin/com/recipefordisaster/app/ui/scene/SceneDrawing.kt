@@ -532,6 +532,7 @@ internal fun Pen.drawPerson(
     slumped: Boolean = false,
     variant: Int = 0,
     walkPhase: Float? = null,
+    apron: Color = Palette.serverRed,
 ) {
     val y = at.y - bob + if (slumped) 0.8f else 0f
     oval(at.x, at.y + 3.6f, 4.2f, 1.3f, Palette.shadow)
@@ -578,8 +579,8 @@ internal fun Pen.drawPerson(
             // Waistcoat, red apron and a bow tie.
             box(at.x - 4f, y - 1.2f, 2.4f, 5.6f, Color(0xFF2B2B2B), radius = 1.2f)
             box(at.x + 1.6f, y - 1.2f, 2.4f, 5.6f, Color(0xFF2B2B2B), radius = 1.2f)
-            box(at.x - 2.6f, y + 1.8f, 5.2f, 3.4f, Palette.serverRed, radius = 0.6f)
-            line(at.x - 2.6f, y + 1.9f, at.x + 2.6f, y + 1.9f, Color(0xFF8E2A20), 0.3f)
+            box(at.x - 2.6f, y + 1.8f, 5.2f, 3.4f, apron, radius = 0.6f)
+            line(at.x - 2.6f, y + 1.9f, at.x + 2.6f, y + 1.9f, Color(0x55000000), 0.3f)
             shape(Palette.ink) {
                 moveTo(at.x, y - 0.6f); lineTo(at.x - 1.3f, y - 1.3f); lineTo(at.x - 1.3f, y + 0.1f); close()
                 moveTo(at.x, y - 0.6f); lineTo(at.x + 1.3f, y - 1.3f); lineTo(at.x + 1.3f, y + 0.1f); close()

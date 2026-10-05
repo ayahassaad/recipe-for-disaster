@@ -27,6 +27,15 @@ class GameViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val dayTickEngine = DefaultDayTickEngine(EventEngine(rules = emptyList()))
 
+    /** Opens the doors and lets the night run to the end with nobody tapping anything. */
+    private fun playNight(viewModel: GameViewModel) {
+        viewModel.startService()
+        val session = (viewModel.uiState.value as? GameUiState.Playing)?.night ?: return
+        var night = session.opening
+        while (!night.finished) night = night.advance(0.1f)
+        viewModel.finishService(night)
+    }
+
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
@@ -83,7 +92,7 @@ class GameViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
         val dayOneState = (viewModel.uiState.value as GameUiState.Playing).state
 
-        viewModel.startService()
+        playNight(viewModel)
         dispatcher.scheduler.advanceUntilIdle()
 
         val afterState = viewModel.uiState.value
@@ -120,7 +129,7 @@ class GameViewModelTest {
         val applicant = (viewModel.uiState.value as GameUiState.Playing).state.applicants.first()
 
         viewModel.toggleHire(applicant.id)
-        viewModel.startService()
+        playNight(viewModel)
         dispatcher.scheduler.advanceUntilIdle()
 
         val after = viewModel.uiState.value as GameUiState.Playing
@@ -134,7 +143,7 @@ class GameViewModelTest {
         viewModel.startNewGame()
         dispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.startService()
+        playNight(viewModel)
         dispatcher.scheduler.advanceUntilIdle()
         val results = viewModel.uiState.value as GameUiState.Playing
         assertTrue(results.report != null)
@@ -149,7 +158,7 @@ class GameViewModelTest {
         val viewModel = GameViewModel(FakeGameRepository(), dayTickEngine)
         viewModel.startNewGame()
         dispatcher.scheduler.advanceUntilIdle()
-        viewModel.startService()
+        playNight(viewModel)
         dispatcher.scheduler.advanceUntilIdle()
 
         viewModel.toggleDeepClean()
@@ -219,10 +228,25 @@ class GameViewModelTest {
         val repository = FakeGameRepository()
         val viewModel = GameViewModel(repository, dayTickEngine)
 
-        viewModel.startService()
+        playNight(viewModel)
         dispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(GameUiState.Loading, viewModel.uiState.value)
         assertEquals(0, repository.saveCount)
+    }
+
+    @Test
+    fun `opening the doors starts a night to play and nothing is saved until it ends`() = runTest(dispatcher) {
+        val repository = FakeGameRepository()
+        val viewModel = GameViewModel(repository, dayTickEngine)
+        viewModel.startNewGame()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.startService()
+
+        val serving = viewModel.uiState.value as GameUiState.Playing
+        assertTrue(serving.night != null)
+        assertEquals(null, serving.report)
+        assertEquals(1, repository.saveCount)
     }
 }

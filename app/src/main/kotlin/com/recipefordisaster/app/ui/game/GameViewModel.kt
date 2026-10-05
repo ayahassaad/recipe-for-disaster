@@ -15,7 +15,9 @@ import com.recipefordisaster.domain.equipment.EquipmentId
 import com.recipefordisaster.domain.inventory.IngredientId
 import com.recipefordisaster.domain.menu.DishId
 import com.recipefordisaster.domain.simulation.DaySummary
-import com.recipefordisaster.domain.simulation.DayTickEngine
+import com.recipefordisaster.domain.service.ServiceNight
+import com.recipefordisaster.domain.simulation.DefaultDayTickEngine
+import com.recipefordisaster.domain.simulation.ServiceSetup
 import com.recipefordisaster.domain.simulation.FiredEvent
 import com.recipefordisaster.domain.simulation.GameState
 import com.recipefordisaster.domain.simulation.MorningAdvisor
@@ -57,6 +59,8 @@ sealed interface GameUiState {
         val report: DayReport? = null,
         /** True on a brand-new game until the player has read "How to play". */
         val showIntro: Boolean = false,
+        /** Tonight's service while it's being played; null in the morning and on the results screen. */
+        val night: NightSession? = null,
     ) : GameUiState {
         /** The restaurant as the player has set it up this morning. */
         val morning: GameState get() = preview.state
@@ -66,6 +70,18 @@ sealed interface GameUiState {
     }
     data class Error(val message: String) : GameUiState
 }
+
+/**
+ * A night of service in progress. [opening] is the night as the doors open;
+ * the screen plays it forward (time, taps) and hands the finished night
+ * back to [GameViewModel.finishService].
+ */
+data class NightSession(
+    val setup: ServiceSetup,
+    val opening: ServiceNight,
+    val morningSpending: DecisionSpending,
+    val dailySeed: Long,
+)
 
 /**
  * Everything the end-of-day results screen shows. [morningSpending] is
@@ -91,7 +107,7 @@ data class DayReport(
  */
 class GameViewModel(
     private val gameRepository: GameRepository,
-    private val dayTickEngine: DayTickEngine,
+    private val dayTickEngine: DefaultDayTickEngine,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<GameUiState>(GameUiState.Loading)
@@ -122,31 +138,30 @@ class GameViewModel(
         }
     }
 
-    /** Runs tonight's service with everything chosen this morning, then shows the results. */
+    /**
+     * Opens the doors: carries out the morning and starts tonight's service
+     * for the player to play. Nothing is saved until the night is over.
+     */
     fun startService() {
         val current = _uiState.value
-        if (current !is GameUiState.Playing || current.report != null) return
+        if (current !is GameUiState.Playing || current.report != null || current.night != null) return
+        // Per-day seed from the run's seed and the day number, so any day can be reproduced from where it started.
+        val dailySeed = current.state.seed * 6_364_136_223_846_793_005L + current.state.day
+        val setup = dayTickEngine.openService(current.state, current.plan, SeededRandomSource(dailySeed))
+        val night = ServiceNight.open(setup, SeededRandomSource(dailySeed + 1))
+        _uiState.value = current.copy(night = NightSession(setup, night, current.preview.spending, dailySeed))
+    }
 
+    /** The last guest has gone: close the books on the night the player played, save, and show the results. */
+    fun finishService(finalNight: ServiceNight) {
+        val current = _uiState.value
+        if (current !is GameUiState.Playing) return
+        val session = current.night ?: return
         viewModelScope.launch {
-            // Per-day deterministic seed, derived from the run's base seed
-            // and the day number, rather than one continuous RNG stream
-            // kept alive in memory for the whole run. This makes any single
-            // day's outcome reproducible from the state it started from
-            // (base seed + day number), which is what matters for testing
-            // and debugging. It does NOT currently guarantee that replaying
-            // an entire run from day 1 after an app restart mid-run
-            // produces byte-identical results to an uninterrupted run,
-            // since we don't persist RNG stream position — only the base
-            // seed. That would need an explicit "RNG position" field on
-            // GameState; flagging it as a known gap rather than pretending
-            // full-run replay determinism is already solved.
-            val dailySeed = current.state.seed * 6_364_136_223_846_793_005L + current.state.day
-            val rng = SeededRandomSource(dailySeed)
-
-            val result = dayTickEngine.advanceDay(current.state, current.plan, rng)
+            val result = dayTickEngine.closeService(session.setup, finalNight.result(), SeededRandomSource(session.dailySeed + 2))
             gameRepository.save(result.newState)
             val report = result.summary?.let { summary ->
-                result.newState.ledger.history.lastOrNull()?.let { books -> DayReport(summary, books, result.event, current.preview.spending, current.preview.state) }
+                result.newState.ledger.history.lastOrNull()?.let { books -> DayReport(summary, books, result.event, session.morningSpending, session.setup.morning.state) }
             }
             _uiState.value = GameUiState.Playing(result.newState, dayLog = result.log, lastEvent = result.event, report = report)
         }
@@ -212,7 +227,7 @@ class GameViewModel(
 
     private fun editPlan(transform: (PlayerDecisions) -> PlayerDecisions) {
         _uiState.update { current ->
-            if (current !is GameUiState.Playing || current.report != null) return@update current
+            if (current !is GameUiState.Playing || current.report != null || current.night != null) return@update current
             val plan = transform(current.plan)
             current.copy(plan = plan, preview = DecisionApplier.apply(current.state, plan))
         }
@@ -223,7 +238,7 @@ class GameViewModel(
 
 class GameViewModelFactory(
     private val gameRepository: GameRepository,
-    private val dayTickEngine: DayTickEngine,
+    private val dayTickEngine: DefaultDayTickEngine,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {

@@ -35,6 +35,9 @@ object ServiceSimulator {
 
         /** The kitchen had already cooked as much as it could today. */
         KITCHEN_OVERWHELMED,
+
+        /** Waited too long — for a table, to order, or for their food — and left. */
+        TIRED_OF_WAITING,
     }
 
     data class CustomerServiceOutcome(
@@ -145,11 +148,11 @@ object ServiceSimulator {
         return dishes.last()
     }
 
-    private fun missedMealSatisfaction(reason: MissedMealReason): Int = when (reason) {
+    fun missedMealSatisfaction(reason: MissedMealReason): Int = when (reason) {
         // Walked in, saw nothing for them, walked out — no meal, no goodwill.
         MissedMealReason.NOTHING_SUITABLE -> 0
         // Sat down, ordered, and were told there's no food. Barely better.
-        MissedMealReason.OUT_OF_STOCK, MissedMealReason.KITCHEN_OVERWHELMED -> 10
+        MissedMealReason.OUT_OF_STOCK, MissedMealReason.KITCHEN_OVERWHELMED, MissedMealReason.TIRED_OF_WAITING -> 10
     }
 
     private fun estimateWaitMinutes(staffingRatio: Double, averageServiceSpeed: Double): Double {
@@ -158,7 +161,7 @@ object ServiceSimulator {
         return (staffingRatio.coerceAtMost(20.0) * speedFactor).coerceIn(1.0, 90.0)
     }
 
-    private fun resolveSatisfaction(customer: Customer, dish: Dish, waitMinutes: Double, kitchenQualityBonus: Int): Int {
+    fun resolveSatisfaction(customer: Customer, dish: Dish, waitMinutes: Double, kitchenQualityBonus: Int): Int {
         val patienceDeficit = (waitMinutes - customer.patience).coerceAtLeast(0.0)
         val waitPenalty = (patienceDeficit * 2).toInt()
         // quality is 0-100; 50 is "unremarkable," neither bonus nor penalty

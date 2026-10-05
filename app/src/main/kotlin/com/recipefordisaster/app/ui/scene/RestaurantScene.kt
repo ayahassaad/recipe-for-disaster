@@ -75,9 +75,7 @@ data class SceneLabels(
 /**
  * The restaurant, drawn from above and animated. In the morning it idles
  * (steam, smoke from a broken oven, staff breathing) and everything in
- * [SceneModel.alerts] pulses; tapping an object calls [onTap]. When
- * [service] is given, it plays that night: guests come in, get fed (or
- * don't), pay and leave, and [onServiceFinished] fires at the end.
+ * [SceneModel.alerts] pulses; tapping an object calls [onTap].
  */
 @Composable
 fun RestaurantScene(
@@ -85,31 +83,16 @@ fun RestaurantScene(
     labels: SceneLabels,
     onTap: (SceneTarget) -> Unit,
     modifier: Modifier = Modifier,
-    service: ServiceChoreography? = null,
-    speed: Float = 1f,
-    onServiceFinished: () -> Unit = {},
-    onCoinsSoFar: (Long) -> Unit = {},
 ) {
     var clock by remember { mutableFloatStateOf(0f) }
-    var serviceTime by remember(service) { mutableFloatStateOf(-0.6f) }
-    val currentSpeed by androidx.compose.runtime.rememberUpdatedState(speed)
 
-    LaunchedEffect(service) {
+    // Idle animation only (steam, smoke, staff breathing); service itself is played in NightScene.
+    LaunchedEffect(Unit) {
         var last = withFrameNanos { it }
-        var finished = false
         while (true) {
             val now = withFrameNanos { it }
-            val dt = ((now - last) / 1_000_000_000f).coerceAtMost(0.1f)
+            clock += ((now - last) / 1_000_000_000f).coerceAtMost(0.1f)
             last = now
-            clock += dt
-            if (service != null && !finished) {
-                serviceTime += dt * currentSpeed
-                onCoinsSoFar(service.coinsPaidBy(serviceTime))
-                if (serviceTime >= service.duration) {
-                    finished = true
-                    onServiceFinished()
-                }
-            }
         }
     }
 
@@ -128,84 +111,41 @@ fun RestaurantScene(
             clipRect(origin.x, origin.y, origin.x + unit * SceneLayout.WIDTH, origin.y + unit * SceneLayout.HEIGHT) {
             val pen = Pen(this, unit, origin)
             val time = clock
-            val busy = service?.kitchenBusy(serviceTime) ?: false
             with(pen) {
-                drawRoom(model.cleanliness, doorOpen = service != null, time = time)
+                drawRoom(model.cleanliness, doorOpen = false, time = time)
                 drawOven(model.ovenCondition, time, model.ovenOnFire)
-                drawStove(busy, time)
+                drawStove(false, time)
                 drawSink()
                 drawPantry(model.pantryFullness)
                 drawTables()
                 drawMenuBoard(text, labels.menu)
                 drawMopBucket()
-                if (model.hiring && service == null) drawHiringSign(text, labels.hiring)
+                if (model.hiring) drawHiringSign(text, labels.hiring)
 
-                // Staff.
-                val servers = staffSpots.filter { it.first.role == StaffRole.SERVER || it.first.role == StaffRole.MANAGER }
+                // Staff at their morning spots.
                 staffSpots.forEach { (figure, spot) ->
-                    val serverIndex = servers.indexOfFirst { it.first.id == figure.id }
-                    val position = if (service != null && serverIndex >= 0) {
-                        service.serverPosition(serverIndex, serviceTime, spot)
-                    } else {
-                        spot
-                    }
-                    val working = service != null && (figure.role == StaffRole.COOK && busy)
-                    val walking = service != null && serverIndex >= 0 && position != spot
-                    val bob = when {
-                        working -> sin(time * 12f) * 0.6f
-                        walking -> kotlin.math.abs(sin(time * 12f)) * 0.5f
-                        else -> sin(time * 1.6f + figure.id.hashCode()) * 0.25f
-                    }
                     drawPerson(
-                        at = position,
+                        at = spot,
                         outfit = outfitFor(figure.role),
                         mood = figure.morale,
-                        bob = bob,
+                        bob = sin(time * 1.6f + figure.id.hashCode()) * 0.25f,
                         sweat = figure.stress >= 70,
                         slumped = figure.stress >= 85,
                         variant = figure.name.hashCode().mod(5),
-                        walkPhase = if (walking) time * 2.2f else null,
                     )
                 }
 
-                // Guests.
-                service?.tracks?.forEach { track ->
-                    val frame = service.frame(track, serviceTime) ?: return@forEach
-                    frame.plate?.let { drawPlate(it) }
-                    val walking = frame.look == ServiceChoreography.Look.WALKING_IN ||
-                        frame.look == ServiceChoreography.Look.HAPPY_LEAVING ||
-                        frame.look == ServiceChoreography.Look.STORMING_OUT
-                    drawPerson(
-                        at = frame.position,
-                        outfit = Outfit.GUEST,
-                        mood = frame.mood,
-                        bodyColor = Palette.guestColors[track.colorIndex % Palette.guestColors.size],
-                        bob = when {
-                            walking -> kotlin.math.abs(sin((serviceTime - track.start) * 14f)) * 0.8f
-                            frame.look == ServiceChoreography.Look.EATING -> kotlin.math.abs(sin(serviceTime * 6f + track.colorIndex)) * 0.4f
-                            else -> 0f
-                        },
-                        angry = frame.look == ServiceChoreography.Look.ANGRY || frame.look == ServiceChoreography.Look.STORMING_OUT,
-                        backTurned = frame.look == ServiceChoreography.Look.TURNING_AWAY && serviceTime - track.start > 1.1f,
-                        variant = track.colorIndex,
-                        walkPhase = if (walking) (serviceTime - track.start) * 2.2f else null,
-                    )
-                    frame.coins?.let { (where, progress) -> if (progress < 1f) drawCoins(text, where, progress, track.visit.paid) }
-                }
-
-                // "This needs you" markers — only in the morning.
-                if (service == null) {
-                    model.alerts.forEach { target ->
-                        val rect = rectFor(target, staffSpots) ?: return@forEach
-                        drawAlert(text, Point(rect.right - 1f, rect.top + 1f), time)
-                    }
+                // "This needs you" markers.
+                model.alerts.forEach { target ->
+                    val rect = rectFor(target, staffSpots) ?: return@forEach
+                    drawAlert(text, Point(rect.right - 1f, rect.top + 1f), time)
                 }
             }
             }
         }
 
         // Invisible tap areas over each object; they also give screen readers something to announce.
-        if (service == null) {
+        run {
             val targets = listOf(
                 SceneTarget.Oven to labels.oven,
                 SceneTarget.Pantry to labels.pantry,

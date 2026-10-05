@@ -40,15 +40,11 @@ class DefaultDayTickEngine(
 ) : DayTickEngine {
 
     override fun advanceDay(state: GameState, decisions: PlayerDecisions, rng: RandomSource): DayResult {
-        // 1. Morning
-        val morning = DecisionApplier.apply(state, decisions)
-        val start = morning.state
-        val dayLog = morning.log.toMutableList()
-
-        // 2. Service
-        val arrivals = CustomerFlow.generateArrivals(start.restaurant, rng, start.pendingDemandModifierPercent)
+        val setup = openService(state, decisions, rng)
+        val start = setup.morning.state
+        // The night played out automatically — used when nobody's at the controls (balance tests, simulations).
         val serviceResult = ServiceSimulator.simulate(
-            arrivals = arrivals,
+            arrivals = setup.arrivals,
             employees = start.employees,
             menu = start.menu,
             inventory = start.inventory,
@@ -56,6 +52,29 @@ class DefaultDayTickEngine(
             kitchenQualityBonus = KitchenModel.qualityBonus(start.employees, start.equipment, start.restaurant.cleanliness),
             rng = rng,
         )
+        return closeService(setup, serviceResult, rng)
+    }
+
+    /**
+     * Steps 1-2a: carries out the morning and decides who'll walk in
+     * tonight. What happens to those guests is then either played by the
+     * player ([com.recipefordisaster.domain.service.ServiceNight]) or
+     * simulated ([ServiceSimulator]); either way the result goes to
+     * [closeService].
+     */
+    fun openService(state: GameState, decisions: PlayerDecisions, rng: RandomSource): ServiceSetup {
+        val morning = DecisionApplier.apply(state, decisions)
+        val arrivals = CustomerFlow.generateArrivals(morning.state.restaurant, rng, morning.state.pendingDemandModifierPercent)
+        return ServiceSetup(original = state, morning = morning, arrivals = arrivals)
+    }
+
+    /** Steps 3-4: closes the books on a night of service, however it was played, and rolls for an overnight event. */
+    fun closeService(setup: ServiceSetup, serviceResult: ServiceSimulator.ServiceResult, rng: RandomSource): DayResult {
+        val state = setup.original
+        val morning = setup.morning
+        val start = morning.state
+        val arrivals = setup.arrivals
+        val dayLog = morning.log.toMutableList()
         val customersFed = serviceResult.outcomes.count { it.dish != null }
 
         // 3. Closing
@@ -124,6 +143,9 @@ class DefaultDayTickEngine(
         serviceResult.missedCount(MissedMealReason.KITCHEN_OVERWHELMED).takeIf { it > 0 }?.let { count ->
             dayLog += SimulationLogEntry(state.day, "The kitchen couldn't keep up: $count customer${if (count == 1) "" else "s"} never got fed.", LogTone.BAD)
         }
+        serviceResult.missedCount(MissedMealReason.TIRED_OF_WAITING).takeIf { it > 0 }?.let { count ->
+            dayLog += SimulationLogEntry(state.day, "$count customer${if (count == 1) "" else "s"} gave up waiting and left.", LogTone.BAD)
+        }
         serviceResult.missedCount(MissedMealReason.OUT_OF_STOCK).takeIf { it > 0 }?.let { count ->
             dayLog += SimulationLogEntry(state.day, "Ran out of ingredients: $count customer${if (count == 1) "" else "s"} left hungry.", LogTone.BAD)
         }
@@ -163,7 +185,7 @@ class DefaultDayTickEngine(
             day = state.day,
             customersArrived = arrivals.size,
             customersFed = customersFed,
-            unfedKitchenFull = serviceResult.missedCount(MissedMealReason.KITCHEN_OVERWHELMED),
+            unfedKitchenFull = serviceResult.missedCount(MissedMealReason.KITCHEN_OVERWHELMED) + serviceResult.missedCount(MissedMealReason.TIRED_OF_WAITING),
             unfedOutOfStock = serviceResult.missedCount(MissedMealReason.OUT_OF_STOCK),
             walkedOut = serviceResult.missedCount(MissedMealReason.NOTHING_SUITABLE),
             averageSatisfaction = averageSatisfaction,
@@ -175,7 +197,7 @@ class DefaultDayTickEngine(
                 GuestVisit(
                     outcome = when (outcome.missedReason) {
                         null -> GuestOutcome.FED
-                        MissedMealReason.KITCHEN_OVERWHELMED -> GuestOutcome.HUNGRY_KITCHEN_FULL
+                        MissedMealReason.KITCHEN_OVERWHELMED, MissedMealReason.TIRED_OF_WAITING -> GuestOutcome.HUNGRY_KITCHEN_FULL
                         MissedMealReason.OUT_OF_STOCK -> GuestOutcome.HUNGRY_OUT_OF_STOCK
                         MissedMealReason.NOTHING_SUITABLE -> GuestOutcome.WALKED_OUT
                     },
@@ -226,3 +248,10 @@ class DefaultDayTickEngine(
     private fun GameState.isGameOver(): Boolean =
         restaurant.status == RestaurantStatus.BANKRUPT || restaurant.status == RestaurantStatus.CONDEMNED
 }
+
+/** A day with the doors about to open: the original state, the morning carried out, and tonight's guests. */
+data class ServiceSetup(
+    val original: GameState,
+    val morning: com.recipefordisaster.domain.decision.AppliedDecisions,
+    val arrivals: List<com.recipefordisaster.domain.customer.Customer>,
+)

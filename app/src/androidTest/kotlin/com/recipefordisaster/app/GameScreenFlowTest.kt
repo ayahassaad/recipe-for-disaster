@@ -74,18 +74,15 @@ class GameScreenFlowTest {
         // The scene animates continuously, so the test drives the clock by hand rather than waiting for idle.
         composeTestRule.mainClock.autoAdvance = false
         composeTestRule.onNodeWithText("Open the doors").performClick()
-        composeTestRule.mainClock.advanceTimeBy(500)
-        composeTestRule.onNodeWithText("Skip to the end").performClick()
-        composeTestRule.mainClock.advanceTimeBy(1_000)
+        // Nobody serves, so the night runs until every guest has given up and left.
+        composeTestRule.mainClock.advanceTimeBy(250_000)
         composeTestRule.onNodeWithText("guests fed", substring = true).assertExists()
         composeTestRule.onNodeWithText("Next day").performClick()
         composeTestRule.mainClock.advanceTimeBy(1_000)
         composeTestRule.onNodeWithText("Day 2").assertExists()
 
         composeTestRule.onNodeWithText("Open the doors").performClick()
-        composeTestRule.mainClock.advanceTimeBy(500)
-        composeTestRule.onNodeWithText("Skip to the end").performClick()
-        composeTestRule.mainClock.advanceTimeBy(1_000)
+        composeTestRule.mainClock.advanceTimeBy(250_000)
         composeTestRule.onNodeWithText("Next day").performClick()
         composeTestRule.mainClock.advanceTimeBy(1_000)
         composeTestRule.onNodeWithText("Day 3").assertExists()

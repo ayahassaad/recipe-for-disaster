@@ -1,5 +1,8 @@
 package com.recipefordisaster.app.ui.scene
 
+import com.recipefordisaster.domain.service.FloorPoint
+import com.recipefordisaster.domain.service.ServiceFloor
+
 /**
  * The restaurant's floor plan, in "scene units": the room is [WIDTH] wide
  * and [HEIGHT] tall, and the drawing scales that to whatever space the
@@ -10,6 +13,8 @@ package com.recipefordisaster.app.ui.scene
  * Seen from above, roughly: kitchen along the top behind the pass counter,
  * dining room in the middle, front door at the bottom.
  */
+fun FloorPoint.toPoint() = SceneLayout.Point(x, y)
+
 object SceneLayout {
     const val WIDTH = 100f
     const val HEIGHT = 150f
@@ -19,21 +24,6 @@ object SceneLayout {
             val f = t.coerceIn(0f, 1f)
             return Point(x + (to.x - x) * f, y + (to.y - y) * f)
         }
-
-        fun distanceTo(other: Point): Float = kotlin.math.hypot(other.x - x, other.y - y)
-    }
-
-    /** Position [t] (0-1) of the way along a path of straight segments, at an even walking pace. */
-    fun along(path: List<Point>, t: Float): Point {
-        if (path.size == 1) return path.first()
-        val lengths = path.zipWithNext { a, b -> a.distanceTo(b) }
-        val total = lengths.sum().coerceAtLeast(0.001f)
-        var remaining = t.coerceIn(0f, 1f) * total
-        for ((i, length) in lengths.withIndex()) {
-            if (remaining <= length || i == lengths.lastIndex) return path[i].lerp(path[i + 1], if (length == 0f) 1f else remaining / length)
-            remaining -= length
-        }
-        return path.last()
     }
 
     data class Rect(val left: Float, val top: Float, val right: Float, val bottom: Float) {
@@ -51,34 +41,15 @@ object SceneLayout {
 
     // The pass: the counter between kitchen and dining room, where plates are handed over.
     val counter = Rect(4f, KITCHEN_BOTTOM, 96f, 44f)
-    val pickup = Point(50f, 47f)
+    val pickup = ServiceFloor.pass.toPoint()
 
-    // Dining room: three rows of two tables, a chair either side of each.
-    val tables: List<Point> = listOf(
-        Point(27f, 64f), Point(73f, 64f),
-        Point(27f, 92f), Point(73f, 92f),
-        Point(27f, 120f), Point(73f, 120f),
-    )
-    val seats: List<Point> = tables.flatMap { listOf(Point(it.x - 12f, it.y), Point(it.x + 12f, it.y)) }
+    // Dining room: the same six numbered tables the game logic plays service on (see ServiceFloor).
+    val tables: List<Point> = ServiceFloor.tables.map { it.toPoint() }
+    val seats: List<Point> = (0 until ServiceFloor.TABLE_COUNT).flatMap { t -> ServiceFloor.seats(t).map { it.toPoint() } }
 
     /** A sidewalk-style menu board by the front door, out of everyone's way. */
     val menuBoard = Rect(18f, 140.5f, 34f, 149.5f)
 
-    /** The walkway down the middle of the dining room, and the gap below each row of tables. */
-    const val CENTER_AISLE_X = 50f
-    fun rowAisleY(seat: Point) = seat.y + 14f
-
-    /** The route from the front door to a seat, along the aisles rather than through the tables. */
-    fun routeToSeat(seat: Point): List<Point> {
-        val aisle = rowAisleY(seat)
-        return listOf(doorway, Point(CENTER_AISLE_X, aisle), Point(seat.x, aisle), seat)
-    }
-
-    /** The route a server takes from the pass to a table, again along the aisles. */
-    fun routeFromPass(to: Point, seat: Point): List<Point> {
-        val aisle = rowAisleY(seat)
-        return listOf(pickup, Point(CENTER_AISLE_X, aisle), Point(to.x, aisle), to)
-    }
     val mopBucket = Rect(4f, 132f, 14f, 144f)
     val door = Rect(40f, 141f, 60f, 150f)
     val doorway = Point(50f, 146f)
