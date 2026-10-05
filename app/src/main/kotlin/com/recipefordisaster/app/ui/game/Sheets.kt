@@ -256,6 +256,10 @@ private fun HiringSheet(uiState: GameUiState.Playing, actions: GameActions) {
         OutlinedButton(onClick = { actions.onToggleHire(person.id) }) { Text(stringResource(R.string.undo)) }
     }
     val applying = uiState.state.applicants.filter { it.id !in uiState.plan.hires }
+    // Hosts and bussers only apply once there's money to pay them.
+    if (uiState.state.restaurant.cash < StaffingMarket.LUXURY_STAFF_CASH) {
+        Text(stringResource(R.string.hiring_luxury_locked, coins(StaffingMarket.LUXURY_STAFF_CASH)), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+    }
     if (applying.isEmpty() && hiredToday.isEmpty()) Text(stringResource(R.string.hiring_empty), style = MaterialTheme.typography.bodyLarge)
     // People with the job you need first.
     applying.sortedByDescending { need != null && roleMatches(it.role, need) }.forEach { applicant ->

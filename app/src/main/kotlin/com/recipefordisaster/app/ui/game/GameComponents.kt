@@ -123,6 +123,8 @@ fun roleLabel(role: Role): String = stringResource(
         Role.SERVER -> R.string.role_server
         Role.DISHWASHER -> R.string.role_dishwasher
         Role.MANAGER -> R.string.role_manager
+        Role.HOST -> R.string.role_host
+        Role.BUSSER -> R.string.role_busser
     },
 )
 

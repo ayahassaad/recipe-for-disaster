@@ -49,16 +49,20 @@ data class NightLabels(
 
 /** Colours that mark whose table is whose: yours, and each hired server's. */
 internal val PlayerColor = Color(0xFF3E8E41)
-internal val HelperColors = listOf(Color(0xFF3B78A8), Color(0xFF9C6FB6), Color(0xFFE08A2E), Color(0xFF2E9C8F))
+internal val HelperColors = listOf(
+    Color(0xFF3B78A8), Color(0xFF9C6FB6), Color(0xFFE08A2E), Color(0xFF2E9C8F), Color(0xFFD46A8C), Color(0xFF8C8C2E), Color(0xFF6B4F3A),
+)
 
 /**
- * Each hired helper's colour, by id: servers first, then dishwashers, two of
- * each — the same people, in the same order, that work the floor at night —
+ * Each hired helper's colour, by id: servers, dishwashers and bussers (two
+ * of each), then the host — the same people, in the same order, that work the floor at night —
  * so someone wears the same colour in the morning as during service.
  */
 internal fun helperColors(staff: List<StaffFigure>): Map<String, Color> {
     val helpers = staff.filter { it.role == StaffRole.SERVER || it.role == StaffRole.MANAGER }.take(2) +
-        staff.filter { it.role == StaffRole.DISHWASHER }.take(2)
+        staff.filter { it.role == StaffRole.DISHWASHER }.take(2) +
+        staff.filter { it.role == StaffRole.BUSSER }.take(2) +
+        staff.filter { it.role == StaffRole.HOST }.take(1)
     return helpers.mapIndexed { k, figure -> figure.id.value to HelperColors[k % HelperColors.size] }.toMap()
 }
 
@@ -111,10 +115,12 @@ fun NightScene(
                     // The mop stays in the bucket unless someone's carrying it.
                     drawMopBucket(withMop = night.waiters.none { it.holdingMop })
 
-                    // Kitchen staff at their stations, working when there's cooking.
-                    staffPositions(model.staff).filter { it.first.role == StaffRole.COOK }
+                    // Kitchen staff at their stations, working when there's cooking; the host by the door.
+                    staffPositions(model.staff).filter { it.first.role == StaffRole.COOK || it.first.role == StaffRole.HOST }
                         .forEach { (figure, spot) ->
-                            drawPerson(spot, outfitFor(figure.role), figure.morale, bob = if (cooking) sin(clock * 12f) * 0.6f else 0f, sweat = figure.stress >= 70, variant = figure.name.hashCode().mod(5))
+                            val bob = if (figure.role == StaffRole.COOK && cooking) sin(clock * 12f) * 0.6f else sin(clock * 1.6f) * 0.2f
+                            drawPerson(spot, outfitFor(figure.role), figure.morale, bob = bob, sweat = figure.stress >= 70, variant = figure.name.hashCode().mod(5), apron = helperColor[figure.id.value])
+                            helperColor[figure.id.value]?.let { dot(spot.x, spot.y - 11.4f, 1.1f, it) }
                         }
 
                     drawTickets(text, night)

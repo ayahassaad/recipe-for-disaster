@@ -53,6 +53,8 @@ data class ServiceNight(
     val dirtyTables: Set<Int> = emptySet(),
     /** Spills, rolled when the doors opened: each shows up at its time and stays until someone mops it. */
     val messes: List<Mess> = emptyList(),
+    /** Whether a host is on the door tonight: guests wait longer, and one more party fits inside. */
+    val hosted: Boolean = false,
 ) {
 
     /** A spill on the floor. Guests who finish their meal while it's there notice it. */
@@ -114,8 +116,12 @@ data class ServiceNight(
         data object Mop : HandItem
     }
 
-    /** Who a waiter is: the player, a hired server running food, or a hired dishwasher clearing tables. */
-    enum class Kind { PLAYER, RUNNER, DISHWASHER }
+    /**
+     * Who a waiter is: the player, a hired server running food, a hired
+     * dishwasher (clears tables, washes up and mops), or a busser (clears
+     * tables and washes up, but doesn't mop).
+     */
+    enum class Kind { PLAYER, RUNNER, DISHWASHER, BUSSER }
 
     sealed interface Errand {
         /** Go to a table and do whatever it needs: serve it if you're carrying its food, otherwise take its order. */
@@ -253,7 +259,7 @@ data class ServiceNight(
         for (party in parties.filter { it.stage == Stage.NOT_YET_ARRIVED && it.arriveAt <= time }.sortedBy { it.arriveAt }) {
             // No more than a couple of parties crowd the door. Others hold off — and if they'd have to
             // hold off too long, they go somewhere else tonight.
-            if (night.parties.count { it.stage == Stage.QUEUEING } >= MAX_QUEUE) {
+            if (night.parties.count { it.stage == Stage.QUEUEING } >= MAX_QUEUE + (if (hosted) 1 else 0)) {
                 if (time - party.arriveAt > GIVE_UP_COMING) night = night.stayAway(party)
                 continue
             }
@@ -300,9 +306,11 @@ data class ServiceNight(
         var night = this
         for (party in parties) {
             val waited = time - party.stageSince
+            // A host chatting to people, handing out menus and topping up water buys you time.
+            val patience = party.patience * (if (hosted) HOST_PATIENCE else 1f)
             val givesUp = when (party.stage) {
-                Stage.QUEUEING -> waited > party.patience * 0.8f
-                Stage.READY_TO_ORDER -> waited > party.patience
+                Stage.QUEUEING -> waited > patience * 0.8f
+                Stage.READY_TO_ORDER -> waited > patience
                 Stage.ORDER_TAKEN, Stage.IN_KITCHEN, Stage.COOKING, Stage.READY_AT_PASS, Stage.CARRIED -> time - party.orderedAt > party.patience * FOOD_PATIENCE
                 else -> false
             }
@@ -420,7 +428,7 @@ data class ServiceNight(
                     // Clear the table: its dirty plates go in one hand.
                     night = night.copy(dirtyTables = night.dirtyTables - errand.table)
                     updateWaiter { it.copy(hands = it.hands + HandItem.DirtyDishes(errand.table)) }
-                } else if (waiter.kind != Kind.DISHWASHER && party != null && party.stage == Stage.READY_TO_ORDER && errand.table in waiter.tables) {
+                } else if ((waiter.kind == Kind.PLAYER || waiter.kind == Kind.RUNNER) && party != null && party.stage == Stage.READY_TO_ORDER && errand.table in waiter.tables) {
                     val orders = party.preferences.map { prefs -> prefs.firstOrNull { id -> night.menu.any { it.id == id && it.available } } }
                     night = night.updateParty(party.id) { it.copy(stage = Stage.ORDER_TAKEN, stageSince = time, orderedAt = time, orders = orders, heldBy = waiterId) }
                     updateWaiter { it.copy(tickets = it.tickets + party.id) }
@@ -489,13 +497,14 @@ data class ServiceNight(
         var night = this
         for (waiter in waiters.filter { !it.isPlayer && it.errand == null }) {
             val next: Errand? = when (waiter.kind) {
-                Kind.DISHWASHER -> {
+                Kind.DISHWASHER, Kind.BUSSER -> {
                     // A table (or a spill) nobody else is already on their way to.
                     val plans = night.waiters.flatMap { listOfNotNull(it.errand) + it.queue }
                     val claimed = plans.filterIsInstance<Errand.VisitTable>().map { it.table }.toSet()
                     val claimedMesses = plans.mapNotNull { (it as? Errand.CleanMess)?.messId ?: (it as? Errand.Mopping)?.messId }.toSet()
                     val table = night.dirtyTables.firstOrNull { it !in claimed }
-                    val mess = night.messesOnFloor.firstOrNull { it.id !in claimedMesses }
+                    // Only dishwashers bring a mop; bussers stick to tables and dishes.
+                    val mess = if (waiter.kind == Kind.DISHWASHER) night.messesOnFloor.firstOrNull { it.id !in claimedMesses } else null
                     when {
                         waiter.dirtyDishes.isNotEmpty() && (waiter.freeHands == 0 || table == null) -> Errand.VisitDishStation
                         mess != null -> Errand.CleanMess(mess.id)
@@ -551,6 +560,9 @@ data class ServiceNight(
 
         /** Parties that can wait by the door at once; more than that hold off coming in. */
         private const val MAX_QUEUE = 2
+
+        /** How much longer guests will wait with a host looking after them. */
+        private const val HOST_PATIENCE = 1.4f
 
         /** How long a party will hold off coming in before going somewhere else. */
         private const val GIVE_UP_COMING = 15f
@@ -641,6 +653,12 @@ data class ServiceNight(
                 val pace = (EmployeePerformance.effectiveServiceSpeed(employee) / 50.0).toFloat().coerceIn(0.6f, 1.3f)
                 Waiter(employee.id.value, isPlayer = false, tables = allTables, speed = STAFF_SPEED * pace, restSpot = rest,
                     route = listOf(rest), routeStart = 0f, routeEnd = 0f, errand = null, kind = Kind.DISHWASHER)
+            } + state.employees.filter { it.status == EmployeeStatus.ACTIVE && it.role == Role.BUSSER }.take(2).mapIndexed { k, employee ->
+                // Bussers wait at the left end of the counter, quick on their feet.
+                val rest = FloorPoint(30f - k * 8f, ServiceFloor.pass.y + 1f)
+                val pace = (EmployeePerformance.effectiveServiceSpeed(employee) / 50.0).toFloat().coerceIn(0.6f, 1.3f)
+                Waiter(employee.id.value, isPlayer = false, tables = allTables, speed = STAFF_SPEED * 1.15f * pace, restSpot = rest,
+                    route = listOf(rest), routeStart = 0f, routeEnd = 0f, errand = null, kind = Kind.BUSSER)
             }
             // Kitchen pace: one dish at a time per cook, quicker with better cooks and a better oven, slower with broken kit.
             val cooks = state.employees.filter { it.status == EmployeeStatus.ACTIVE && it.role == Role.COOK }
@@ -662,6 +680,7 @@ data class ServiceNight(
                 staffingRatio = if (active == 0) (if (customers.isEmpty()) 0.0 else Double.MAX_VALUE) else customers.size.toDouble() / active,
                 arrivalOrder = customers,
                 messes = messes,
+                hosted = state.employees.any { it.status == EmployeeStatus.ACTIVE && it.role == Role.HOST },
             )
         }
 

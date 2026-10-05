@@ -33,11 +33,19 @@ object StaffingMarket {
         "Bumble", "Quill", "Thistlewood", "Scrimshaw", "Dimbleby",
     )
 
-    fun generateApplicants(rng: RandomSource, day: Int, count: Int = POOL_SIZE): List<Employee> =
-        (0 until count).map { index -> generateApplicant(rng, day, index) }
+    /**
+     * Hosts and bussers are a luxury: they only apply once the restaurant
+     * has this much money in the bank, and then one of them is always in
+     * the pool.
+     */
+    const val LUXURY_STAFF_CASH = 2_000L
 
-    internal fun generateApplicant(rng: RandomSource, day: Int, index: Int): Employee {
-        val role = HIREABLE_ROLES[rng.nextInt(HIREABLE_ROLES.size)]
+    fun generateApplicants(rng: RandomSource, day: Int, count: Int = POOL_SIZE, cash: Long = 0): List<Employee> =
+        (0 until count).map { index -> generateApplicant(rng, day, index, luxury = cash >= LUXURY_STAFF_CASH && index == count - 1) }
+
+    internal fun generateApplicant(rng: RandomSource, day: Int, index: Int, luxury: Boolean = false): Employee {
+        val roles = if (luxury) LUXURY_ROLES else HIREABLE_ROLES
+        val role = roles[rng.nextInt(roles.size)]
         val skill = 30 + rng.nextInt(51) // 30-80
         val speed = 30 + rng.nextInt(51)
         val reliability = 30 + rng.nextInt(61) // 30-90
@@ -52,6 +60,8 @@ object StaffingMarket {
             Role.SERVER -> 25 + (skill + speed) / 6
             Role.DISHWASHER -> 20 + reliability / 6
             Role.MANAGER -> 60 + skill / 2
+            Role.HOST -> 30 + reliability / 5
+            Role.BUSSER -> 18 + speed / 6
         } + rng.nextInt(10)
 
         return Employee(
@@ -73,4 +83,5 @@ object StaffingMarket {
 
     // Managers exist in the model but have no distinct job yet, so they aren't offered.
     private val HIREABLE_ROLES = listOf(Role.COOK, Role.COOK, Role.SERVER, Role.SERVER, Role.DISHWASHER)
+    private val LUXURY_ROLES = listOf(Role.HOST, Role.BUSSER)
 }

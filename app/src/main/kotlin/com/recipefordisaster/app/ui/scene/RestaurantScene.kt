@@ -180,9 +180,13 @@ internal fun staffPositions(staff: List<StaffFigure>): List<Pair<StaffFigure, Po
     val cooks = staff.filter { it.role == StaffRole.COOK }
     val washers = staff.filter { it.role == StaffRole.DISHWASHER }
     val servers = staff.filter { it.role == StaffRole.SERVER || it.role == StaffRole.MANAGER }
+    val bussers = staff.filter { it.role == StaffRole.BUSSER }
+    val hosts = staff.filter { it.role == StaffRole.HOST }
     return cooks.mapIndexed { i, f -> f to SceneLayout.cookSpot(i) } +
         washers.mapIndexed { i, f -> f to SceneLayout.dishwasherSpot(i) } +
-        servers.mapIndexed { i, f -> f to SceneLayout.serverSpot(i) }
+        servers.mapIndexed { i, f -> f to SceneLayout.serverSpot(i) } +
+        bussers.mapIndexed { i, f -> f to SceneLayout.busserSpot(i) } +
+        hosts.mapIndexed { i, f -> f to SceneLayout.hostSpot(i) }
 }
 
 private fun rectFor(target: SceneTarget, staffSpots: List<Pair<StaffFigure, Point>>): Rect? = when (target) {

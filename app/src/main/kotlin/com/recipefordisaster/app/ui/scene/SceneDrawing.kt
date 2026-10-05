@@ -530,12 +530,13 @@ internal fun Pen.drawHiringSign(text: TextMeasurer, label: String) {
 
 // ---------------------------------------------------------------- people
 
-internal enum class Outfit { CHEF, SERVER, WASHER, GUEST }
+internal enum class Outfit { CHEF, SERVER, WASHER, HOST, GUEST }
 
 internal fun outfitFor(role: Role) = when (role) {
     Role.COOK -> Outfit.CHEF
-    Role.SERVER, Role.MANAGER -> Outfit.SERVER
+    Role.SERVER, Role.MANAGER, Role.BUSSER -> Outfit.SERVER
     Role.DISHWASHER -> Outfit.WASHER
+    Role.HOST -> Outfit.HOST
 }
 
 /**
@@ -576,6 +577,7 @@ internal fun Pen.drawPerson(
         Outfit.CHEF -> Palette.chefWhite
         Outfit.SERVER -> Color(0xFFFAFAF7)
         Outfit.WASHER -> Palette.washerBlue
+        Outfit.HOST -> Color(0xFF2C3A50) // a dark suit
         Outfit.GUEST -> bodyColor
     }
     val shade = top.copy(red = top.red * 0.82f, green = top.green * 0.82f, blue = top.blue * 0.82f)
@@ -619,6 +621,17 @@ internal fun Pen.drawPerson(
             box(at.x - 2f, y - 0.6f, 4f, 3f, apron ?: Color(0xFF2F6188), radius = 0.5f)
             dot(at.x - 1.3f, y - 0.2f, 0.3f, Palette.gold)
             dot(at.x + 1.3f, y - 0.2f, 0.3f, Palette.gold)
+        }
+        Outfit.HOST -> {
+            // A smart jacket with lapels, a white shirt and a tie.
+            shape(Color(0xFFF7F4EC)) {
+                moveTo(at.x - 1.8f, y - 1.2f); lineTo(at.x, y + 2.6f); lineTo(at.x + 1.8f, y - 1.2f); close()
+            }
+            shape(Color(0xFF1F2A3A)) {
+                moveTo(at.x - 1.8f, y - 1.2f); lineTo(at.x - 0.4f, y + 2.6f); lineTo(at.x - 3f, y + 1f); close()
+                moveTo(at.x + 1.8f, y - 1.2f); lineTo(at.x + 0.4f, y + 2.6f); lineTo(at.x + 3f, y + 1f); close()
+            }
+            box(at.x - 0.45f, y - 0.8f, 0.9f, 3.2f, apron ?: Palette.serverRed, radius = 0.3f)
         }
         Outfit.GUEST -> {
             // A collar, and on some guests a necklace or a tie.

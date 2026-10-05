@@ -155,7 +155,7 @@ class DefaultDayTickEngine(
 
         val nextDay = state.day + 1
         val applicants = if (nextDay % StaffingMarket.REFRESH_EVERY_DAYS == 0 || start.applicants.isEmpty()) {
-            StaffingMarket.generateApplicants(rng, nextDay)
+            StaffingMarket.generateApplicants(rng, nextDay, cash = newCash)
         } else {
             start.applicants
         }

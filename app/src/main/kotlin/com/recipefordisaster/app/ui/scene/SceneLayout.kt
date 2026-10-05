@@ -60,4 +60,8 @@ object SceneLayout {
     fun cookSpot(index: Int) = Point(16f + index * 18f, 32f)
     fun dishwasherSpot(index: Int) = Point(60f + index * 8f, 30f)
     fun serverSpot(index: Int) = Point(34f + index * 16f, 49f)
+    fun busserSpot(index: Int) = Point(22f - index * 8f, 49f)
+
+    /** The host greets people just inside the door, beside where they queue. */
+    fun hostSpot(index: Int) = Point(66f + index * 8f, 134f)
 }

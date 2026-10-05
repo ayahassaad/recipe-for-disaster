@@ -41,6 +41,10 @@ enum class Role {
     SERVER,
     DISHWASHER,
     MANAGER,
+    /** Greets guests at the door: people wait longer, and one more party can wait inside. */
+    HOST,
+    /** Clears dirty tables and washes up during service, so the player doesn't have to. */
+    BUSSER,
 }
 
 @Serializable

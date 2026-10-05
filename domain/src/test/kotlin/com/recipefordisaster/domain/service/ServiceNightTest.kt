@@ -270,4 +270,39 @@ class ServiceNightTest {
         fun happiness(n: ServiceNight) = n.result().outcomes.filter { it.dish != null }.map { it.satisfaction }.average()
         assertTrue(happiness(filthy) < happiness(clean))
     }
+
+    @Test
+    fun `a host keeps guests waiting patiently for longer`() {
+        val host = start.applicants.first().copy(role = com.recipefordisaster.domain.employee.Role.HOST)
+        val hostedNight = open(start.copy(employees = start.employees + host))
+        assertTrue(hostedNight.hosted)
+        fun stillWaiting(night: ServiceNight): Boolean {
+            var n = night
+            while (n.parties.none { it.stage == Stage.READY_TO_ORDER }) n = n.advance(0.05f)
+            val party = n.parties.first { it.stage == Stage.READY_TO_ORDER }
+            val until = n.time + party.patience * 1.2f
+            while (n.time < until) n = n.advance(0.05f)
+            return n.parties.first { it.id == party.id }.stage == Stage.READY_TO_ORDER
+        }
+        assertTrue(stillWaiting(hostedNight))
+        assertTrue(!stillWaiting(hostedNight.copy(hosted = false)))
+    }
+
+    @Test
+    fun `a busser clears and washes but leaves spills alone`() {
+        val busser = start.applicants.first().copy(role = com.recipefordisaster.domain.employee.Role.BUSSER)
+        val night = open(noWashers.copy(employees = noWashers.employees + busser))
+        assertTrue(night.waiters.any { it.kind == ServiceNight.Kind.BUSSER })
+        val served = play(night) { current ->
+            val me = current.player
+            when {
+                me.walking -> current
+                me.plates.isNotEmpty() -> current.parties.first { it.id == me.plates.first() }.table?.let { current.tapTable(it) } ?: current
+                me.tickets.isNotEmpty() || current.parties.any { it.stage == Stage.READY_AT_PASS } -> current.tapPass()
+                else -> current.parties.filter { it.stage == Stage.READY_TO_ORDER }.minByOrNull { it.stageSince }?.table?.let { current.tapTable(it) } ?: current
+            }
+        }
+        assertTrue("dirty tables left: ${served.dirtyTables}", served.dirtyTables.size <= 1)
+        assertTrue(served.messesOnFloor.isNotEmpty())
+    }
 }

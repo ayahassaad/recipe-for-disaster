@@ -234,6 +234,8 @@ private fun sceneLabels(need: MorningAdvisor.Need? = null): SceneLabels {
         com.recipefordisaster.domain.employee.Role.SERVER to stringResource(R.string.role_server),
         com.recipefordisaster.domain.employee.Role.DISHWASHER to stringResource(R.string.role_dishwasher),
         com.recipefordisaster.domain.employee.Role.MANAGER to stringResource(R.string.role_manager),
+        com.recipefordisaster.domain.employee.Role.HOST to stringResource(R.string.role_host),
+        com.recipefordisaster.domain.employee.Role.BUSSER to stringResource(R.string.role_busser),
     )
     return SceneLabels(
         menu = stringResource(R.string.scene_menu_sign),
@@ -326,6 +328,7 @@ private fun nightHint(night: ServiceNight): String {
     val headingToWash = me.errand == ServiceNight.Errand.VisitDishStation || ServiceNight.Errand.VisitDishStation in me.queue
     val dirty = night.dirtyTables.firstOrNull()
     val noWasher = night.waiters.none { it.kind == ServiceNight.Kind.DISHWASHER }
+    val nobodyClears = noWasher && night.waiters.none { it.kind == ServiceNight.Kind.BUSSER }
     val spill = night.messesOnFloor.isNotEmpty() && noWasher
     val plans = listOfNotNull(me.errand) + me.queue
     return when {
@@ -338,7 +341,7 @@ private fun nightHint(night: ServiceNight): String {
         ordering != null -> stringResource(R.string.hint_take_order, number(ordering.table))
         spill && me.holdingMop && plans.none { it is ServiceNight.Errand.CleanMess } -> stringResource(R.string.hint_mop_spill)
         spill && !me.holdingMop && ServiceNight.Errand.VisitMopBucket !in plans -> stringResource(R.string.hint_get_mop)
-        dirty != null && noWasher -> stringResource(R.string.hint_clear, number(dirty))
+        dirty != null && nobodyClears -> stringResource(R.string.hint_clear, number(dirty))
         me.holdingMop && night.messesOnFloor.isEmpty() && ServiceNight.Errand.VisitMopBucket !in plans -> stringResource(R.string.hint_put_mop_back)
         night.parties.any { it.stage == ServiceNight.Stage.NOT_YET_ARRIVED || it.stage == ServiceNight.Stage.QUEUEING } -> stringResource(R.string.hint_waiting)
         else -> stringResource(R.string.hint_cooking)

@@ -113,6 +113,7 @@
     <string name="mood_ok">%1$s looks okay</string>
     <string name="mood_unhappy">%1$s looks unhappy</string>
     <string name="hiring_title">Looking for work</string>
+    <string name="hiring_luxury_locked">Hosts and bussers apply once you have %1$s.</string>
     <string name="hiring_empty">Nobody\'s looking for work right now. Check back in a few days.</string>
     <string name="hire">Hire (%1$s)</string>
 
@@ -121,6 +122,8 @@
     <string name="role_server">Server</string>
     <string name="role_dishwasher">Dishwasher</string>
     <string name="role_manager">Manager</string>
+    <string name="role_host">Host</string>
+    <string name="role_busser">Busser</string>
     <string name="trait_perfectionist">Perfectionist</string>
     <string name="trait_slacker">Slacker</string>
     <string name="trait_gossip">Gossip</string>
