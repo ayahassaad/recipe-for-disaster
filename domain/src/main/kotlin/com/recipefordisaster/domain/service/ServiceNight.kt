@@ -21,9 +21,10 @@ import com.recipefordisaster.domain.simulation.ServiceSimulator.MissedMealReason
  * One night of service, played live. Guests arrive in parties, get seated
  * at numbered tables, wait to order, wait for food, eat, pay and leave —
  * or give up and storm out if they wait too long. The player is one of the
- * waiters: they take orders at their tables, hand the tickets in at the
- * pass, and carry plates back out. Hired servers look after a couple of
- * tables each on their own.
+ * waiters: they take orders at every table, hand the tickets in at the
+ * pass, and carry plates back out. Hired servers work as food runners: if
+ * a plate has been waiting on the pass for a few seconds, one of them
+ * takes it out so the player can keep taking orders.
  *
  * Immutable like the rest of `:domain`: [advance] moves time on and the
  * player's commands ([tapTable], [tapPass]) each return a new night. All
@@ -328,9 +329,10 @@ data class ServiceNight(
                 // Hand in tickets…
                 waiter.tickets.forEach { id -> night = night.updateParty(id) { it.copy(stage = Stage.IN_KITCHEN, stageSince = time, heldBy = null) } }
                 updateWaiter { it.copy(tickets = emptyList()) }
-                // …and pick up whatever's ready for this waiter's tables, as much as two hands can carry.
+                // …and pick up whatever's ready, as much as two hands can carry. Runners only take plates
+                // the player has left waiting a while, so they help out rather than race the player.
                 val ready = night.parties
-                    .filter { it.stage == Stage.READY_AT_PASS && it.table in waiter.tables }
+                    .filter { it.stage == Stage.READY_AT_PASS && (waiter.isPlayer || time - it.stageSince >= RUNNER_DELAY) }
                     .sortedBy { it.stageSince }
                     .take((MAX_PLATES - waiter.plates.size).coerceAtLeast(0))
                 ready.forEach { party -> night = night.updateParty(party.id) { it.copy(stage = Stage.CARRIED, stageSince = time, heldBy = waiterId) } }
@@ -341,16 +343,14 @@ data class ServiceNight(
         return night
     }
 
-    /** Hired servers decide what to do next whenever they're free: deliver, hand in, collect, take orders — in that order. */
+    /** Food runners, whenever they're free: deliver what they're carrying, or fetch plates that have been waiting too long. */
     private fun directStaff(): ServiceNight {
         var night = this
         for (waiter in waiters.filter { !it.isPlayer && it.errand == null }) {
-            val mine = night.parties.filter { it.table in waiter.tables }
             val next: Errand? = when {
                 waiter.plates.isNotEmpty() -> night.parties.first { it.id == waiter.plates.first() }.table?.let { Errand.Serve(it) }
-                waiter.tickets.isNotEmpty() -> Errand.VisitPass
-                mine.any { it.stage == Stage.READY_AT_PASS } -> Errand.VisitPass
-                else -> mine.filter { it.stage == Stage.READY_TO_ORDER }.minByOrNull { it.stageSince }?.table?.let { Errand.TakeOrder(it) }
+                night.parties.any { it.stage == Stage.READY_AT_PASS && time - it.stageSince >= RUNNER_DELAY } -> Errand.VisitPass
+                else -> null
             }
             val here = waiter.position(time)
             night = when {
@@ -386,6 +386,9 @@ data class ServiceNight(
     companion object {
         const val PLAYER_ID = "you"
         private const val MAX_PLATES = 2
+
+        /** How long a plate sits on the pass before a runner takes it out instead of waiting for the player. */
+        private const val RUNNER_DELAY = 3f
         private const val GUEST_SPEED = 32f
         private const val PLAYER_SPEED = 60f
         private const val STAFF_SPEED = 42f
@@ -400,9 +403,8 @@ data class ServiceNight(
 
         /**
          * Opens the doors: sorts tonight's guests into parties with arrival
-         * times and pre-rolled orders, splits the tables between the player
-         * and any hired servers, and sets the kitchen's pace from the cooks
-         * on shift.
+         * times and pre-rolled orders, puts any hired servers on as food
+         * runners, and sets the kitchen's pace from the cooks on shift.
          */
         fun open(setup: ServiceSetup, rng: RandomSource): ServiceNight {
             val state = setup.morning.state
@@ -429,19 +431,18 @@ data class ServiceNight(
                 )
             }
 
-            // Tables: each hired server takes two (from table 6 backwards); the player always keeps at least two.
+            // Every table is the player's. Up to two hired servers help out as food runners.
             val servers = state.employees.filter { it.status == EmployeeStatus.ACTIVE && (it.role == Role.SERVER || it.role == Role.MANAGER) }
             val helpers = servers.take(2)
-            val helperTables = helpers.mapIndexed { k, _ -> setOf(5 - 2 * k, 4 - 2 * k) }
-            val playerTables = (0 until ServiceFloor.TABLE_COUNT).toSet() - helperTables.flatten().toSet()
+            val allTables = (0 until ServiceFloor.TABLE_COUNT).toSet()
             val waiters = listOf(
-                Waiter(PLAYER_ID, isPlayer = true, tables = playerTables, speed = PLAYER_SPEED, restSpot = ServiceFloor.pass,
+                Waiter(PLAYER_ID, isPlayer = true, tables = allTables, speed = PLAYER_SPEED, restSpot = ServiceFloor.pass,
                     route = listOf(FloorPoint(ServiceFloor.pass.x, ServiceFloor.pass.y + 3f)), routeStart = 0f, routeEnd = 0f, errand = null),
             ) + helpers.mapIndexed { k, employee ->
                 // Out at the ends of the counter, so they never stand in front of a table's speech bubble.
                 val rest = FloorPoint(if (k == 0) 10f else 90f, ServiceFloor.pass.y + 1f)
                 val pace = (EmployeePerformance.effectiveServiceSpeed(employee) / 50.0).toFloat().coerceIn(0.6f, 1.3f)
-                Waiter(employee.id.value, isPlayer = false, tables = helperTables[k], speed = STAFF_SPEED * pace, restSpot = rest,
+                Waiter(employee.id.value, isPlayer = false, tables = allTables, speed = STAFF_SPEED * pace, restSpot = rest,
                     route = listOf(rest), routeStart = 0f, routeEnd = 0f, errand = null)
             }
             // Kitchen pace: one dish at a time per cook, quicker with better cooks, slower with broken kit.

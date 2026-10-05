@@ -88,14 +88,26 @@ class ServiceNightTest {
     }
 
     @Test
-    fun `hired servers look after their own tables without the player`() {
-        val withHelpers = start.copy(employees = start.employees + start.applicants.filter { it.role == com.recipefordisaster.domain.employee.Role.SERVER }.map { it })
-        val night = open(withHelpers)
-        assertTrue(night.waiters.size >= 2)
-        val idle = play(night)
-        val helperTables = night.waiters.filter { !it.isPlayer }.flatMap { it.tables }.toSet()
-        // Even with the player standing still, guests at the helpers' tables got fed.
-        assertTrue(idle.result().outcomes.count { it.dish != null } > 0 || helperTables.isEmpty())
+    fun `the player looks after every table`() {
+        assertEquals((0 until ServiceFloor.TABLE_COUNT).toSet(), open().player.tables)
+    }
+
+    @Test
+    fun `hired servers run plates out when the player leaves them on the pass`() {
+        val withRunner = start.copy(employees = start.employees + start.applicants.filter { it.role == com.recipefordisaster.domain.employee.Role.SERVER })
+        // A player who takes orders and hands them in, but never collects food.
+        val orderTaker: (ServiceNight) -> ServiceNight = { n ->
+            val me = n.player
+            when {
+                me.walking -> n
+                me.tickets.isNotEmpty() -> n.tapPass()
+                else -> n.parties.filter { it.stage == Stage.READY_TO_ORDER }.minByOrNull { it.stageSince }?.table?.let { n.tapTable(it) } ?: n
+            }
+        }
+        val alone = play(open(start.copy(employees = start.employees.filter { it.role != com.recipefordisaster.domain.employee.Role.SERVER })), orderTaker)
+        val helped = play(open(withRunner), orderTaker)
+        assertEquals(0, alone.result().outcomes.count { it.dish != null })
+        assertTrue(helped.result().outcomes.count { it.dish != null } > 0)
     }
 
     @Test

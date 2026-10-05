@@ -52,8 +52,8 @@ internal val HelperColors = listOf(Color(0xFF3B78A8), Color(0xFF9C6FB6))
  * patience they have left. Tickets hang on the rail by table number while
  * they cook, and finished plates wait on the counter with their table's
  * number. Tap a table to go to it; tap the counter to hand in tickets and
- * pick up food. Green table numbers are yours; blue and purple belong to
- * your hired servers, who look after them on their own.
+ * pick up food. Every table is yours; hired servers run plates out when
+ * you leave them waiting on the counter.
  */
 @Composable
 fun NightScene(
@@ -177,8 +177,8 @@ fun NightScene(
                         }
                         if (waiter.isPlayer) drawYouMarker(text, labels.you, Point(at.x, at.y - 12f), clock)
                         else {
-                            val c = ownerColor[waiter.tables.firstOrNull() ?: -1] ?: HelperColors[0]
-                            dot(at.x, at.y - 11.4f, 1.1f, c)
+                            val helperIndex = night.waiters.filter { !it.isPlayer }.indexOf(waiter)
+                            dot(at.x, at.y - 11.4f, 1.1f, HelperColors[helperIndex.coerceAtLeast(0) % HelperColors.size])
                         }
                     }
                 }
@@ -214,16 +214,8 @@ private fun TapArea(rect: Rect, unit: Float, origin: Offset, label: String, onTa
     )
 }
 
-/** Table index -> the colour of whoever looks after it. */
-private fun ownerColors(night: ServiceNight): Map<Int, Color> {
-    val map = mutableMapOf<Int, Color>()
-    var helper = 0
-    night.waiters.forEach { waiter ->
-        val color = if (waiter.isPlayer) PlayerColor else HelperColors[helper++ % HelperColors.size]
-        waiter.tables.forEach { map[it] = color }
-    }
-    return map
-}
+/** Table index -> colour for its number card: every table is the player's. */
+private fun ownerColors(night: ServiceNight): Map<Int, Color> = night.player.tables.associateWith { PlayerColor }
 
 private fun Pen.drawGuest(at: Point, guest: Int, mood: Int, angry: Boolean, walkPhase: Float?, seatIndex: Int, bob: Float = 0f) {
     drawPerson(
