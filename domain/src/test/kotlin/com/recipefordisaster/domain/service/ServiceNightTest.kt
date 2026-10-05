@@ -128,4 +128,21 @@ class ServiceNightTest {
         val slow = play(open(seed = 7)) { n -> if (slowSteps++ % 120 == 0) busyPlayer(n) else n }
         assertTrue("quick ${quick.takings} vs slow ${slow.takings}", quick.takings >= slow.takings)
     }
+
+    @Test
+    fun `no more than two parties ever wait by the door`() {
+        var n = open()
+        var worst = 0
+        while (!n.finished) {
+            worst = maxOf(worst, n.parties.count { it.stage == Stage.QUEUEING })
+            n = n.advance(0.05f)
+        }
+        assertTrue("$worst parties queued at once", worst <= 2)
+    }
+
+    @Test
+    fun `parties arrive several seconds apart`() {
+        val arrivals = open().parties.map { it.arriveAt }
+        arrivals.zipWithNext().forEach { (a, b) -> assertTrue(b - a >= 6f) }
+    }
 }

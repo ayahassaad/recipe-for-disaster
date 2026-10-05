@@ -175,7 +175,13 @@ data class ServiceNight(
 
     private fun arrivals(): ServiceNight {
         var night = this
-        for (party in parties.filter { it.stage == Stage.NOT_YET_ARRIVED && it.arriveAt <= time }) {
+        for (party in parties.filter { it.stage == Stage.NOT_YET_ARRIVED && it.arriveAt <= time }.sortedBy { it.arriveAt }) {
+            // No more than a couple of parties crowd the door. Others hold off — and if they'd have to
+            // hold off too long, they go somewhere else tonight.
+            if (night.parties.count { it.stage == Stage.QUEUEING } >= MAX_QUEUE) {
+                if (time - party.arriveAt > GIVE_UP_COMING) night = night.stayAway(party)
+                continue
+            }
             // Anyone with nothing on the menu they can eat or afford reads it at the door and leaves.
             val (staying, leaving) = party.guests.zip(party.preferences).partition { (_, prefs) -> prefs.isNotEmpty() }
             var results = night.results
@@ -189,6 +195,13 @@ data class ServiceNight(
             }
         }
         return night
+    }
+
+    /** A party that couldn't even get through the door: they never came in, so they count as having given up. */
+    private fun stayAway(party: Party): ServiceNight {
+        var results = results
+        party.guests.forEach { guest -> if (guest !in results) results = results + (guest to missed(guest, MissedMealReason.TIRED_OF_WAITING)) }
+        return copy(results = results).updateParty(party.id) { it.copy(stage = Stage.DONE, stageSince = time) }
     }
 
     private fun seatParties(): ServiceNight {
@@ -387,6 +400,16 @@ data class ServiceNight(
         const val PLAYER_ID = "you"
         private const val MAX_PLATES = 2
 
+        /** Seconds between parties arriving, plus up to [ARRIVAL_JITTER] more so it doesn't feel like clockwork. */
+        private const val ARRIVAL_GAP = 6f
+        private const val ARRIVAL_JITTER = 3f
+
+        /** Parties that can wait by the door at once; more than that hold off coming in. */
+        private const val MAX_QUEUE = 2
+
+        /** How long a party will hold off coming in before going somewhere else. */
+        private const val GIVE_UP_COMING = 15f
+
         /** How long a plate sits on the pass before a runner takes it out instead of waiting for the player. */
         private const val RUNNER_DELAY = 3f
         private const val GUEST_SPEED = 32f
@@ -399,7 +422,7 @@ data class ServiceNight(
         /** A sensible minimum from sitting down to being served; only waiting beyond it counts against you. */
         private const val EXPECTED_SERVICE = 10f
         private const val MINUTES_PER_SECOND = 1.2f
-        private const val HARD_STOP = 200f
+        private const val HARD_STOP = 260f
 
         /**
          * Opens the doors: sorts tonight's guests into parties with arrival
@@ -411,22 +434,23 @@ data class ServiceNight(
             val customers = setup.arrivals
             val menu = state.menu.filter { it.available }
 
-            // Parties of one or two, arriving over about a minute.
+            // Parties of one or two (mostly two), a new one roughly every seven or eight seconds.
             val groups = mutableListOf<List<Int>>()
             var i = 0
             while (i < customers.size) {
-                val size = if (i + 1 < customers.size && rng.nextInt(2) == 0) 2 else 1
+                val size = if (i + 1 < customers.size && rng.nextInt(3) != 0) 2 else 1
                 groups += (i until i + size).toList()
                 i += size
             }
-            val span = (groups.size * 4.5f).coerceIn(20f, 70f)
+            var nextArrival = 1.5f
             val parties = groups.mapIndexed { index, guests ->
-                val jitter = rng.nextFloat() * 1.5f
+                val arriveAt = nextArrival
+                nextArrival += ARRIVAL_GAP + rng.nextFloat() * ARRIVAL_JITTER
                 Party(
                     id = index,
                     guests = guests,
                     preferences = guests.map { g -> rankDishes(customers[g], menu, rng) },
-                    arriveAt = 1f + index * (span / groups.size.coerceAtLeast(1)) + jitter,
+                    arriveAt = arriveAt,
                     patience = guests.map { customers[it].patience }.average().toFloat() / MINUTES_PER_SECOND + 12f,
                 )
             }
