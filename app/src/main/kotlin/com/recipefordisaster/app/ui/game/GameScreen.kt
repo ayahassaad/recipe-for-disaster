@@ -298,6 +298,8 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
             onTapTable = { night = night.tapTable(it) },
             onTapCounter = { night = night.tapPass() },
             onTapDishStation = { night = night.tapDishStation() },
+            onTapMopBucket = { night = night.tapMopBucket() },
+            onTapMess = { id -> night = night.tapMess(id) },
             modifier = Modifier.weight(1f),
         )
         Text(
@@ -320,14 +322,21 @@ private fun nightHint(night: ServiceNight): String {
     val ordering = mine.filter { it.stage == ServiceNight.Stage.READY_TO_ORDER }.minByOrNull { it.stageSince }
     val headingToWash = me.errand == ServiceNight.Errand.VisitDishStation || ServiceNight.Errand.VisitDishStation in me.queue
     val dirty = night.dirtyTables.firstOrNull()
+    val noWasher = night.waiters.none { it.kind == ServiceNight.Kind.DISHWASHER }
+    val spill = night.messesOnFloor.isNotEmpty() && noWasher
+    val plans = listOfNotNull(me.errand) + me.queue
     return when {
         me.errand == ServiceNight.Errand.Wash -> stringResource(R.string.hint_washing)
+        me.errand is ServiceNight.Errand.Mopping -> stringResource(R.string.hint_mopping)
         carrying != null -> stringResource(R.string.hint_serve, number(carrying.table))
         me.dirtyDishes.isNotEmpty() && !headingToWash -> stringResource(R.string.hint_wash)
         me.tickets.isNotEmpty() && me.queue.none { it == ServiceNight.Errand.VisitPass } && me.errand != ServiceNight.Errand.VisitPass -> stringResource(R.string.hint_hand_in)
         ready != null -> stringResource(R.string.hint_pick_up, number(ready.table))
         ordering != null -> stringResource(R.string.hint_take_order, number(ordering.table))
-        dirty != null && night.waiters.none { it.kind == ServiceNight.Kind.DISHWASHER } -> stringResource(R.string.hint_clear, number(dirty))
+        spill && me.holdingMop && plans.none { it is ServiceNight.Errand.CleanMess } -> stringResource(R.string.hint_mop_spill)
+        spill && !me.holdingMop && ServiceNight.Errand.VisitMopBucket !in plans -> stringResource(R.string.hint_get_mop)
+        dirty != null && noWasher -> stringResource(R.string.hint_clear, number(dirty))
+        me.holdingMop && night.messesOnFloor.isEmpty() && ServiceNight.Errand.VisitMopBucket !in plans -> stringResource(R.string.hint_put_mop_back)
         night.parties.any { it.stage == ServiceNight.Stage.NOT_YET_ARRIVED || it.stage == ServiceNight.Stage.QUEUEING } -> stringResource(R.string.hint_waiting)
         else -> stringResource(R.string.hint_cooking)
     }
@@ -347,6 +356,8 @@ private fun nightLabels(): NightLabels {
         needsClearing = stringResource(R.string.night_needs_clearing),
         dishStation = stringResource(R.string.night_dish_station),
         dishSign = stringResource(R.string.night_dish_sign),
+        mopBucket = stringResource(R.string.night_mop_bucket),
+        spill = stringResource(R.string.night_spill),
         you = stringResource(R.string.night_you),
         menu = stringResource(R.string.scene_menu_sign),
     )

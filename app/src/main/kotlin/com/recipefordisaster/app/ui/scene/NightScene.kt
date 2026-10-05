@@ -40,6 +40,8 @@ data class NightLabels(
     val needsClearing: String,
     val dishStation: String,
     val dishSign: String,
+    val mopBucket: String,
+    val spill: String,
     val you: String,
     val menu: String,
 )
@@ -67,6 +69,8 @@ fun NightScene(
     onTapTable: (Int) -> Unit,
     onTapCounter: () -> Unit,
     onTapDishStation: () -> Unit,
+    onTapMopBucket: () -> Unit,
+    onTapMess: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val text = rememberTextMeasurer()
@@ -91,7 +95,8 @@ fun NightScene(
                     drawPantry(model.pantryFullness)
                     drawTables()
                     drawMenuBoard(text, labels.menu)
-                    drawMopBucket()
+                    // The mop stays in the bucket unless someone's carrying it.
+                    drawMopBucket(withMop = night.waiters.none { it.holdingMop })
 
                     // Kitchen staff at their stations, working when there's cooking.
                     staffPositions(model.staff).filter { it.first.role == StaffRole.COOK }
@@ -105,6 +110,15 @@ fun NightScene(
 
                     // Tables guests have left: dirty plates, crumbs and a crumpled napkin until someone clears them.
                     night.dirtyTables.forEach { t -> drawDirtyTable(SceneLayout.tables[t]) }
+
+                    // Spills on the floor, and a ring filling up while someone mops one.
+                    night.messesOnFloor.forEach { mess -> drawSpill(mess.at.toPoint(), mess.id, clock, sinceAppeared = night.time - mess.appearsAt) }
+                    night.waiters.forEach { w ->
+                        val mopping = w.errand as? ServiceNight.Errand.Mopping ?: return@forEach
+                        val at = night.messes.first { it.id == mopping.messId }.at
+                        val progress = ((night.time - w.routeStart) / (w.routeEnd - w.routeStart).coerceAtLeast(0.01f)).coerceIn(0f, 1f)
+                        drawProgressRing(Point(at.x, at.y - 13f), progress)
+                    }
 
                     // Table number cards, in the colour of whoever looks after the table.
                     SceneLayout.tables.forEachIndexed { t, table -> drawTableNumber(text, table, t + 1, ownerColor[t] ?: PlayerColor) }
@@ -168,6 +182,8 @@ fun NightScene(
                             is ServiceNight.Errand.VisitTable -> ServiceFloor.stand(errand.table)
                             ServiceNight.Errand.VisitPass -> ServiceFloor.pass
                             ServiceNight.Errand.VisitDishStation -> ServiceFloor.dishStation
+                            ServiceNight.Errand.VisitMopBucket -> ServiceFloor.mopBucket
+                            is ServiceNight.Errand.CleanMess -> night.messes.firstOrNull { it.id == errand.messId }?.at
                             else -> null
                         } ?: return@forEachIndexed
                         val at = Point(spot.x, spot.y + 3.5f)
@@ -200,6 +216,7 @@ fun NightScene(
                             val hand = Point(at.x + (if (k == 0) -4.6f else 4.6f), at.y + 2.6f)
                             when (item) {
                                 is ServiceNight.HandItem.DirtyDishes -> drawDirtyStack(hand)
+                                ServiceNight.HandItem.Mop -> drawMop(hand, if (k == 0) -1f else 1f, mopping = waiter.errand is ServiceNight.Errand.Mopping, clock = clock)
                                 is ServiceNight.HandItem.Plate -> {
                                     drawPlate(hand)
                                     // The table number travels with the plate, so you always know where it's going.
@@ -236,6 +253,11 @@ fun NightScene(
         }
         TapArea(Rect(0f, 0f, 78f, SceneLayout.counter.bottom + 2f), unit, origin, labels.counter, onTapCounter)
         TapArea(Rect(78f, 0f, SceneLayout.WIDTH, SceneLayout.counter.bottom + 2f), unit, origin, labels.dishStation, onTapDishStation)
+        TapArea(Rect(SceneLayout.mopBucket.left - 2f, SceneLayout.mopBucket.top - 8f, SceneLayout.mopBucket.right + 6f, SceneLayout.mopBucket.bottom), unit, origin, labels.mopBucket, onTapMopBucket)
+        // Spills last, so they sit on top of the tables' tap areas.
+        night.messesOnFloor.forEach { mess ->
+            TapArea(Rect(mess.at.x - 6f, mess.at.y - 4f, mess.at.x + 6f, mess.at.y + 4f), unit, origin, labels.spill) { onTapMess(mess.id) }
+        }
     }
 }
 
@@ -406,4 +428,46 @@ private fun Pen.drawDishStation(text: TextMeasurer, sign: String, night: Service
         )
         dot(at.x + sin(clock * 10f) * 0.6f, at.y - 13f, 0.6f, Color(0xCCFFFFFF))
     }
+}
+
+/** A spill: a puddle with splashes and a shine, plus a wobbling warning so it catches the eye. */
+private fun Pen.drawSpill(at: Point, seed: Int, clock: Float, sinceAppeared: Float) {
+    val grow = (sinceAppeared / 0.4f).coerceIn(0.2f, 1f)
+    val colour = if (seed % 2 == 0) Color(0xCC8B4A22) else Color(0xCC9A2E2E) // gravy, or red wine
+    oval(at.x, at.y, 4.2f * grow, 2.4f * grow, colour)
+    oval(at.x + 2.6f * grow, at.y + 1f * grow, 1.8f * grow, 1.2f * grow, colour)
+    dot(at.x - 3.8f * grow, at.y - 1.6f * grow, 0.7f * grow, colour)
+    dot(at.x + 4.6f * grow, at.y - 1.4f * grow, 0.5f * grow, colour)
+    oval(at.x - 1.2f, at.y - 0.8f, 1.2f * grow, 0.4f * grow, Color(0x66FFFFFF))
+    // A little yellow wet-floor triangle bobbing above it.
+    val bob = sin(clock * 4f + seed) * 0.4f
+    shape(Color(0xFFF2C230)) {
+        moveTo(at.x, at.y - 6.6f + bob)
+        lineTo(at.x + 2.2f, at.y - 3f + bob)
+        lineTo(at.x - 2.2f, at.y - 3f + bob)
+        close()
+    }
+    box(at.x - 0.25f, at.y - 5.6f + bob, 0.5f, 1.4f, Color(0xFF3A2A10))
+    dot(at.x, at.y - 3.7f + bob, 0.3f, Color(0xFF3A2A10))
+}
+
+/** The mop, held upright in one hand; it swishes while mopping. */
+private fun Pen.drawMop(hand: Point, side: Float, mopping: Boolean, clock: Float) {
+    val swish = if (mopping) sin(clock * 14f) * 2f else 0f
+    val head = Point(hand.x + side * 1.5f + swish, hand.y + 4.5f)
+    line(hand.x + side * 0.4f, hand.y - 7f, head.x, head.y, Palette.woodLight, 0.7f)
+    for (k in -2..2) line(head.x, head.y, head.x + k * 0.7f, head.y + 2f, Color(0xFFE8E2D4), 0.5f)
+}
+
+private fun Pen.drawProgressRing(center: Point, progress: Float) {
+    ring(center.x, center.y, 3f, Color(0x33000000), 0.8f)
+    drawArc(
+        PlayerColor,
+        startAngle = -90f,
+        sweepAngle = 360f * progress,
+        useCenter = false,
+        topLeft = p(center.x - 3f, center.y - 3f),
+        size = androidx.compose.ui.geometry.Size(u(6f), u(6f)),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(u(0.8f)),
+    )
 }

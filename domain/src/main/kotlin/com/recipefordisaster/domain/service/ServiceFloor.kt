@@ -43,6 +43,12 @@ object ServiceFloor {
 
     /** The dish station at the right end of the counter, where dirty plates are washed. */
     val dishStation = FloorPoint(86f, 49f)
+
+    /** Where the player stands to grab (or put back) the mop, beside the bucket in the bottom-left corner. */
+    val mopBucket = FloorPoint(17f, 138f)
+
+    /** Where spills can happen: the open floor between the rows of tables, clear of where waiters stand. */
+    val spillSpots: List<FloorPoint> = listOf(78f, 106f).flatMap { y -> listOf(14f, 38f, 62f, 86f).map { x -> FloorPoint(x, y) } }
     val door = FloorPoint(50f, 146f)
     const val AISLE_X = 50f
 

@@ -50,7 +50,15 @@ data class ServiceNight(
     val results: Map<Int, CustomerServiceOutcome> = emptyMap(),
     /** Tables guests have left dirty plates on; nobody can sit there until they're cleared. */
     val dirtyTables: Set<Int> = emptySet(),
+    /** Spills, rolled when the doors opened: each shows up at its time and stays until someone mops it. */
+    val messes: List<Mess> = emptyList(),
 ) {
+
+    /** A spill on the floor. Guests who finish their meal while it's there notice it. */
+    data class Mess(val id: Int, val at: FloorPoint, val appearsAt: Float, val cleaned: Boolean = false)
+
+    /** Spills on the floor right now. */
+    val messesOnFloor: List<Mess> get() = messes.filter { !it.cleaned && it.appearsAt <= time }
 
     enum class Stage {
         NOT_YET_ARRIVED,
@@ -100,6 +108,9 @@ data class ServiceNight(
 
         /** The dirty plates cleared from a table, on their way to the dish station. */
         data class DirtyDishes(val table: Int) : HandItem
+
+        /** The mop, from the bucket by the door. */
+        data object Mop : HandItem
     }
 
     /** Who a waiter is: the player, a hired server running food, or a hired dishwasher clearing tables. */
@@ -116,6 +127,15 @@ data class ServiceNight(
 
         /** Standing at the dish station washing up. */
         data object Wash : Errand
+
+        /** Go to the bucket: grab the mop, or put it back if you're holding it. */
+        data object VisitMopBucket : Errand
+
+        /** Go to a spill and mop it up (the player needs the mop in hand; dishwashers bring their own). */
+        data class CleanMess(val messId: Int) : Errand
+
+        /** Standing at a spill mopping it; it's gone when this ends. */
+        data class Mopping(val messId: Int) : Errand
         data object Rest : Errand
     }
 
@@ -142,6 +162,7 @@ data class ServiceNight(
         /** Party ids whose plates this waiter is carrying. */
         val plates: List<Int> get() = hands.filterIsInstance<HandItem.Plate>().map { it.partyId }
         val freeHands: Int get() = (HANDS - hands.size).coerceAtLeast(0)
+        val holdingMop: Boolean get() = HandItem.Mop in hands
         fun position(time: Float): FloorPoint = when {
             time >= routeEnd || routeEnd <= routeStart -> route.last()
             else -> ServiceFloor.along(route, (time - routeStart) / (routeEnd - routeStart))
@@ -169,6 +190,12 @@ data class ServiceNight(
     /** Go to the dish station and wash whatever dirty plates you're carrying. */
     fun tapDishStation(): ServiceNight = enqueue(Errand.VisitDishStation)
 
+    /** Go to the mop bucket: pick the mop up, or put it back. */
+    fun tapMopBucket(): ServiceNight = enqueue(Errand.VisitMopBucket)
+
+    /** Go and mop up a spill (you need the mop in hand when you get there). */
+    fun tapMess(messId: Int): ServiceNight = enqueue(Errand.CleanMess(messId))
+
     /**
      * Taps queue up: if the player is already on their way somewhere, the
      * new stop goes on the end of the list instead of cutting the current
@@ -191,7 +218,9 @@ data class ServiceNight(
             is Errand.Serve -> ServiceFloor.stand(errand.table)
             Errand.VisitPass -> ServiceFloor.pass
             Errand.VisitDishStation -> ServiceFloor.dishStation
-            Errand.Wash -> here
+            Errand.Wash, is Errand.Mopping -> here
+            Errand.VisitMopBucket -> ServiceFloor.mopBucket
+            is Errand.CleanMess -> messes.firstOrNull { it.id == errand.messId }?.at ?: here
             Errand.Rest -> waiter.restSpot
         }
         val route = ServiceFloor.route(here, destination)
@@ -341,7 +370,9 @@ data class ServiceNight(
                         if (guest in results) return@forEach
                         val dish = night.menu.first { it.id == dishId }
                         val customer = arrivalOrder[guest]
-                        val satisfaction = ServiceSimulator.resolveSatisfaction(customer, dish, waitedMinutes, kitchenQualityBonus)
+                        // A dirty floor puts people off, however good the food was.
+                    val mess = night.messesOnFloor.size.coerceAtMost(MAX_MESS_PENALTIES) * MESS_PENALTY
+                    val satisfaction = (ServiceSimulator.resolveSatisfaction(customer, dish, waitedMinutes, kitchenQualityBonus) - mess).coerceIn(0, 100)
                         results = results + (guest to CustomerServiceOutcome(customer, dish, satisfaction, waitedMinutes))
                     }
                     // They leave their dirty plates behind; the table needs clearing before anyone else can sit there.
@@ -424,6 +455,25 @@ data class ServiceNight(
                     }
                 }
             }
+            Errand.VisitMopBucket -> {
+                if (waiter.holdingMop) {
+                    updateWaiter { it.copy(hands = it.hands - HandItem.Mop) }
+                } else if (waiter.freeHands > 0) {
+                    updateWaiter { it.copy(hands = it.hands + HandItem.Mop) }
+                }
+            }
+            is Errand.CleanMess -> {
+                val mess = night.messesOnFloor.firstOrNull { it.id == errand.messId }
+                val canMop = waiter.holdingMop || waiter.kind == Kind.DISHWASHER
+                val alreadyOnIt = night.waiters.any { it.id != waiterId && it.errand == Errand.Mopping(errand.messId) }
+                if (mess != null && canMop && !alreadyOnIt) {
+                    updateWaiter {
+                        val here = it.position(time)
+                        it.copy(route = listOf(here), routeStart = time, routeEnd = time + MOP, errand = Errand.Mopping(mess.id))
+                    }
+                }
+            }
+            is Errand.Mopping -> night = night.copy(messes = night.messes.map { if (it.id == errand.messId) it.copy(cleaned = true) else it })
             Errand.Wash, Errand.Rest, null -> {}
         }
         return night
@@ -439,11 +489,15 @@ data class ServiceNight(
         for (waiter in waiters.filter { !it.isPlayer && it.errand == null }) {
             val next: Errand? = when (waiter.kind) {
                 Kind.DISHWASHER -> {
-                    // A table nobody else is already on their way to clear.
-                    val claimed = night.waiters.flatMap { listOfNotNull(it.errand) + it.queue }.filterIsInstance<Errand.VisitTable>().map { it.table }.toSet()
+                    // A table (or a spill) nobody else is already on their way to.
+                    val plans = night.waiters.flatMap { listOfNotNull(it.errand) + it.queue }
+                    val claimed = plans.filterIsInstance<Errand.VisitTable>().map { it.table }.toSet()
+                    val claimedMesses = plans.mapNotNull { (it as? Errand.CleanMess)?.messId ?: (it as? Errand.Mopping)?.messId }.toSet()
                     val table = night.dirtyTables.firstOrNull { it !in claimed }
+                    val mess = night.messesOnFloor.firstOrNull { it.id !in claimedMesses }
                     when {
                         waiter.dirtyDishes.isNotEmpty() && (waiter.freeHands == 0 || table == null) -> Errand.VisitDishStation
+                        mess != null -> Errand.CleanMess(mess.id)
                         table != null && waiter.freeHands > 0 -> Errand.VisitTable(table)
                         else -> null
                     }
@@ -512,6 +566,13 @@ data class ServiceNight(
 
         /** Seconds to wash one table's dirty plates. */
         private const val WASH = 1.5f
+
+        /** Seconds to mop up a spill. */
+        private const val MOP = 1.5f
+
+        /** Satisfaction each guest loses per spill on the floor when they finish eating, counting up to [MAX_MESS_PENALTIES]. */
+        private const val MESS_PENALTY = 6
+        private const val MAX_MESS_PENALTIES = 3
         private const val LEAVE = 1.6f
         private const val COOK_BASE = 2f
         private const val FOOD_PATIENCE = 1.8f
@@ -549,6 +610,15 @@ data class ServiceNight(
                     arriveAt = arriveAt,
                     patience = guests.map { customers[it].patience }.average().toFloat() / MINUTES_PER_SECOND + 12f,
                 )
+            }
+
+            // Spills: about one for every four parties, more in a grubby restaurant. Each happens a little
+            // after some party arrives, at one of the open spots between tables.
+            val spillCount = if (parties.isEmpty()) 0 else (parties.size / 4 + (if (state.restaurant.cleanliness < 50) 1 else 0)).coerceAtMost(ServiceFloor.spillSpots.size)
+            val spots = ServiceFloor.spillSpots.shuffledWith(rng)
+            val messes = (0 until spillCount).map { k ->
+                val after = parties[rng.nextInt(parties.size)].arriveAt
+                Mess(id = k, at = spots[k], appearsAt = after + 12f + rng.nextFloat() * 10f)
             }
 
             // Every table is the player's. Up to two hired servers help out as food runners.
@@ -590,7 +660,17 @@ data class ServiceNight(
                 kitchenQualityBonus = KitchenModel.qualityBonus(state.employees, state.equipment, state.restaurant.cleanliness),
                 staffingRatio = if (active == 0) (if (customers.isEmpty()) 0.0 else Double.MAX_VALUE) else customers.size.toDouble() / active,
                 arrivalOrder = customers,
+                messes = messes,
             )
+        }
+
+        private fun <T> List<T>.shuffledWith(rng: RandomSource): List<T> {
+            val list = toMutableList()
+            for (i in list.lastIndex downTo 1) {
+                val j = rng.nextInt(i + 1)
+                list[i] = list[j].also { list[j] = list[i] }
+            }
+            return list
         }
 
         /** What a guest would order, best first: dishes they can eat and afford, ranked by popularity and value with a roll of the dice. */

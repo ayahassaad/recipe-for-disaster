@@ -220,4 +220,54 @@ class ServiceNightTest {
         }
         assertTrue("dirty tables left: ${served.dirtyTables}", served.dirtyTables.size <= 1)
     }
+
+    private val noWashers get() = start.copy(employees = start.employees.filter { it.role != com.recipefordisaster.domain.employee.Role.DISHWASHER })
+
+    @Test
+    fun `spills happen during the night and stay until someone mops them`() {
+        val night = open(noWashers)
+        assertTrue(night.messes.isNotEmpty())
+        assertTrue(night.messesOnFloor.isEmpty())
+        assertTrue(play(night).messesOnFloor.isNotEmpty())
+    }
+
+    @Test
+    fun `mopping a spill needs the mop from the bucket`() {
+        var n = open(noWashers)
+        while (n.messesOnFloor.isEmpty()) n = n.advance(0.05f)
+        fun walk() { while (n.player.walking) n = n.advance(0.05f) }
+        val mess = n.messesOnFloor.first()
+
+        // Empty-handed, walking over does nothing.
+        n = n.tapMess(mess.id); walk()
+        assertTrue(n.messesOnFloor.any { it.id == mess.id })
+
+        // With the mop (which takes a hand) it gets cleaned up…
+        n = n.tapMopBucket(); walk()
+        assertTrue(n.player.holdingMop)
+        assertEquals(ServiceNight.HANDS - 1, n.player.freeHands)
+        n = n.tapMess(mess.id); walk()
+        assertTrue(n.messesOnFloor.none { it.id == mess.id })
+
+        // …and tapping the bucket again puts the mop back.
+        n = n.tapMopBucket(); walk()
+        assertTrue(!n.player.holdingMop)
+    }
+
+    @Test
+    fun `a hired dishwasher mops spills on their own`() {
+        val washer = start.applicants.first().copy(role = com.recipefordisaster.domain.employee.Role.DISHWASHER)
+        val night = play(open(start.copy(employees = start.employees + washer)), ::busyPlayer)
+        assertTrue(night.messes.isNotEmpty())
+        assertTrue("spills left: ${night.messesOnFloor}", night.messesOnFloor.isEmpty())
+    }
+
+    @Test
+    fun `guests are less happy when the floor is dirty`() {
+        val night = open(noWashers)
+        val clean = play(night.copy(messes = emptyList()), ::busyPlayer)
+        val filthy = play(night.copy(messes = ServiceFloor.spillSpots.take(3).mapIndexed { k, at -> ServiceNight.Mess(k, at, appearsAt = 0f) }), ::busyPlayer)
+        fun happiness(n: ServiceNight) = n.result().outcomes.filter { it.dish != null }.map { it.satisfaction }.average()
+        assertTrue(happiness(filthy) < happiness(clean))
+    }
 }

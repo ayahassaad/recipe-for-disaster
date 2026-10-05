@@ -460,7 +460,7 @@ internal fun Pen.drawMenuBoard(text: TextMeasurer, label: String) {
     for (i in 0..1) line(board.left + 2f, board.top + 6.2f + i * 1.6f, board.right - 2f - i * 2f, board.top + 6.2f + i * 1.6f, Color(0x99F1EEE4), 0.3f)
 }
 
-internal fun Pen.drawMopBucket() {
+internal fun Pen.drawMopBucket(withMop: Boolean = true) {
     val b = SceneLayout.mopBucket
     oval(b.center.x, b.bottom + 0.4f, 4.4f, 1f, Palette.shadow)
     // Bucket with a rim, a handle and soapy water.
@@ -480,6 +480,7 @@ internal fun Pen.drawMopBucket() {
         quadTo(b.center.x, b.top, b.right - 1f, b.top + 4f)
     }
     // Mop leaning in it: wooden handle and a stringy head.
+    if (!withMop) return
     line(b.center.x + 0.6f, b.top + 4.6f, b.right + 3f, b.top - 6f, Palette.woodLight, 0.8f)
     for (k in -2..2) line(b.center.x + 0.6f, b.top + 4.4f, b.center.x + 0.6f + k * 0.7f, b.top + 6.4f, Color(0xFFE8E2D4), 0.5f)
 }

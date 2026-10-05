@@ -17,7 +17,7 @@
     <string name="intro_step1_title">Morning</string>
     <string name="intro_step1">Look around your restaurant. Anything with a red ! needs you: tap it to sort it out.</string>
     <string name="intro_step2_title">Service</string>
-    <string name="intro_step2">Open the doors and serve. Tap a table with a ? to take its order, tap the counter to give it to the chef, then tap the counter again when the food is ready and take it to the table. When guests leave, clear their plates and wash them at the dish station. If you\'re busy, your servers will run waiting food out for you.</string>
+    <string name="intro_step2">Open the doors and serve. Tap a table with a ? to take its order, tap the counter to give it to the chef, then tap the counter again when the food is ready and take it to the table. When guests leave, clear their plates and wash them at the dish station, and mop up any spills with the mop from the bucket. If you\'re busy, your servers will run waiting food out for you.</string>
     <string name="intro_step3_title">The bill</string>
     <string name="intro_step3">See how much you made, then on to the next day.</string>
     <string name="intro_goal">Keep your money above zero and your guests happy. How many days can you last?</string>
@@ -39,6 +39,10 @@
     <string name="hint_clear">Table %1$d needs clearing. Tap it to pick up the dirty plates.</string>
     <string name="hint_wash">Take the dirty plates to the dish station (top right).</string>
     <string name="hint_washing">Washing up…</string>
+    <string name="hint_get_mop">Someone spilled! Tap the mop bucket, then tap the spill.</string>
+    <string name="hint_mop_spill">Tap the spill to mop it up.</string>
+    <string name="hint_mopping">Mopping…</string>
+    <string name="hint_put_mop_back">Floor\'s clean. Tap the bucket to put the mop back.</string>
     <string name="hint_waiting">Waiting for guests to come in…</string>
     <string name="hint_cooking">The kitchen is cooking…</string>
     <string name="night_table">Table %1$d: %2$s</string>
@@ -51,6 +55,8 @@
     <string name="night_needs_clearing">needs clearing</string>
     <string name="night_dish_station">Dish station: wash dirty plates</string>
     <string name="night_dish_sign">DISHES</string>
+    <string name="night_mop_bucket">Mop bucket: pick up or put back the mop</string>
+    <string name="night_spill">Spill on the floor: mop it up</string>
     <string name="night_you">YOU</string>
     <string name="end_fed">%1$d of %2$d guests fed</string>
     <string name="scene_menu_sign" translatable="false">MENU</string>
