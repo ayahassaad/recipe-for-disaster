@@ -146,8 +146,17 @@ data class ServiceNight(
         /** Go to a table and do whatever it needs: serve it if you're carrying its food, otherwise take its order. */
         @Serializable
         data class VisitTable(val table: Int) : Errand
+        /** Hired help's trip to the pass: hand in any tickets and take whatever has waited too long. */
         @Serializable
         data object VisitPass : Errand
+
+        /** The player hands their orders to the chef (and does nothing else there). */
+        @Serializable
+        data object HandIn : Errand
+
+        /** The player picks up one particular plate from the counter. */
+        @Serializable
+        data class PickUp(val partyId: Int) : Errand
         @Serializable
         data class Serve(val table: Int) : Errand
 
@@ -243,6 +252,12 @@ data class ServiceNight(
     /** Go to the pass: hand in any tickets you're holding and pick up plates that are ready. */
     fun tapPass(): ServiceNight = enqueue(Errand.VisitPass)
 
+    /** Go to the chef and hand in the orders you've taken. */
+    fun tapChef(): ServiceNight = enqueue(Errand.HandIn)
+
+    /** Go and pick up one plate from the counter (a party's food that's ready). */
+    fun tapPlate(partyId: Int): ServiceNight = enqueue(Errand.PickUp(partyId))
+
     /** Go to the dish station and wash whatever dirty plates you're carrying. */
     fun tapDishStation(): ServiceNight = enqueue(Errand.VisitDishStation)
 
@@ -274,7 +289,7 @@ data class ServiceNight(
         val destination = when (errand) {
             is Errand.VisitTable -> layout.stand(errand.table)
             is Errand.Serve -> layout.stand(errand.table)
-            Errand.VisitPass -> ServiceFloor.pass
+            Errand.VisitPass, Errand.HandIn, is Errand.PickUp -> ServiceFloor.pass
             Errand.VisitDishStation -> ServiceFloor.dishStation
             Errand.Wash, is Errand.Mopping -> here
             Errand.VisitMopBucket -> ServiceFloor.mopBucket
@@ -526,13 +541,26 @@ data class ServiceNight(
                 waiter.tickets.forEach { id -> night = night.updateParty(id) { it.copy(stage = Stage.IN_KITCHEN, stageSince = time, heldBy = null) } }
                 updateWaiter { it.copy(tickets = emptyList()) }
                 // …and pick up whatever's ready, as much as two hands can carry. Runners only take plates
-                // the player has left waiting a while, so they help out rather than race the player.
+                // the player has left waiting a while (and hasn't said they're coming for), so they help
+                // out rather than race the player.
+                val claimed = night.player.let { listOfNotNull(it.errand) + it.queue }.filterIsInstance<Errand.PickUp>().map { it.partyId }.toSet()
                 val ready = night.parties
-                    .filter { it.stage == Stage.READY_AT_PASS && (waiter.isPlayer || time - it.stageSince >= RUNNER_DELAY) }
+                    .filter { it.stage == Stage.READY_AT_PASS && (waiter.isPlayer || (time - it.stageSince >= RUNNER_DELAY && it.id !in claimed)) }
                     .sortedBy { it.stageSince }
                     .take(waiter.freeHands)
                 ready.forEach { party -> night = night.updateParty(party.id) { it.copy(stage = Stage.CARRIED, stageSince = time, heldBy = waiterId) } }
                 updateWaiter { it.copy(hands = it.hands + ready.map { p -> HandItem.Plate(p.id) }) }
+            }
+            Errand.HandIn -> {
+                waiter.tickets.forEach { id -> night = night.updateParty(id) { it.copy(stage = Stage.IN_KITCHEN, stageSince = time, heldBy = null) } }
+                updateWaiter { it.copy(tickets = emptyList()) }
+            }
+            is Errand.PickUp -> {
+                val party = night.parties.firstOrNull { it.id == errand.partyId }
+                if (party != null && party.stage == Stage.READY_AT_PASS && waiter.freeHands > 0) {
+                    night = night.updateParty(party.id) { it.copy(stage = Stage.CARRIED, stageSince = time, heldBy = waiterId) }
+                    updateWaiter { it.copy(hands = it.hands + HandItem.Plate(party.id)) }
+                }
             }
             Errand.VisitDishStation -> {
                 val stacks = waiter.dirtyDishes.size

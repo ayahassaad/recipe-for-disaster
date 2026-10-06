@@ -32,7 +32,10 @@ import kotlin.math.sin
 /** Labels the night scene needs, for screen readers. */
 data class NightLabels(
     val table: (number: Int, state: String) -> String,
+    /** The chef / kitchen area, where orders are handed in. */
     val counter: String,
+    /** A plate on the counter: "Food for table N". */
+    val plate: (table: Int) -> String = { "" },
     val wantsToOrder: String,
     val waitingForFood: String,
     val foodReady: String,
@@ -72,8 +75,8 @@ internal fun helperColors(staff: List<StaffFigure>): Map<String, Color> {
  * bubble means they're waiting for food, and a bar under it shows how much
  * patience they have left. Tickets hang on the rail by table number while
  * they cook, and finished plates wait on the counter with their table's
- * number. Tap a table to go to it; tap the counter to hand in tickets and
- * pick up food. Every table is yours; hired servers run plates out when
+ * number. Tap a table to go to it, the chef to hand in orders, and a plate
+ * to pick it up. Every table is yours; hired servers run plates out when
  * you leave them waiting on the counter.
  */
 @Composable
@@ -83,7 +86,10 @@ fun NightScene(
     labels: NightLabels,
     clock: Float,
     onTapTable: (Int) -> Unit,
+    /** The chef area: hand in the orders you're carrying. */
     onTapCounter: () -> Unit,
+    /** A plate on the counter, by party id: pick it up. */
+    onTapPlate: (Int) -> Unit = {},
     onTapDishStation: () -> Unit,
     onTapMopBucket: () -> Unit,
     onTapMess: (Int) -> Unit,
@@ -211,7 +217,8 @@ fun NightScene(
                     focus?.let { f ->
                         val (center, radius) = when (f) {
                             is NightFocus.Table -> tablePoints[f.table] to 16f * scale
-                            NightFocus.Counter -> Point(ServiceFloor.pass.x, SceneLayout.counter.center.y) to 7f
+                            NightFocus.Chef -> SceneLayout.cookSpot(0).let { Point(it.x, it.y - 3f) } to 9f
+                            is NightFocus.Plate -> (readyPlates(night).indexOfFirst { it.id == f.partyId }.takeIf { it >= 0 }?.let { plateSpot(it) } ?: return@let) to 4.5f
                             NightFocus.DishStation -> Point(87f, SceneLayout.counter.top + 1f) to 9f
                             NightFocus.MopBucket -> SceneLayout.mopBucket.center to 9f
                             is NightFocus.Spill -> (night.messes.firstOrNull { it.id == f.messId }?.at?.toPoint() ?: return@let) to 7f
@@ -226,7 +233,7 @@ fun NightScene(
                     (listOfNotNull(me.errand) + me.queue).forEachIndexed { k, errand ->
                         val spot = when (errand) {
                             is ServiceNight.Errand.VisitTable -> layout.stand(errand.table)
-                            ServiceNight.Errand.VisitPass -> ServiceFloor.pass
+                            ServiceNight.Errand.VisitPass, ServiceNight.Errand.HandIn, is ServiceNight.Errand.PickUp -> ServiceFloor.pass
                             ServiceNight.Errand.VisitDishStation -> ServiceFloor.dishStation
                             ServiceNight.Errand.VisitMopBucket -> ServiceFloor.mopBucket
                             is ServiceNight.Errand.CleanMess -> night.messes.firstOrNull { it.id == errand.messId }?.at
@@ -303,8 +310,13 @@ fun NightScene(
             }
             TapArea(rect, unit, origin, labels.table(t + 1, state)) { onTapTable(t) }
         }
-        TapArea(Rect(0f, 0f, 78f, SceneLayout.counter.bottom + 2f), unit, origin, labels.counter, onTapCounter)
+        // The chef's end of the kitchen hands in orders; each plate on the counter is its own tap.
+        TapArea(Rect(0f, 0f, 54f, SceneLayout.counter.bottom + 2f), unit, origin, labels.counter, onTapCounter)
         TapArea(Rect(78f, 0f, SceneLayout.WIDTH, SceneLayout.counter.bottom + 2f), unit, origin, labels.dishStation, onTapDishStation)
+        readyPlates(night).forEachIndexed { i, party ->
+            val at = plateSpot(i)
+            TapArea(Rect(at.x - 3.4f, at.y - 6f, at.x + 4f, at.y + 3f), unit, origin, labels.plate((party.table ?: 0) + 1)) { onTapPlate(party.id) }
+        }
         TapArea(Rect(SceneLayout.mopBucket.left - 2f, SceneLayout.mopBucket.top - 8f, SceneLayout.mopBucket.right + 6f, SceneLayout.mopBucket.bottom), unit, origin, labels.mopBucket, onTapMopBucket)
         // Spills last, so they sit on top of the tables' tap areas.
         night.messesOnFloor.forEach { mess ->
@@ -403,10 +415,15 @@ private fun Pen.drawTickets(text: TextMeasurer, night: ServiceNight) {
 }
 
 /** Finished plates on the counter, each with a flag showing which table it's for. */
+/** Plates waiting on the counter, oldest first (as many as fit). */
+private fun readyPlates(night: ServiceNight) = night.parties.filter { it.stage == Stage.READY_AT_PASS }.sortedBy { it.stageSince }.take(4)
+
+/** Where the [i]th waiting plate sits on the counter, between the pass and the dish station. */
+private fun plateSpot(i: Int) = Point(56f + i * 6.4f, SceneLayout.counter.top + 3f)
+
 private fun Pen.drawReadyPlates(text: TextMeasurer, night: ServiceNight) {
-    val ready = night.parties.filter { it.stage == Stage.READY_AT_PASS }.sortedBy { it.stageSince }
-    ready.take(5).forEachIndexed { i, party ->
-        val at = Point(56f + i * 7.4f, SceneLayout.counter.top + 3f)
+    readyPlates(night).forEachIndexed { i, party ->
+        val at = plateSpot(i)
         drawPlate(at)
         drawNumberFlag(text, at, (party.table ?: 0) + 1)
     }
@@ -540,7 +557,8 @@ private fun Pen.drawDoorBubble(at: Point, waited: Float, clock: Float) {
 /** What the night scene can point at to show a new player where to tap. Tables are 0-based. */
 sealed interface NightFocus {
     data class Table(val table: Int) : NightFocus
-    data object Counter : NightFocus
+    data object Chef : NightFocus
+    data class Plate(val partyId: Int) : NightFocus
     data object DishStation : NightFocus
     data object MopBucket : NightFocus
     data class Spill(val messId: Int) : NightFocus

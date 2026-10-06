@@ -20,7 +20,7 @@ sealed interface NightHint {
     data object Mopping : NightHint
     data class Serve(val table: Int) : NightHint
     data object HandIn : NightHint
-    data class PickUp(val table: Int) : NightHint
+    data class PickUp(val table: Int, val partyId: Int) : NightHint
     data class DoorWaiting(val table: Int) : NightHint
     data class TakeOrder(val table: Int) : NightHint
     data object Wash : NightHint
@@ -38,7 +38,8 @@ sealed interface NightHint {
         is TakeOrder -> NightFocus.Table(table)
         is Clear -> NightFocus.Table(table)
         is DoorWaiting -> NightFocus.Table(table)
-        HandIn, is PickUp -> NightFocus.Counter
+        HandIn -> NightFocus.Chef
+        is PickUp -> NightFocus.Plate(partyId)
         Wash -> NightFocus.DishStation
         GetMop, PutMopBack -> NightFocus.MopBucket
         MopSpill -> night.messesOnFloor.firstOrNull()?.let { NightFocus.Spill(it.id) }
@@ -50,19 +51,20 @@ sealed interface NightHint {
             val me = night.player
             val plans = listOfNotNull(me.errand) + me.queue
             val carrying = me.plates.firstOrNull()?.let { id -> night.parties.firstOrNull { it.id == id } }
-            val ready = night.parties.filter { it.stage == Stage.READY_AT_PASS }.minByOrNull { it.stageSince }
             val ordering = night.parties.filter { it.stage == Stage.READY_TO_ORDER }.minByOrNull { it.stageSince }
             val dirty = night.dirtyTables.firstOrNull { Errand.VisitTable(it) !in plans }
             val noWasher = night.waiters.none { it.kind == Kind.DISHWASHER }
             val nobodyClears = noWasher && night.waiters.none { it.kind == Kind.BUSSER }
             val spill = night.messesOnFloor.isNotEmpty() && noWasher
-            val goingToPass = Errand.VisitPass in plans
+            val handingIn = Errand.HandIn in plans || Errand.VisitPass in plans
+            val collecting = plans.filterIsInstance<Errand.PickUp>().map { it.partyId }.toSet()
+            val toCollect = night.parties.filter { it.stage == Stage.READY_AT_PASS && it.id !in collecting }.minByOrNull { it.stageSince }
             return when {
                 me.errand == Errand.Wash -> Washing
                 me.errand is Errand.Mopping -> Mopping
                 carrying?.table != null -> Serve(carrying.table!!)
-                me.tickets.isNotEmpty() && !goingToPass -> HandIn
-                ready?.table != null && me.freeHands > 0 && !goingToPass -> PickUp(ready.table!!)
+                me.tickets.isNotEmpty() && !handingIn -> HandIn
+                toCollect?.table != null && me.freeHands - collecting.size > 0 -> PickUp(toCollect.table!!, toCollect.id)
                 // Guests at the door with nowhere to sit, because a table needs clearing: they'll walk out soon.
                 night.waitingAtDoor.isNotEmpty() && !night.hasFreeTable && dirty != null && nobodyClears && me.freeHands > 0 -> DoorWaiting(dirty)
                 ordering?.table != null && Errand.VisitTable(ordering.table!!) !in plans -> TakeOrder(ordering.table!!)

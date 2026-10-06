@@ -370,7 +370,8 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
                 labels = labels,
                 clock = clock,
                 onTapTable = { night = night.tapTable(it) },
-                onTapCounter = { night = night.tapPass() },
+                onTapCounter = { night = night.tapChef() },
+                onTapPlate = { id -> night = night.tapPlate(id) },
                 onTapDishStation = { night = night.tapDishStation() },
                 onTapMopBucket = { night = night.tapMopBucket() },
                 onTapMess = { id -> night = night.tapMess(id) },
@@ -437,10 +438,12 @@ private fun nightHint(night: ServiceNight): String = when (val hint = NightHint.
 
 @Composable
 private fun nightLabels(): NightLabels {
+    val plateLabel = stringResource(R.string.night_plate)
     val table = stringResource(R.string.night_table)
     return NightLabels(
         table = { number, state -> String.format(table, number, state) },
         counter = stringResource(R.string.night_counter),
+        plate = { number -> String.format(plateLabel, number) },
         wantsToOrder = stringResource(R.string.night_wants_to_order),
         waitingForFood = stringResource(R.string.night_waiting_food),
         foodReady = stringResource(R.string.night_food_ready),

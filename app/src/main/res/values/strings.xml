@@ -39,8 +39,8 @@
     <string name="hint_ready">All ready. Open the doors!</string>
     <string name="tonight_takings">Tonight %1$s</string>
     <string name="hint_take_order">Table %1$d wants to order. Tap the table.</string>
-    <string name="hint_hand_in">Take the order to the kitchen. Tap the counter.</string>
-    <string name="hint_pick_up">Table %1$d\'s food is ready. Tap the counter.</string>
+    <string name="hint_hand_in">Take the order to the chef. Tap the chef.</string>
+    <string name="hint_pick_up">Table %1$d\'s food is ready. Tap the plate.</string>
     <string name="hint_serve">Take the food to table %1$d. Tap the table.</string>
     <string name="hint_door_waiting">Guests are waiting at the door! Clear table %1$d so they can sit.</string>
     <string name="hint_clear">Table %1$d needs clearing. Tap it to pick up the dirty plates.</string>
@@ -56,7 +56,8 @@
     <string name="hint_waiting">Waiting for guests to come in…</string>
     <string name="hint_cooking">The kitchen is cooking…</string>
     <string name="night_table">Table %1$d: %2$s</string>
-    <string name="night_counter">Kitchen counter: hand in orders and pick up food</string>
+    <string name="night_plate">Food for table %1$d: pick it up</string>
+    <string name="night_counter">Chef: hand in your orders</string>
     <string name="night_wants_to_order">wants to order</string>
     <string name="night_waiting_food">waiting for food</string>
     <string name="night_food_ready">food ready at the counter</string>

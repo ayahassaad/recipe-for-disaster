@@ -457,4 +457,52 @@ class ServiceNightTest {
         assertTrue(n.parties.mapNotNull { it.table }.any { it >= 6 })
         assertTrue(n.result().outcomes.count { it.dish != null } > 20)
     }
+
+    private fun waitFor(night: ServiceNight, condition: (ServiceNight) -> Boolean): ServiceNight {
+        var n = night
+        var guard = 0
+        while (!condition(n) && guard++ < 20_000) n = n.advance(0.05f)
+        return n
+    }
+
+    @Test
+    fun `tapping the chef only hands orders in, and tapping a plate only picks that plate up`() {
+        val noRunners = start.copy(employees = start.employees.filter { it.role == com.recipefordisaster.domain.employee.Role.COOK })
+        var n = waitFor(open(noRunners)) { night -> night.parties.count { it.stage == Stage.READY_TO_ORDER } >= 2 }
+        val (first, second) = n.parties.filter { it.stage == Stage.READY_TO_ORDER }.take(2)
+        n = n.tapTable(first.table!!).tapTable(second.table!!)
+        n = waitFor(n) { it.player.tickets.size == 2 && !it.player.walking }
+
+        // The chef takes the orders; nothing is picked up.
+        n = waitFor(n.tapChef()) { !it.player.walking }
+        assertTrue(n.player.tickets.isEmpty())
+        n = waitFor(n) { night -> night.parties.count { it.stage == Stage.READY_AT_PASS } >= 2 }
+
+        // Handing in again with food waiting picks nothing up.
+        n = waitFor(n.tapChef()) { !it.player.walking }
+        assertTrue(n.player.plates.isEmpty())
+
+        // Tapping one plate takes just that one.
+        n = waitFor(n.tapPlate(second.id)) { !it.player.walking }
+        assertEquals(listOf(second.id), n.player.plates)
+        n = waitFor(n.tapPlate(first.id)) { !it.player.walking }
+        assertEquals(setOf(first.id, second.id), n.player.plates.toSet())
+    }
+
+    @Test
+    fun `a runner leaves alone a plate the player is on their way to collect`() {
+        val withRunner = start.copy(employees = start.employees + start.applicants.filter { it.role == com.recipefordisaster.domain.employee.Role.SERVER })
+        var n = waitFor(open(withRunner)) { night -> night.parties.any { it.stage == Stage.READY_TO_ORDER } }
+        val party = n.parties.first { it.stage == Stage.READY_TO_ORDER }
+        n = waitFor(n.tapTable(party.table!!)) { !it.player.walking }
+        n = waitFor(n.tapChef()) { !it.player.walking }
+        n = waitFor(n) { night -> night.parties.first { it.id == party.id }.stage == Stage.READY_AT_PASS }
+        // Let it sit a while, then go to the dish station and back: by the time the player is back,
+        // the plate has waited long enough that a runner would otherwise have taken it.
+        val readyAt = n.time
+        n = waitFor(n) { it.time >= readyAt + 2.5f }
+        n = n.tapDishStation().tapPlate(party.id)
+        n = waitFor(n) { night -> night.parties.first { it.id == party.id }.stage != Stage.READY_AT_PASS }
+        assertEquals(ServiceNight.PLAYER_ID, n.parties.first { it.id == party.id }.heldBy)
+    }
 }

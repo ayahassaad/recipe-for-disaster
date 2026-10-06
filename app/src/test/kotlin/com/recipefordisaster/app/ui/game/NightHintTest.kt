@@ -9,6 +9,7 @@ import com.recipefordisaster.domain.simulation.NewGameFactory
 import com.recipefordisaster.domain.simulation.PlayerDecisions
 import com.recipefordisaster.domain.simulation.SeededRandomSource
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NightHintTest {
@@ -30,7 +31,8 @@ class NightHintTest {
 
     @Test
     fun `food waiting on the counter comes before a spill`() {
-        assertEquals(NightHint.PickUp(4), NightHint.of(withParty(Stage.READY_AT_PASS, 4).copy(messes = spill)))
+        val night = withParty(Stage.READY_AT_PASS, 4).copy(messes = spill)
+        assertEquals(NightHint.PickUp(4, night.parties.first().id), NightHint.of(night))
     }
 
     @Test
@@ -41,5 +43,13 @@ class NightHintTest {
     @Test
     fun `a spill is pointed out when nothing more urgent needs doing`() {
         assertEquals(NightHint.GetMop, NightHint.of(night.copy(messes = spill)))
+    }
+
+    @Test
+    fun `a plate you're already on your way to collect isn't pointed at again`() {
+        val waiting = withParty(Stage.READY_AT_PASS, 4)
+        val id = waiting.parties.first().id
+        assertEquals(NightHint.PickUp(4, id), NightHint.of(waiting))
+        assertTrue(NightHint.of(waiting.tapPlate(id)) !is NightHint.PickUp)
     }
 }
