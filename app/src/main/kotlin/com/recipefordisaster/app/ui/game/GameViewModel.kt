@@ -97,6 +97,8 @@ data class DayReport(
     val morningSpending: DecisionSpending,
     /** The restaurant as it was when the doors opened — what the service animation shows. */
     val startOfService: GameState,
+    /** Of the guests who gave up waiting, how many were waiting for a table, to order, or for food. */
+    val gaveUp: Map<ServiceNight.WaitedFor, Int> = emptyMap(),
 )
 
 /**
@@ -182,7 +184,7 @@ class GameViewModel(
             gameRepository.save(result.newState)
             gameRepository.clearNight()
             val report = result.summary?.let { summary ->
-                result.newState.ledger.history.lastOrNull()?.let { books -> DayReport(summary, books, result.event, session.morningSpending, session.setup.morning.state) }
+                result.newState.ledger.history.lastOrNull()?.let { books -> DayReport(summary, books, result.event, session.morningSpending, session.setup.morning.state, finalNight.gaveUpCounts()) }
             }
             _uiState.value = GameUiState.Playing(result.newState, dayLog = result.log, lastEvent = result.event, report = report)
         }

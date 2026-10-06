@@ -480,6 +480,23 @@ private fun ResultsPlay(report: DayReport, gameOver: Boolean, onContinue: () -> 
     }
 }
 
+/** The biggest reason guests went without tonight, and what to do about it; null if everyone was fed. */
+@Composable
+private fun lostTip(report: DayReport): String? {
+    val s = report.summary
+    val reasons = buildMap {
+        report.gaveUp[ServiceNight.WaitedFor.TABLE]?.let { put(R.string.tip_table, it) }
+        report.gaveUp[ServiceNight.WaitedFor.ORDER]?.let { put(R.string.tip_order, it) }
+        report.gaveUp[ServiceNight.WaitedFor.FOOD]?.let { put(R.string.tip_food, it) }
+        if (report.gaveUp.isEmpty() && s.gaveUpWaiting > 0) put(R.string.tip_order, s.gaveUpWaiting)
+        if (s.unfedOutOfStock > 0) put(R.string.tip_stock, s.unfedOutOfStock)
+        if (s.walkedOut > 0) put(R.string.tip_menu, s.walkedOut)
+        if (s.unfedKitchenFull > 0) put(R.string.tip_cooks, s.unfedKitchenFull)
+    }
+    val (tip, count) = reasons.maxByOrNull { it.value } ?: return null
+    return stringResource(tip, count)
+}
+
 /** The receipt that slides up over the restaurant once the last guest has left. */
 @Composable
 private fun EndOfNightPanel(visible: Boolean, report: DayReport, onShowBill: () -> Unit, modifier: Modifier = Modifier) {
@@ -512,6 +529,10 @@ private fun EndOfNightPanel(visible: Boolean, report: DayReport, onShowBill: () 
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )
+            // The biggest reason guests went without, with what to do about it.
+            lostTip(report)?.let { tip ->
+                Text(tip, style = MaterialTheme.typography.bodyMedium, color = DisasterRed, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
+            }
             event?.let {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(it.title, style = MaterialTheme.typography.titleMedium, color = toneColor(it.tone), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())

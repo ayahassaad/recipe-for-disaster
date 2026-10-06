@@ -97,6 +97,15 @@
     <string name="bill_hungry_stock">%1$d went hungry (out of food)</string>
     <string name="bill_walked_out">%1$d walked out (nothing for them)</string>
     <string name="bill_gave_up">%1$d gave up waiting</string>
+    <string name="bill_gave_up_table">%1$d gave up waiting for a table</string>
+    <string name="bill_gave_up_order">%1$d gave up waiting to order</string>
+    <string name="bill_gave_up_food">%1$d gave up waiting for food</string>
+    <string name="tip_table">%1$d left with no table free. Clear tables as soon as guests leave.</string>
+    <string name="tip_order">%1$d left before you took their order. Get to tables with a ? sooner.</string>
+    <string name="tip_food">%1$d left waiting for food. Pick plates up from the counter quickly.</string>
+    <string name="tip_stock">%1$d went hungry because food ran out. Restock the pantry.</string>
+    <string name="tip_menu">%1$d found nothing on the menu for them. Try cheaper or different dishes.</string>
+    <string name="tip_cooks">%1$d went hungry because the kitchen couldn\'t keep up. Hire a cook.</string>
     <string name="bill_reputation">Reputation</string>
     <string name="bill_details_show">Show the full bill</string>
     <string name="bill_earned">Meals sold</string>

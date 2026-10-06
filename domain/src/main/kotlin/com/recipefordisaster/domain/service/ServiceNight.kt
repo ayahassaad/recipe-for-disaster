@@ -59,7 +59,13 @@ data class ServiceNight(
     val messes: List<Mess> = emptyList(),
     /** Whether a host is on the door tonight: guests wait longer, and one more party fits inside. */
     val hosted: Boolean = false,
+    /** For guests who gave up: at which step (the door, waiting to order, or waiting for food). */
+    val gaveUpAt: Map<Int, WaitedFor> = emptyMap(),
 ) {
+
+    /** What a guest was waiting for when they gave up. */
+    @Serializable
+    enum class WaitedFor { TABLE, ORDER, FOOD }
 
     /** A spill on the floor. Guests who finish their meal while it's there notice it. */
     @Serializable
@@ -324,9 +330,13 @@ data class ServiceNight(
     /** A party that couldn't even get through the door: they never came in, so they count as having given up. */
     private fun stayAway(party: Party): ServiceNight {
         var results = results
+        val gaveUpAt = gaveUpAt + party.guests.filter { it !in results }.associateWith { WaitedFor.TABLE }
         party.guests.forEach { guest -> if (guest !in results) results = results + (guest to missed(guest, MissedMealReason.TIRED_OF_WAITING)) }
-        return copy(results = results).updateParty(party.id) { it.copy(stage = Stage.DONE, stageSince = time) }
+        return copy(results = results, gaveUpAt = gaveUpAt).updateParty(party.id) { it.copy(stage = Stage.DONE, stageSince = time) }
     }
+
+    /** How many guests gave up at each step tonight. */
+    fun gaveUpCounts(): Map<WaitedFor, Int> = gaveUpAt.values.groupingBy { it }.eachCount()
 
     private fun seatParties(): ServiceNight {
         var night = this
@@ -354,7 +364,15 @@ data class ServiceNight(
                     impatience(party) >= 1f
                 else -> false
             }
-            if (givesUp) night = night.stormOut(party.id, MissedMealReason.TIRED_OF_WAITING)
+            if (givesUp) {
+                val waitedFor = when (party.stage) {
+                    Stage.QUEUEING -> WaitedFor.TABLE
+                    Stage.READY_TO_ORDER -> WaitedFor.ORDER
+                    else -> WaitedFor.FOOD
+                }
+                night = night.copy(gaveUpAt = night.gaveUpAt + party.guests.filter { it !in night.results }.associateWith { waitedFor })
+                    .stormOut(party.id, MissedMealReason.TIRED_OF_WAITING)
+            }
         }
         return night
     }

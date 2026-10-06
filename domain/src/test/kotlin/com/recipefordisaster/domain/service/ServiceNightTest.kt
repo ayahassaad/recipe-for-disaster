@@ -428,4 +428,12 @@ class ServiceNightTest {
         val later = open(start.copy(day = 4)).parties.first().patience
         assertTrue(firstNight > later)
     }
+
+    @Test
+    fun `everyone who gave up is recorded with what they were waiting for`() {
+        val n = play(open())
+        val gaveUp = n.result().outcomes.count { it.missedReason == MissedMealReason.TIRED_OF_WAITING }
+        assertTrue(gaveUp > 0)
+        assertEquals(gaveUp, n.gaveUpCounts().values.sum())
+    }
 }

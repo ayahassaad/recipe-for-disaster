@@ -33,6 +33,7 @@ import com.recipefordisaster.app.ui.theme.ReceiptInk
 import com.recipefordisaster.app.ui.theme.WoodBrown
 import com.recipefordisaster.domain.restaurant.RestaurantStatus
 import com.recipefordisaster.domain.simulation.GameState
+import com.recipefordisaster.domain.service.ServiceNight
 
 private val receiptText = TextStyle(fontFamily = ReceiptFont, fontSize = 15.sp, lineHeight = 22.sp, color = ReceiptInk)
 
@@ -60,7 +61,17 @@ internal fun BillReceipt(report: DayReport, modifier: Modifier = Modifier) {
         if (summary.unfedKitchenFull > 0) ReceiptNote(stringResource(R.string.bill_hungry_kitchen, summary.unfedKitchenFull))
         if (summary.unfedOutOfStock > 0) ReceiptNote(stringResource(R.string.bill_hungry_stock, summary.unfedOutOfStock))
         if (summary.walkedOut > 0) ReceiptNote(stringResource(R.string.bill_walked_out, summary.walkedOut))
-        if (summary.gaveUpWaiting > 0) ReceiptNote(stringResource(R.string.bill_gave_up, summary.gaveUpWaiting))
+        if (summary.gaveUpWaiting > 0) {
+            // Split by what they were waiting for, when the night recorded it.
+            val split = report.gaveUp
+            if (split.isEmpty()) {
+                ReceiptNote(stringResource(R.string.bill_gave_up, summary.gaveUpWaiting))
+            } else {
+                split[ServiceNight.WaitedFor.TABLE]?.let { ReceiptNote(stringResource(R.string.bill_gave_up_table, it)) }
+                split[ServiceNight.WaitedFor.ORDER]?.let { ReceiptNote(stringResource(R.string.bill_gave_up_order, it)) }
+                split[ServiceNight.WaitedFor.FOOD]?.let { ReceiptNote(stringResource(R.string.bill_gave_up_food, it)) }
+            }
+        }
         val change = summary.reputationAfter - summary.reputationBefore
         ReceiptLine(stringResource(R.string.bill_reputation), (if (change > 0) "+" else "") + change)
         Dashes()
