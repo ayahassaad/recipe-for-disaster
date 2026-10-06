@@ -30,6 +30,8 @@ sealed interface NightHint {
     data object GetMop : NightHint
     data object PutMopBack : NightHint
     data object Waiting : NightHint
+    /** Everyone's gone; staff are clearing up before closing. */
+    data object TidyingUp : NightHint
     data object Cooking : NightHint
 
     /** Where in the restaurant this hint means, for the "tap here" ring; null if it isn't about one place. */
@@ -43,7 +45,7 @@ sealed interface NightHint {
         Wash -> NightFocus.DishStation
         GetMop, PutMopBack -> NightFocus.MopBucket
         MopSpill -> night.messesOnFloor.firstOrNull()?.let { NightFocus.Spill(it.id) }
-        Washing, Mopping, OutOfFood, Waiting, Cooking -> null
+        Washing, Mopping, OutOfFood, Waiting, Cooking, TidyingUp -> null
     }
 
     companion object {
@@ -75,6 +77,7 @@ sealed interface NightHint {
                 spill && me.holdingMop && plans.none { it is Errand.CleanMess } -> MopSpill
                 spill && !me.holdingMop && Errand.VisitMopBucket !in plans && me.freeHands > 0 -> GetMop
                 me.holdingMop && night.messesOnFloor.isEmpty() && Errand.VisitMopBucket !in plans -> PutMopBack
+                night.guestsGone -> TidyingUp
                 night.parties.any { it.stage == Stage.NOT_YET_ARRIVED || it.stage == Stage.QUEUEING } -> Waiting
                 else -> Cooking
             }

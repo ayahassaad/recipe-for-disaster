@@ -461,12 +461,13 @@ private fun nightHint(night: ServiceNight): String = when (val hint = NightHint.
     is NightHint.DoorWaiting -> stringResource(R.string.hint_door_waiting, hint.table + 1)
     is NightHint.TakeOrder -> stringResource(R.string.hint_take_order, hint.table + 1)
     NightHint.Wash -> stringResource(R.string.hint_wash)
-    is NightHint.Clear -> stringResource(R.string.hint_clear, hint.table + 1)
+    is NightHint.Clear -> stringResource(if (night.guestsGone) R.string.hint_last_clear else R.string.hint_clear, hint.table + 1)
     NightHint.OutOfFood -> stringResource(R.string.hint_out_of_food)
     NightHint.MopSpill -> stringResource(R.string.hint_mop_spill)
     NightHint.GetMop -> stringResource(R.string.hint_get_mop)
     NightHint.PutMopBack -> stringResource(R.string.hint_put_mop_back)
     NightHint.Waiting -> stringResource(R.string.hint_waiting)
+    NightHint.TidyingUp -> stringResource(R.string.hint_tidying_up)
     NightHint.Cooking -> stringResource(R.string.hint_cooking)
 }
 

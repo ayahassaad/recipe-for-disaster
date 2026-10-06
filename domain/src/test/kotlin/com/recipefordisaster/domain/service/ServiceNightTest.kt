@@ -522,4 +522,34 @@ class ServiceNightTest {
         n = n.tapPlate(party.id)
         assertEquals(ServiceFloor.plateStand(0), n.player.route.last())
     }
+
+    @Test
+    fun `the night only closes once the last table is cleared and washed up`() {
+        val noHelpers = start.copy(employees = start.employees.filter { it.role == com.recipefordisaster.domain.employee.Role.COOK })
+        var n = open(noHelpers)
+        // Serve everyone but never clear: the guests all go, yet the night stays open for a while.
+        while (!n.guestsGone) {
+            val me = n.player
+            n = when {
+                me.walking -> n
+                me.plates.isNotEmpty() -> n.parties.first { it.id == me.plates.first() }.table?.let { n.tapTable(it) } ?: n
+                me.tickets.isNotEmpty() -> n.tapChef()
+                n.parties.any { it.stage == Stage.READY_AT_PASS } && me.freeHands > 0 -> n.tapPlate(n.parties.first { it.stage == Stage.READY_AT_PASS }.id)
+                else -> n.parties.filter { it.stage == Stage.READY_TO_ORDER }.minByOrNull { it.stageSince }?.table?.let { n.tapTable(it) } ?: n
+            }.advance(0.05f)
+        }
+        assertTrue(n.dirtyTables.isNotEmpty())
+        assertTrue(!n.finished)
+        // Now clear up: once it's all washed, it closes.
+        n = play(n, ::busyPlayer)
+        assertTrue(n.finished)
+        assertTrue(n.tidy)
+    }
+
+    @Test
+    fun `a night nobody clears up still closes in the end`() {
+        val noHelpers = start.copy(employees = start.employees.filter { it.role == com.recipefordisaster.domain.employee.Role.COOK })
+        val n = play(open(noHelpers))
+        assertTrue(n.finished)
+    }
 }

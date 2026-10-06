@@ -52,4 +52,11 @@ class NightHintTest {
         assertEquals(NightHint.PickUp(4, id), NightHint.of(waiting))
         assertTrue(NightHint.of(waiting.tapPlate(id)) !is NightHint.PickUp)
     }
+
+    @Test
+    fun `once everyone has gone, a dirty table is the last job and the hint says so`() {
+        val gone = night.copy(parties = night.parties.map { it.copy(stage = Stage.DONE, table = 0) }, dirtyTables = setOf(0))
+        assertEquals(NightHint.Clear(0), NightHint.of(gone))
+        assertEquals(NightHint.TidyingUp, NightHint.of(gone.copy(dirtyTables = emptySet())))
+    }
 }

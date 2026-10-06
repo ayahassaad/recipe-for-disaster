@@ -215,7 +215,17 @@ data class ServiceNight(
         val walking: Boolean get() = errand != null
     }
 
-    val finished: Boolean get() = parties.all { it.stage == Stage.DONE }
+    /** Every guest has been and gone. */
+    val guestsGone: Boolean get() = parties.all { it.stage == Stage.DONE }
+
+    /** No dirty tables left, and no dirty plates in anyone's hands or in the sink. */
+    val tidy: Boolean get() = dirtyTables.isEmpty() && waiters.none { it.dirtyDishes.isNotEmpty() || it.errand == Errand.Wash }
+
+    /**
+     * The night is over once the last guest has left and the place is cleared up. If nobody clears
+     * up, it closes anyway [TIDY_UP_LIMIT] seconds after the last guest goes, so it can't hang.
+     */
+    val finished: Boolean get() = guestsGone && (tidy || time - (parties.maxOfOrNull { it.stageSince } ?: 0f) > TIDY_UP_LIMIT)
 
     /** Plates waiting on the counter, oldest first, as many as fit. */
     val platesOnCounter: List<Party> get() = parties.filter { it.stage == Stage.READY_AT_PASS }.sortedBy { it.stageSince }.take(ServiceFloor.PLATES_ON_COUNTER)
@@ -723,6 +733,9 @@ data class ServiceNight(
         private const val EXPECTED_SERVICE = 10f
         private const val MINUTES_PER_SECOND = 1.2f
         private const val HARD_STOP = 260f
+
+        /** How long after the last guest leaves the night waits for the clearing up before closing anyway. */
+        private const val TIDY_UP_LIMIT = 45f
 
         /**
          * Opens the doors: sorts tonight's guests into parties with arrival
