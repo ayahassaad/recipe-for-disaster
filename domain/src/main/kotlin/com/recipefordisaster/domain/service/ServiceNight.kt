@@ -673,12 +673,7 @@ data class ServiceNight(
                 Waiter(employee.id.value, isPlayer = false, tables = allTables, speed = STAFF_SPEED * 1.15f * pace, restSpot = rest,
                     route = listOf(rest), routeStart = 0f, routeEnd = 0f, errand = null, kind = Kind.BUSSER)
             }
-            // Kitchen pace: one dish at a time per cook, quicker with better cooks and a better oven, slower with broken kit.
-            val cooks = state.employees.filter { it.status == EmployeeStatus.ACTIVE && it.role == Role.COOK }
-            val slots = cooks.size.coerceAtLeast(1)
-            val skill = if (cooks.isEmpty()) 0.35f else (cooks.map { EmployeePerformance.effectiveServiceSpeed(it) }.average() / 45.0).toFloat().coerceIn(0.5f, 1.6f)
-            val broken = state.equipment.count { EquipmentOperations.isBroken(it) }
-            val secondsPerDish = 3.2f / skill * (if (broken > 0) 1.8f else 1f) / EquipmentCatalog.cookingSpeed(state.equipment)
+            val (slots, secondsPerDish) = kitchenPace(state)
 
             val active = state.employees.count { it.status == EmployeeStatus.ACTIVE }
             return ServiceNight(
@@ -705,6 +700,34 @@ data class ServiceNight(
             }
             return list
         }
+
+        /**
+         * Kitchen pace: how many dishes can cook at once (one per cook) and
+         * how long each takes — quicker with better cooks and a better oven,
+         * slower with broken kit.
+         */
+        fun kitchenPace(state: com.recipefordisaster.domain.simulation.GameState): Pair<Int, Float> {
+            val cooks = state.employees.filter { it.status == EmployeeStatus.ACTIVE && it.role == Role.COOK }
+            val slots = cooks.size.coerceAtLeast(1)
+            val skill = if (cooks.isEmpty()) 0.35f else (cooks.map { EmployeePerformance.effectiveServiceSpeed(it) }.average() / 45.0).toFloat().coerceIn(0.5f, 1.6f)
+            val broken = state.equipment.count { EquipmentOperations.isBroken(it) }
+            return slots to 3.2f / skill * (if (broken > 0) 1.8f else 1f) / EquipmentCatalog.cookingSpeed(state.equipment)
+        }
+
+        /**
+         * Roughly how many meals the kitchen can get out during a night of
+         * [expectedGuests]: cooks work while guests keep arriving, plus a
+         * little after the last one comes in.
+         */
+        fun mealsPerNight(state: com.recipefordisaster.domain.simulation.GameState, expectedGuests: Int): Int {
+            val (slots, secondsPerDish) = kitchenPace(state)
+            val parties = expectedGuests / AVERAGE_PARTY
+            val window = parties * (ARRIVAL_GAP + ARRIVAL_JITTER / 2) + 30f
+            // A party's plates cook together, so the fixed start-up time is shared between them.
+            return (slots * window / (secondsPerDish + COOK_BASE / AVERAGE_PARTY)).toInt()
+        }
+
+        private const val AVERAGE_PARTY = 1.67f
 
         /** What a guest would order, best first: dishes they can eat and afford, ranked by popularity and value with a roll of the dice. */
         private fun rankDishes(customer: Customer, menu: List<Dish>, rng: RandomSource): List<DishId> {

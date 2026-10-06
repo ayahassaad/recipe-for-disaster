@@ -107,8 +107,13 @@ class MorningAdvisorTest {
 
     @Test
     fun `the hiring sign asks for a cook when the kitchen can't keep up, and nothing when all is well`() {
-        val busy = start.copy(restaurant = start.restaurant.copy(reputation = 100))
+        // A full house with the only oven broken: one cook can't keep up.
+        val busy = start.copy(restaurant = start.restaurant.copy(reputation = 100), equipment = start.equipment.map { it.copy(condition = 0) })
         assertEquals(MorningAdvisor.Need.COOK, MorningAdvisor.staffNeed(busy))
+
+        // A full house with a working kitchen is fine: one cook keeps up during a played night.
+        val full = start.copy(restaurant = start.restaurant.copy(reputation = 100))
+        assertTrue(MorningAdvisor.staffNeed(full) != MorningAdvisor.Need.COOK)
 
         val quiet = start.copy(restaurant = start.restaurant.copy(reputation = 30))
         assertEquals(null, MorningAdvisor.staffNeed(quiet))

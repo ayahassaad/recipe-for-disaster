@@ -51,7 +51,8 @@ object OutlookCalculator {
 
         return Outlook(
             expectedCustomers = expected,
-            kitchenCapacity = KitchenModel.mealCapacity(state.employees, state.equipment),
+            // The night is played live, so what counts is how fast the kitchen cooks while guests keep coming.
+            kitchenCapacity = com.recipefordisaster.domain.service.ServiceNight.mealsPerNight(state, expected),
             demandModifierPercent = state.pendingDemandModifierPercent,
             lowStock = lowStock,
             unmakeableDishes = unmakeable,
