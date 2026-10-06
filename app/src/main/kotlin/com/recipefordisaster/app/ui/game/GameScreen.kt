@@ -174,15 +174,16 @@ private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, modi
         val noFood = remember(morning) {
             morning.menu.filter { it.available }.none { com.recipefordisaster.domain.inventory.InventoryOperations.canFulfill(morning.inventory, it.recipe) }
         }
+        // Someone worn out gets named, so the player knows exactly who needs a day off.
+        val tired = advice.filterIsInstance<Advice.StaffExhausted>().maxByOrNull { it.employee.stress }?.employee
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
             Text(
-                text = stringResource(
-                    when {
-                        noFood -> R.string.hint_no_food
-                        model.alerts.isEmpty() -> R.string.hint_ready
-                        else -> R.string.hint_alerts
-                    },
-                ),
+                text = when {
+                    noFood -> stringResource(R.string.hint_no_food)
+                    tired != null -> stringResource(R.string.hint_tired, tired.name)
+                    model.alerts.isEmpty() -> stringResource(R.string.hint_ready)
+                    else -> stringResource(R.string.hint_alerts)
+                },
                 color = if (noFood) DisasterRed else Color.Unspecified,
                 fontWeight = if (noFood) FontWeight.SemiBold else null,
                 style = MaterialTheme.typography.bodyLarge,

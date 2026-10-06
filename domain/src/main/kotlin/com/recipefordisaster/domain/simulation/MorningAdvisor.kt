@@ -118,6 +118,9 @@ object MorningAdvisor {
     /** What the restaurant is short of, if anything — so the hiring sign can say what kind of help is wanted. */
     enum class Need { COOK, SERVER, DISHWASHER }
 
+    /** Stress at which a worker is flagged as needing a day off. */
+    const val TIRED_STRESS = 60
+
     fun staffNeed(state: GameState): Need? {
         val working = state.employees.filter { it.status == EmployeeStatus.ACTIVE }
         val outlook = OutlookCalculator.forTonight(state)
@@ -186,7 +189,8 @@ object MorningAdvisor {
 
         if (state.restaurant.cleanliness < 55) advice += Advice.Dirty(state.restaurant.cleanliness, DecisionApplier.DEEP_CLEAN_COST)
 
-        state.employees.filter { it.status == EmployeeStatus.ACTIVE && it.stress >= 70 }.forEach { advice += Advice.StaffExhausted(it) }
+        // Flag tiredness early, while a day off still fixes it, not once they're about to collapse.
+        state.employees.filter { it.status == EmployeeStatus.ACTIVE && it.stress >= TIRED_STRESS }.forEach { advice += Advice.StaffExhausted(it) }
 
         val forecast = forecast(state)
         if (forecast.expectedProfit < 0) advice += Advice.LosingMoney(forecast)
