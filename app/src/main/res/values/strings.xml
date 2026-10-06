@@ -19,11 +19,11 @@
     <!-- How to play -->
     <string name="intro_title">How to play</string>
     <string name="intro_step1_title">Morning</string>
-    <string name="intro_step1">Look around your restaurant. Anything with a red ! needs you: tap it to sort it out.</string>
+    <string name="intro_step1">Anything with a red ! needs you. Tap it to sort it out.</string>
     <string name="intro_step2_title">Service</string>
-    <string name="intro_step2">Open the doors and serve. Tap a table with a ? to take its order, tap the counter to give it to the chef, then tap the counter again when the food is ready and take it to the table. When guests leave, clear their plates and wash them at the dish station, and mop up any spills with the mop from the bucket. If you\'re busy, your servers will run waiting food out for you.</string>
+    <string name="intro_step2">Open the doors and serve. Tap where the green ring points: it shows you each step as it comes up.</string>
     <string name="intro_step3_title">The bill</string>
-    <string name="intro_step3">See how much you made, then on to the next day.</string>
+    <string name="intro_step3">See how you did, then on to the next day.</string>
     <string name="intro_goal">Keep your money above zero and your guests happy. How many days can you last?</string>
     <string name="intro_start">Let\'s cook</string>
 

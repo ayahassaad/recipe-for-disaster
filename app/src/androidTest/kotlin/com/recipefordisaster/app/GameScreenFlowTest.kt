@@ -3,6 +3,7 @@ package com.recipefordisaster.app
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.room.Room
@@ -67,26 +68,37 @@ class GameScreenFlowTest {
         }
 
         composeTestRule.runOnIdle { viewModel.startNewGame() }
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("How to play").assertExists()
-        composeTestRule.onNodeWithText("Let's cook").performClick()
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Day 1").assertExists()
-
-        // The scene animates continuously, so the test drives the clock by hand rather than waiting for idle.
+        // The new game is saved to the database first, which happens off the UI thread.
+        composeTestRule.waitUntil(timeoutMillis = 10_000) {
+            composeTestRule.onAllNodesWithText("How to play", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+        }
+        // The restaurant animates continuously and so never goes idle: from here on the test drives the clock
+        // by hand. Saving goes through the database on another thread, so wait for what should appear.
         composeTestRule.mainClock.autoAdvance = false
-        composeTestRule.onNodeWithText("Open the doors").performClick()
+        fun advanceUntilShown(text: String, substring: Boolean = false) {
+            repeat(600) {
+                if (composeTestRule.onAllNodesWithText(text, substring = substring, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()) return
+                composeTestRule.mainClock.advanceTimeBy(500)
+                Thread.sleep(5)
+            }
+            throw AssertionError("never showed: $text")
+        }
+        composeTestRule.onNodeWithText("Let's cook").performClick()
+        advanceUntilShown("Day 1")
+
         // Nobody serves, so the night runs until every guest has given up and left.
+        composeTestRule.onNodeWithText("Open the doors").performClick()
         composeTestRule.mainClock.advanceTimeBy(250_000)
+        advanceUntilShown("Next day")
         composeTestRule.onNodeWithText("guests fed", substring = true).assertExists()
         composeTestRule.onNodeWithText("Next day").performClick()
-        composeTestRule.mainClock.advanceTimeBy(1_000)
-        composeTestRule.onNodeWithText("Day 2").assertExists()
+        advanceUntilShown("Day 2")
 
         composeTestRule.onNodeWithText("Open the doors").performClick()
         composeTestRule.mainClock.advanceTimeBy(250_000)
+        advanceUntilShown("Next day")
         composeTestRule.onNodeWithText("Next day").performClick()
-        composeTestRule.mainClock.advanceTimeBy(1_000)
+        advanceUntilShown("Day 3")
         composeTestRule.onNodeWithText("Day 3").assertExists()
     }
 
