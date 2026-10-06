@@ -174,6 +174,16 @@
     <string name="confirm_let_go_body">They leave for good, and it costs %1$s.</string>
     <string name="confirm_only_cook">They\'re your only cook: without them nobody cooks tonight, and every order takes ages.</string>
     <string name="cancel">Cancel</string>
+    <string name="menu_plate_cost">Ingredients %1$s a plate, so you keep %2$s</string>
+    <string name="menu_not_for">Not for: %1$s</string>
+    <string name="menu_nothing_for">Nothing on tonight\'s menu for guests who are %1$s. They\'ll walk out.</string>
+    <string name="menu_suits">Good for %1$s guests</string>
+    <string name="diet_gluten_free">gluten-free</string>
+    <string name="diet_no_dairy">dairy-free</string>
+    <string name="diet_nut_allergy">allergic to nuts</string>
+    <string name="diet_shellfish_allergy">allergic to shellfish</string>
+    <string name="diet_vegetarian">vegetarian</string>
+    <string name="diet_vegan">vegan</string>
     <string name="staff_mood">Mood</string>
     <string name="staff_energy">Energy</string>
     <string name="staff_skill">Skill</string>

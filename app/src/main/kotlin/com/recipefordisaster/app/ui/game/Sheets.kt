@@ -43,6 +43,7 @@ import com.recipefordisaster.domain.equipment.EquipmentOperations
 import com.recipefordisaster.domain.inventory.Ingredient
 import com.recipefordisaster.domain.menu.Dish
 import com.recipefordisaster.domain.menu.RecipeBook
+import com.recipefordisaster.domain.menu.violates
 import com.recipefordisaster.domain.simulation.MorningAdvisor
 
 private const val BUY_STEP = 5.0
@@ -197,8 +198,25 @@ private fun MenuSheet(uiState: GameUiState.Playing, actions: GameActions) {
     val morning = uiState.morning
     val existingIds = uiState.state.menu.map { it.id }.toSet()
     SectionTitle(stringResource(R.string.menu_title))
+    // Diets nothing on tonight's menu suits: guests with them read the menu at the door and leave.
+    val serving = morning.menu.filter { it.available }
+    val leftOut = DIETS_SHOWN.filter { diet -> serving.isNotEmpty() && serving.all { it.violates(diet) } }
+    if (leftOut.isNotEmpty()) {
+        Text(
+            stringResource(R.string.menu_nothing_for, leftOut.map { dietLabel(it) }.joinToString(", ")),
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = DisasterRed,
+        )
+    }
     morning.menu.filter { it.id in existingIds }.forEach { dish ->
-        DishRow(dish, onDown = { actions.onAdjustPrice(dish.id, -1) }, onUp = { actions.onAdjustPrice(dish.id, 1) }, onServing = { actions.onSetDishAvailable(dish.id, it) })
+        DishRow(
+            dish,
+            plateCost = com.recipefordisaster.domain.simulation.OutlookCalculator.plateCost(dish, morning.inventory),
+            onDown = { actions.onAdjustPrice(dish.id, -1) },
+            onUp = { actions.onAdjustPrice(dish.id, 1) },
+            onServing = { actions.onSetDishAvailable(dish.id, it) },
+        )
     }
     val newDishes = RecipeBook.dishes.filter { it.id !in existingIds }
     if (newDishes.isNotEmpty()) {
@@ -206,10 +224,14 @@ private fun MenuSheet(uiState: GameUiState.Playing, actions: GameActions) {
         newDishes.forEach { dish ->
             val adding = dish.id in uiState.plan.dishesToAdd
             val needs = dish.recipe.ingredientRequirements.keys.joinToString { id -> morning.inventory.ingredients[id]?.name?.lowercase() ?: id.value }
+            val suits = DIETS_SHOWN.filter { diet -> leftOut.contains(diet) && !dish.violates(diet) }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(dish.name, style = MaterialTheme.typography.titleMedium)
                     Text(coins(dish.sellingPrice) + " · " + stringResource(R.string.new_dish_needs, needs), style = MaterialTheme.typography.bodyMedium)
+                    if (suits.isNotEmpty()) {
+                        Text(stringResource(R.string.menu_suits, suits.map { dietLabel(it) }.joinToString(", ")), style = MaterialTheme.typography.bodyMedium, color = LeafGreen)
+                    }
                 }
                 if (adding) {
                     OutlinedButton(onClick = { actions.onToggleAddDish(dish.id) }) { Text(stringResource(R.string.undo)) }
@@ -224,7 +246,7 @@ private fun MenuSheet(uiState: GameUiState.Playing, actions: GameActions) {
 }
 
 @Composable
-private fun DishRow(dish: Dish, onDown: () -> Unit, onUp: () -> Unit, onServing: (Boolean) -> Unit) {
+private fun DishRow(dish: Dish, plateCost: Double, onDown: () -> Unit, onUp: () -> Unit, onServing: (Boolean) -> Unit) {
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(dish.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
@@ -248,8 +270,35 @@ private fun DishRow(dish: Dish, onDown: () -> Unit, onUp: () -> Unit, onServing:
             OutlinedButton(onClick = onUp, modifier = Modifier.semantics { contentDescription = upLabel }) { Text("+") }
         }
         Text(stringResource(R.string.menu_fair, coins(dish.referencePrice)), style = MaterialTheme.typography.bodySmall)
+        // What each plate costs in ingredients, and who can't eat it.
+        val cost = kotlin.math.ceil(plateCost).toLong()
+        Text(stringResource(R.string.menu_plate_cost, coins(cost), coins(dish.sellingPrice - cost)), style = MaterialTheme.typography.bodySmall)
+        val cantEat = DIETS_SHOWN.filter { dish.violates(it) }
+        if (cantEat.isNotEmpty()) {
+            Text(stringResource(R.string.menu_not_for, cantEat.map { dietLabel(it) }.joinToString(", ")), style = MaterialTheme.typography.bodySmall)
+        }
     }
 }
+
+/** The diets the game can actually check a dish against (vegetarian and vegan aren't modelled yet). */
+private val DIETS_SHOWN = listOf(
+    com.recipefordisaster.domain.customer.DietaryRequirement.GLUTEN_FREE,
+    com.recipefordisaster.domain.customer.DietaryRequirement.LACTOSE_INTOLERANT,
+    com.recipefordisaster.domain.customer.DietaryRequirement.NUT_ALLERGY,
+    com.recipefordisaster.domain.customer.DietaryRequirement.SHELLFISH_ALLERGY,
+)
+
+@Composable
+private fun dietLabel(diet: com.recipefordisaster.domain.customer.DietaryRequirement): String = stringResource(
+    when (diet) {
+        com.recipefordisaster.domain.customer.DietaryRequirement.GLUTEN_FREE -> R.string.diet_gluten_free
+        com.recipefordisaster.domain.customer.DietaryRequirement.LACTOSE_INTOLERANT -> R.string.diet_no_dairy
+        com.recipefordisaster.domain.customer.DietaryRequirement.NUT_ALLERGY -> R.string.diet_nut_allergy
+        com.recipefordisaster.domain.customer.DietaryRequirement.SHELLFISH_ALLERGY -> R.string.diet_shellfish_allergy
+        com.recipefordisaster.domain.customer.DietaryRequirement.VEGETARIAN -> R.string.diet_vegetarian
+        com.recipefordisaster.domain.customer.DietaryRequirement.VEGAN -> R.string.diet_vegan
+    },
+)
 
 @Composable
 private fun HiringSheet(uiState: GameUiState.Playing, actions: GameActions) {
