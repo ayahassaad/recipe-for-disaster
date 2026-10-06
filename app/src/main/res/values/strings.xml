@@ -226,4 +226,11 @@
     <string name="final_profit">Total profit</string>
     <string name="final_best">Best seller</string>
     <string name="game_back_to_start">Back to start</string>
+    <string name="menu_button">Menu</string>
+    <string name="leave_title">Leave the restaurant?</string>
+    <string name="leave_body">Your game is saved. Tap Continue on the start screen to carry on.</string>
+    <string name="leave_body_night">Tonight is saved right where you are. Tap Continue on the start screen to carry on.</string>
+    <string name="leave_body_morning">Your game is saved, but this morning\'s changes (buying, hiring and so on) won\'t be kept.</string>
+    <string name="leave_confirm">Leave</string>
+    <string name="leave_stay">Stay</string>
 </resources>

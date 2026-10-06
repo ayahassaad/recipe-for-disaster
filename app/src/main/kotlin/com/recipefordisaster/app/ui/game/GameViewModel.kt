@@ -171,7 +171,10 @@ class GameViewModel(
     fun saveNightProgress(night: ServiceNight) {
         val session = (_uiState.value as? GameUiState.Playing)?.night ?: return
         if (night.finished) return
-        viewModelScope.launch { gameRepository.saveNight(NightInProgress(session.setup, night, session.morningSpending, session.dailySeed)) }
+        // Not cancellable: this also runs as the player leaves the game, when the screen is being torn down.
+        viewModelScope.launch(kotlinx.coroutines.NonCancellable) {
+            gameRepository.saveNight(NightInProgress(session.setup, night, session.morningSpending, session.dailySeed))
+        }
     }
 
     /** The last guest has gone: close the books on the night the player played, save, and show the results. */

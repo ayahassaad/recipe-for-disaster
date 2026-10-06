@@ -130,7 +130,6 @@ internal fun FinalBillScreen(state: GameState, onBackToStart: () -> Unit, modifi
 @Composable
 internal fun IntroScreen(onStart: () -> Unit, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding().navigationBarsPadding()) {
-        Awning()
         Column(
             modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,

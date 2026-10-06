@@ -70,6 +70,8 @@ import com.recipefordisaster.domain.simulation.Advice
 import com.recipefordisaster.domain.simulation.DailyCosts
 import com.recipefordisaster.domain.simulation.GameState
 import com.recipefordisaster.domain.simulation.MorningAdvisor
+import androidx.compose.material3.AlertDialog
+import com.recipefordisaster.domain.simulation.PlayerDecisions
 
 /**
  * Everything the player can do on the game screen, bundled so the screen
@@ -147,18 +149,43 @@ fun GameScreen(
         is GameUiState.Playing -> {
             val status = uiState.state.restaurant.status
             val gameOver = status == RestaurantStatus.BANKRUPT || status == RestaurantStatus.CONDEMNED
+            // Leaving goes back to the start screen. The game is saved (a night in progress too),
+            // so Continue picks up from here; only this morning's unfinished choices are dropped.
+            var askLeave by remember { mutableStateOf(false) }
+            val onMenu = { askLeave = true }
+            androidx.activity.compose.BackHandler(enabled = !gameOver) { askLeave = !askLeave }
+            if (askLeave) {
+                AlertDialog(
+                    onDismissRequest = { askLeave = false },
+                    title = { Text(stringResource(R.string.leave_title)) },
+                    text = {
+                        Text(
+                            stringResource(
+                                when {
+                                    uiState.night != null -> R.string.leave_body_night
+                                    uiState.report == null && uiState.plan != PlayerDecisions() -> R.string.leave_body_morning
+                                    else -> R.string.leave_body
+                                },
+                            ),
+                        )
+                    },
+                    confirmButton = { TextButton(onClick = { askLeave = false; onBackToStart() }) { Text(stringResource(R.string.leave_confirm)) } },
+                    dismissButton = { TextButton(onClick = { askLeave = false }) { Text(stringResource(R.string.leave_stay)) } },
+                )
+            }
             when {
                 uiState.showIntro -> IntroScreen(onStart = actions.onDismissIntro, modifier = modifier)
-                uiState.night != null -> NightPlay(session = uiState.night, onFinished = actions.onFinishService, onProgress = actions.onNightProgress, modifier = modifier)
+                uiState.night != null -> NightPlay(session = uiState.night, onFinished = actions.onFinishService, onProgress = actions.onNightProgress, onMenu = onMenu, modifier = modifier)
                 uiState.report != null -> ResultsPlay(
                     report = uiState.report,
                     gameOver = gameOver,
                     newTable = uiState.state.restaurant.tables > uiState.report.startOfService.restaurant.tables,
                     onContinue = actions.onNextMorning,
+                    onMenu = onMenu,
                     modifier = modifier,
                 )
                 gameOver -> FinalBillScreen(state = uiState.state, onBackToStart = onBackToStart, modifier = modifier)
-                else -> MorningPlay(uiState = uiState, actions = actions, modifier = modifier)
+                else -> MorningPlay(uiState = uiState, actions = actions, onMenu = onMenu, modifier = modifier)
             }
         }
     }
@@ -168,7 +195,7 @@ fun GameScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, modifier: Modifier = Modifier) {
+private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, onMenu: () -> Unit, modifier: Modifier = Modifier) {
     val morning = uiState.morning
     val advice = remember(morning) { MorningAdvisor.adviceFor(morning) }
     val model = remember(morning, advice) { sceneModelFor(morning, advice, hiringOpen = uiState.state.applicants.any { it.id !in uiState.plan.hires }) }
@@ -176,7 +203,7 @@ private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, modi
     var open by remember { mutableStateOf<SceneTarget?>(null) }
 
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding().navigationBarsPadding()) {
-        Hud(day = uiState.state.day, cash = uiState.cashNow, reputation = morning.restaurant.reputation, subtitle = stringResource(R.string.daily_costs, coins(costs.total)))
+        Hud(day = uiState.state.day, cash = uiState.cashNow, reputation = morning.restaurant.reputation, subtitle = stringResource(R.string.daily_costs, coins(costs.total)), onMenu = onMenu)
         val need = remember(morning) { MorningAdvisor.staffNeed(morning) }
         RestaurantScene(model = model, labels = sceneLabels(need), onTap = { open = it }, modifier = Modifier.weight(1f))
         // Opening with nothing the kitchen can cook means every guest walks straight back out.
@@ -220,10 +247,11 @@ private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, modi
 
 /** Day, money and stars along the top, under the awning. */
 @Composable
-private fun Hud(day: Int, cash: Long, reputation: Int, subtitle: String) {
+private fun Hud(day: Int, cash: Long, reputation: Int, subtitle: String, onMenu: () -> Unit) {
     Column {
-        Awning(height = 20.dp, stripes = 16)
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 16.dp, top = 2.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            // Back to the start screen (asks first).
+            TextButton(onClick = onMenu) { Text(stringResource(R.string.menu_button), style = MaterialTheme.typography.titleMedium) }
             Column(modifier = Modifier.weight(1f)) {
                 Text(stringResource(R.string.day, day), style = MaterialTheme.typography.headlineMedium)
                 StarRating(reputation)
@@ -309,7 +337,7 @@ private fun sceneLabels(need: MorningAdvisor.Need? = null): SceneLabels {
  * close the day.
  */
 @Composable
-private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit, onProgress: (ServiceNight) -> Unit, modifier: Modifier = Modifier) {
+private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit, onProgress: (ServiceNight) -> Unit, onMenu: () -> Unit, modifier: Modifier = Modifier) {
     var night by remember(session) { mutableStateOf(session.opening) }
     var clock by remember { mutableFloatStateOf(0f) }
     val model = remember(session) { sceneModelFor(session.setup.morning.state, emptyList(), hiringOpen = false) }
@@ -330,7 +358,11 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
             if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP) currentOnProgress(night)
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            // Leaving the screen (back to the start) saves exactly where the night was.
+            currentOnProgress(night)
+        }
     }
 
     LaunchedEffect(session) {
@@ -362,6 +394,7 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
             cash = session.setup.original.restaurant.cash - session.morningSpending.total + night.takings,
             reputation = session.setup.morning.state.restaurant.reputation,
             subtitle = stringResource(R.string.tonight_takings, signedCoins(night.takings)),
+            onMenu = onMenu,
         )
         Box(modifier = Modifier.weight(1f)) {
             NightScene(
@@ -462,7 +495,7 @@ private fun nightLabels(): NightLabels {
 /** After the night: the restaurant quiet again, the receipt over it, and on to the next day. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ResultsPlay(report: DayReport, gameOver: Boolean, newTable: Boolean, onContinue: () -> Unit, modifier: Modifier = Modifier) {
+private fun ResultsPlay(report: DayReport, gameOver: Boolean, newTable: Boolean, onContinue: () -> Unit, onMenu: () -> Unit, modifier: Modifier = Modifier) {
     var showBill by remember { mutableStateOf(false) }
     val event = report.event
     val baseModel = remember(report) { sceneModelFor(report.startOfService, emptyList(), hiringOpen = false) }
@@ -477,7 +510,7 @@ private fun ResultsPlay(report: DayReport, gameOver: Boolean, newTable: Boolean,
     }
 
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding().navigationBarsPadding()) {
-        Hud(day = report.summary.day, cash = report.summary.cashAfter, reputation = report.summary.reputationAfter, subtitle = "")
+        Hud(day = report.summary.day, cash = report.summary.cashAfter, reputation = report.summary.reputationAfter, subtitle = "", onMenu = onMenu)
         Box(modifier = Modifier.weight(1f)) {
             RestaurantScene(model = model, labels = sceneLabels(), onTap = {})
             EndOfNightPanel(
