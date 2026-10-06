@@ -77,7 +77,7 @@ class MorningAdvisorTest {
 
         assertEquals(start.day, summary.day)
         assertTrue(summary.customersFed <= summary.customersArrived)
-        assertEquals(summary.customersArrived, summary.customersFed + summary.unfedKitchenFull + summary.unfedOutOfStock + summary.walkedOut)
+        assertEquals(summary.customersArrived, summary.customersFed + summary.unfedKitchenFull + summary.unfedOutOfStock + summary.walkedOut + summary.gaveUpWaiting)
         assertEquals(result.newState.restaurant.cash, summary.cashAfter)
         assertEquals(start.restaurant.cash + result.newState.ledger.history.last().profitOrLoss, summary.cashAfter)
         assertEquals(summary.customersArrived, summary.guests.size)

@@ -151,6 +151,8 @@ data class DaySummary(
     val unfedOutOfStock: Int,
     /** Found nothing on the menu they could eat or afford, and left. */
     val walkedOut: Int,
+    /** Got fed up waiting — for a table, to order, or for their food — and left. */
+    val gaveUpWaiting: Int = 0,
     val averageSatisfaction: Int,
     val reputationBefore: Int,
     /** After everything, including the overnight event. */
@@ -180,6 +182,8 @@ enum class GuestOutcome {
     HUNGRY_OUT_OF_STOCK,
     /** Looked at the menu at the door and left. */
     WALKED_OUT,
+    /** Waited too long and gave up. */
+    GAVE_UP_WAITING,
 }
 
 data class FiredEvent(

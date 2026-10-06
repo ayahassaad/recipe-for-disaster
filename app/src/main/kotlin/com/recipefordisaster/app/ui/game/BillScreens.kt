@@ -60,6 +60,7 @@ internal fun BillReceipt(report: DayReport, modifier: Modifier = Modifier) {
         if (summary.unfedKitchenFull > 0) ReceiptNote(stringResource(R.string.bill_hungry_kitchen, summary.unfedKitchenFull))
         if (summary.unfedOutOfStock > 0) ReceiptNote(stringResource(R.string.bill_hungry_stock, summary.unfedOutOfStock))
         if (summary.walkedOut > 0) ReceiptNote(stringResource(R.string.bill_walked_out, summary.walkedOut))
+        if (summary.gaveUpWaiting > 0) ReceiptNote(stringResource(R.string.bill_gave_up, summary.gaveUpWaiting))
         val change = summary.reputationAfter - summary.reputationBefore
         ReceiptLine(stringResource(R.string.bill_reputation), (if (change > 0) "+" else "") + change)
         Dashes()

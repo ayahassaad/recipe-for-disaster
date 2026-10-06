@@ -185,9 +185,10 @@ class DefaultDayTickEngine(
             day = state.day,
             customersArrived = arrivals.size,
             customersFed = customersFed,
-            unfedKitchenFull = serviceResult.missedCount(MissedMealReason.KITCHEN_OVERWHELMED) + serviceResult.missedCount(MissedMealReason.TIRED_OF_WAITING),
+            unfedKitchenFull = serviceResult.missedCount(MissedMealReason.KITCHEN_OVERWHELMED),
             unfedOutOfStock = serviceResult.missedCount(MissedMealReason.OUT_OF_STOCK),
             walkedOut = serviceResult.missedCount(MissedMealReason.NOTHING_SUITABLE),
+            gaveUpWaiting = serviceResult.missedCount(MissedMealReason.TIRED_OF_WAITING),
             averageSatisfaction = averageSatisfaction,
             reputationBefore = state.restaurant.reputation,
             reputationAfter = end.restaurant.reputation,
@@ -197,7 +198,8 @@ class DefaultDayTickEngine(
                 GuestVisit(
                     outcome = when (outcome.missedReason) {
                         null -> GuestOutcome.FED
-                        MissedMealReason.KITCHEN_OVERWHELMED, MissedMealReason.TIRED_OF_WAITING -> GuestOutcome.HUNGRY_KITCHEN_FULL
+                        MissedMealReason.KITCHEN_OVERWHELMED -> GuestOutcome.HUNGRY_KITCHEN_FULL
+                        MissedMealReason.TIRED_OF_WAITING -> GuestOutcome.GAVE_UP_WAITING
                         MissedMealReason.OUT_OF_STOCK -> GuestOutcome.HUNGRY_OUT_OF_STOCK
                         MissedMealReason.NOTHING_SUITABLE -> GuestOutcome.WALKED_OUT
                     },

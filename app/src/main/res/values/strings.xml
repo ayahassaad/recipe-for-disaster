@@ -88,6 +88,7 @@
     <string name="bill_hungry_kitchen">%1$d went hungry (too few cooks)</string>
     <string name="bill_hungry_stock">%1$d went hungry (out of food)</string>
     <string name="bill_walked_out">%1$d walked out (nothing for them)</string>
+    <string name="bill_gave_up">%1$d gave up waiting</string>
     <string name="bill_reputation">Reputation</string>
     <string name="bill_details_show">Show the full bill</string>
     <string name="bill_earned">Meals sold</string>

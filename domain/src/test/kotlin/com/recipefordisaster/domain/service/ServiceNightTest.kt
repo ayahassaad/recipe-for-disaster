@@ -334,4 +334,13 @@ class ServiceNightTest {
         assertTrue(fedOrTired.isNotEmpty())
         assertTrue(fedOrTired.none { (guest, _) -> n.results.getValue(guest).missedReason == MissedMealReason.OUT_OF_STOCK })
     }
+
+    @Test
+    fun `guests who give up waiting are reported as giving up, not as a kitchen with too few cooks`() {
+        val setup = engine.openService(start, PlayerDecisions(), SeededRandomSource(1L))
+        val night = play(ServiceNight.open(setup, SeededRandomSource(2L)))
+        val summary = engine.closeService(setup, night.result(), SeededRandomSource(3L)).summary!!
+        assertTrue(summary.gaveUpWaiting > 0)
+        assertEquals(0, summary.unfedKitchenFull)
+    }
 }
