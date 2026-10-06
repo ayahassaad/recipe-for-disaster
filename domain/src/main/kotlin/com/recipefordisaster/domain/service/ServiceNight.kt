@@ -676,12 +676,14 @@ data class ServiceNight(
                 )
             }
 
-            // Spills: about one for every four parties, more in a grubby restaurant. Each happens a little
-            // after some party arrives, at one of the open spots between tables.
-            val spillCount = if (parties.isEmpty()) 0 else (parties.size / 4 + (if (state.restaurant.cleanliness < 50) 1 else 0)).coerceAtMost(ServiceFloor.spillSpots.size)
+            // Spills: about one for every six parties, one more in a grubby restaurant. None while the
+            // first guests are settling in: each happens a little after one of the later parties arrives,
+            // at one of the open spots between tables.
+            val later = parties.drop(parties.size / 4)
+            val spillCount = if (later.isEmpty()) 0 else (parties.size / 6 + (if (state.restaurant.cleanliness < 50) 1 else 0)).coerceAtMost(ServiceFloor.spillSpots.size)
             val spots = ServiceFloor.spillSpots.shuffledWith(rng)
             val messes = (0 until spillCount).map { k ->
-                val after = parties[rng.nextInt(parties.size)].arriveAt
+                val after = later[rng.nextInt(later.size)].arriveAt
                 Mess(id = k, at = spots[k], appearsAt = after + 12f + rng.nextFloat() * 10f)
             }
 

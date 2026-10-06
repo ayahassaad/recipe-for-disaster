@@ -389,4 +389,14 @@ class ServiceNightTest {
         }
         assertTrue(seen)
     }
+
+    @Test
+    fun `spills are few, and never while the first guests are arriving`() {
+        (1L..20L).forEach { seed ->
+            val n = open(noWashers, seed)
+            assertTrue(n.messes.size <= n.parties.size / 6 + 1)
+            val firstQuarter = n.parties[(n.parties.size / 4).coerceAtMost(n.parties.lastIndex)].arriveAt
+            assertTrue(n.messes.all { it.appearsAt > firstQuarter })
+        }
+    }
 }
