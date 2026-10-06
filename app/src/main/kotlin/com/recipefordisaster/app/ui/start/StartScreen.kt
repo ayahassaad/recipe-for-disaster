@@ -1,6 +1,13 @@
 package com.recipefordisaster.app.ui.start
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -63,6 +70,21 @@ fun StartScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            // The logo: the chef's head, the same picture as the app icon.
+            Box(
+                modifier = Modifier
+                    .size(132.dp)
+                    .clip(CircleShape)
+                    .background(colorResource(R.color.ic_launcher_background)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.ic_launcher_foreground),
+                    contentDescription = stringResource(R.string.app_name),
+                    modifier = Modifier.size(240.dp),
+                )
+            }
+            Spacer(modifier = Modifier.height(20.dp))
             Chalkboard {
                 Text(
                     text = stringResource(R.string.app_name),

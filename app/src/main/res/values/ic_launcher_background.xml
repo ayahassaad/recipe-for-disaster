@@ -1,3 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#2B1B17</color>
+    <!-- The awning red from the restaurant, behind the chef's white hat. -->
+    <color name="ic_launcher_background">#C0392B</color>
 </resources>

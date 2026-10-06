@@ -1,19 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The chef's head from the game, used as the app icon and the logo: a pleated toque, rosy cheeks and a smile. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Simple original placeholder mark: a plate with a crack through it. -->
-    <path
-        android:fillColor="#F2E9DC"
-        android:pathData="M54,30 A24,24 0 1,0 54,78 A24,24 0 1,0 54,30 Z" />
-    <path
-        android:fillColor="#2B1B17"
-        android:pathData="M54,34 A20,20 0 1,0 54,74 A20,20 0 1,0 54,34 Z" />
-    <path
-        android:fillColor="#F2E9DC"
-        android:pathData="M54,38 A16,16 0 1,0 54,70 A16,16 0 1,0 54,38 Z" />
-    <path
-        android:fillColor="#C0392B"
-        android:pathData="M46,40 L58,54 L50,54 L62,68 L54,68 L50,58 L58,58 Z" />
+    <path android:fillColor="#33000000" android:pathData="M38.20,68.35 a17.00,17.00 0 1,0 34.00,0 a17.00,17.00 0 1,0 -34.00,0 Z" />
+    <path android:fillColor="#F7E3C4" android:pathData="M37.00,66.75 a17.00,17.00 0 1,0 34.00,0 a17.00,17.00 0 1,0 -34.00,0 Z" />
+    <path android:fillColor="#FDFDFB" android:pathData="M43.00,43.75 H65.00 Q67.00,43.75 67.00,45.75 V51.75 Q67.00,53.75 65.00,53.75 H43.00 Q41.00,53.75 41.00,51.75 V45.75 Q41.00,43.75 43.00,43.75 Z" />
+    <path android:fillColor="#FDFDFB" android:pathData="M36.50,38.75 a9.50,9.50 0 1,0 19.00,0 a9.50,9.50 0 1,0 -19.00,0 Z" />
+    <path android:fillColor="#FDFDFB" android:pathData="M52.50,38.75 a9.50,9.50 0 1,0 19.00,0 a9.50,9.50 0 1,0 -19.00,0 Z" />
+    <path android:fillColor="#FDFDFB" android:pathData="M43.50,34.75 a10.50,10.50 0 1,0 21.00,0 a10.50,10.50 0 1,0 -21.00,0 Z" />
+    <path android:strokeColor="#DADAD5" android:strokeWidth="1.2" android:strokeLineCap="round" android:pathData="M48.00,35.75 L48.00,50.75" />
+    <path android:strokeColor="#DADAD5" android:strokeWidth="1.2" android:strokeLineCap="round" android:pathData="M54.00,35.75 L54.00,50.75" />
+    <path android:strokeColor="#DADAD5" android:strokeWidth="1.2" android:strokeLineCap="round" android:pathData="M60.00,35.75 L60.00,50.75" />
+    <path android:strokeColor="#DADAD5" android:strokeWidth="1.6" android:strokeLineCap="round" android:pathData="M42.50,52.75 L65.50,52.75" />
+    <path android:fillColor="#2B2622" android:pathData="M45.25,67.75 a2.50,2.50 0 1,0 5.00,0 a2.50,2.50 0 1,0 -5.00,0 Z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M47.85,66.85 a0.80,0.80 0 1,0 1.60,0 a0.80,0.80 0 1,0 -1.60,0 Z" />
+    <path android:fillColor="#F2A7A0" android:pathData="M40.25,73.25 a3.25,3.25 0 1,0 6.50,0 a3.25,3.25 0 1,0 -6.50,0 Z" />
+    <path android:fillColor="#2B2622" android:pathData="M57.75,67.75 a2.50,2.50 0 1,0 5.00,0 a2.50,2.50 0 1,0 -5.00,0 Z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M60.35,66.85 a0.80,0.80 0 1,0 1.60,0 a0.80,0.80 0 1,0 -1.60,0 Z" />
+    <path android:fillColor="#F2A7A0" android:pathData="M61.25,73.25 a3.25,3.25 0 1,0 6.50,0 a3.25,3.25 0 1,0 -6.50,0 Z" />
+    <path android:strokeColor="#2B2622" android:strokeWidth="1.75" android:strokeLineCap="round" android:pathData="M48.00,75.75 Q54.00,86.75 60.00,75.75" />
 </vector>
