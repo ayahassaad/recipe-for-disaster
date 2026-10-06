@@ -229,6 +229,8 @@ data class ServiceNight(
      */
     private fun enqueue(errand: Errand): ServiceNight {
         val me = player
+        // An empty, clean table has nothing to do: ignore the tap rather than send the player on a wasted trip.
+        if (errand is Errand.VisitTable && partyAt(errand.table) == null && errand.table !in dirtyTables) return this
         if (me.errand == null) return send(me.id, errand)
         if (errand == me.errand || errand in me.queue || me.queue.size >= MAX_QUEUED) return this
         return copy(waiters = waiters.map { if (it.isPlayer) it.copy(queue = it.queue + errand) else it })
@@ -440,7 +442,10 @@ data class ServiceNight(
         when (val errand = waiter.errand) {
             is Errand.VisitTable -> {
                 val party = night.partyAt(errand.table)
-                if (party != null && party.id in waiter.plates) {
+                if (party != null && party.stage == Stage.WALKING_TO_TABLE && waiter.kind != Kind.DISHWASHER && waiter.kind != Kind.BUSSER) {
+                    // They're still sitting down: wait at the table and take their order as soon as they're ready.
+                    updateWaiter { it.copy(route = listOf(it.position(time)), routeStart = time, routeEnd = party.until + 0.01f, errand = errand) }
+                } else if (party != null && party.id in waiter.plates) {
                     night = night.updateParty(party.id) { it.copy(stage = Stage.EATING, stageSince = time, until = time + EAT, heldBy = null) }
                     updateWaiter { it.copy(hands = it.hands - HandItem.Plate(party.id)) }
                 } else if (party == null && errand.table in night.dirtyTables && waiter.freeHands > 0) {

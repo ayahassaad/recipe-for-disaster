@@ -161,21 +161,21 @@ class ServiceNightTest {
     @Test
     fun `a second tap queues up instead of interrupting`() {
         var n = open()
-        n = n.tapTable(0)
+        n = n.tapDishStation()
         val firstDestination = n.player.route.last()
-        n = n.tapTable(5)
+        n = n.tapPass()
         assertEquals(firstDestination, n.player.route.last())
-        assertEquals(listOf<ServiceNight.Errand>(ServiceNight.Errand.VisitTable(5)), n.player.queue)
+        assertEquals(listOf<ServiceNight.Errand>(ServiceNight.Errand.VisitPass), n.player.queue)
 
         // Once the first stop is reached, the queued one starts.
-        while (n.player.errand == ServiceNight.Errand.VisitTable(0)) n = n.advance(0.05f)
-        assertEquals(ServiceNight.Errand.VisitTable(5), n.player.errand)
+        while (n.player.errand == ServiceNight.Errand.VisitDishStation) n = n.advance(0.05f)
+        assertEquals(ServiceNight.Errand.VisitPass, n.player.errand)
         assertTrue(n.player.queue.isEmpty())
     }
 
     @Test
     fun `tapping the same stop twice doesn't queue it twice`() {
-        var n = open().tapTable(0).tapPass().tapPass().tapTable(0)
+        var n = open().tapDishStation().tapPass().tapPass().tapDishStation()
         assertEquals(listOf<ServiceNight.Errand>(ServiceNight.Errand.VisitPass), n.player.queue)
     }
 
@@ -354,5 +354,21 @@ class ServiceNightTest {
         val loaded = json.decodeFromString(NightInProgress.serializer(), json.encodeToString(NightInProgress.serializer(), saved))
         assertEquals(saved, loaded)
         assertEquals(play(n, ::busyPlayer).result(), play(loaded.night, ::busyPlayer).result())
+    }
+
+    @Test
+    fun `tapping an empty table does nothing`() {
+        val n = open()
+        assertEquals(n, n.tapTable(3))
+    }
+
+    @Test
+    fun `tapping a table while its guests are still sitting down takes their order once they're seated`() {
+        var n = open()
+        while (n.parties.none { it.stage == Stage.WALKING_TO_TABLE }) n = n.advance(0.05f)
+        val party = n.parties.first { it.stage == Stage.WALKING_TO_TABLE }
+        n = n.tapTable(party.table!!)
+        while (n.player.walking) n = n.advance(0.05f)
+        assertEquals(listOf(party.id), n.player.tickets)
     }
 }
