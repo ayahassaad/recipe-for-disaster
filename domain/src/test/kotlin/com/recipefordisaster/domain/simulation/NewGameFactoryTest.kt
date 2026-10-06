@@ -54,4 +54,19 @@ class NewGameFactoryTest {
 
         assertEquals(first, second)
     }
+
+    @Test
+    fun `a new restaurant starts with just a cook, and servers are hired later`() {
+        val state = NewGameFactory.create(seed = 7L)
+        assertEquals(listOf(com.recipefordisaster.domain.employee.Role.COOK), state.employees.map { it.role })
+    }
+
+    @Test
+    fun `the player counts as a worker, so a lone cook isn't run ragged by a modest night`() {
+        val state = NewGameFactory.create(seed = 7L).let { it.copy(restaurant = it.restaurant.copy(tables = 6)) }
+        val engine = DefaultDayTickEngine(com.recipefordisaster.domain.event.EventEngine(emptyList()))
+        val setup = engine.openService(state, PlayerDecisions(), SeededRandomSource(1L))
+        val night = com.recipefordisaster.domain.service.ServiceNight.open(setup, SeededRandomSource(2L))
+        assertEquals(setup.arrivals.size / 2.0, night.staffingRatio, 0.001)
+    }
 }

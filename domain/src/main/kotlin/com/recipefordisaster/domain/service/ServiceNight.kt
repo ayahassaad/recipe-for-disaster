@@ -802,7 +802,8 @@ data class ServiceNight(
                 secondsPerDish = secondsPerDish,
                 menu = state.menu,
                 kitchenQualityBonus = KitchenModel.qualityBonus(state.employees, state.equipment, state.restaurant.cleanliness),
-                staffingRatio = if (active == 0) (if (customers.isEmpty()) 0.0 else Double.MAX_VALUE) else customers.size.toDouble() / active,
+                // Guests per person working, counting the player, who's on the floor all night.
+                staffingRatio = customers.size.toDouble() / (active + 1),
                 arrivalOrder = customers,
                 messes = messes,
                 tableCount = tableCount,

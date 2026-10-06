@@ -61,7 +61,6 @@ object NewGameFactory {
         val cheeseId = RecipeBook.CHEESE
 
         val cookId = EmployeeId("founding_cook")
-        val serverId = EmployeeId("founding_server")
 
         val burgerDishId = DishId("the_regular_burger")
         val soupDishId = DishId("mystery_soup")
@@ -96,21 +95,6 @@ object NewGameFactory {
                     morale = 70,
                     stress = 20,
                     salaryPerDay = 60,
-                    experienceDays = 0,
-                    personalityTraits = emptySet(),
-                    relationships = emptyMap(),
-                    status = EmployeeStatus.ACTIVE,
-                ),
-                Employee(
-                    id = serverId,
-                    name = "Bartholomew",
-                    role = Role.SERVER,
-                    skill = 50,
-                    speed = 55,
-                    reliability = 60,
-                    morale = 70,
-                    stress = 20,
-                    salaryPerDay = 45,
                     experienceDays = 0,
                     personalityTraits = emptySet(),
                     relationships = emptyMap(),

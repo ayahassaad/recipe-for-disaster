@@ -60,10 +60,12 @@ class DecisionApplierTest {
 
     @Test
     fun `firing removes the employee, pays severance, and dents everyone else's morale`() {
-        val fired = start.employees.first()
-        val colleague = start.employees.last()
+        // Two people on the payroll, so there's a colleague to see it happen.
+        val team = start.copy(employees = start.employees + start.applicants.first().copy(status = com.recipefordisaster.domain.employee.EmployeeStatus.ACTIVE))
+        val fired = team.employees.first()
+        val colleague = team.employees.last()
 
-        val applied = DecisionApplier.apply(start, PlayerDecisions(fires = setOf(fired.id)))
+        val applied = DecisionApplier.apply(team, PlayerDecisions(fires = setOf(fired.id)))
 
         assertFalse(applied.state.employees.any { it.id == fired.id })
         assertEquals(StaffingMarket.severance(fired), applied.spending.staffing)

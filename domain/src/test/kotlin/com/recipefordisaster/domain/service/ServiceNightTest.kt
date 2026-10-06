@@ -16,6 +16,9 @@ import org.junit.Test
 class ServiceNightTest {
 
     private val engine = DefaultDayTickEngine(EventEngine(emptyList()))
+    /** A hired server (a new restaurant doesn't start with one). */
+    private val aServer get() = start.applicants.first().copy(role = com.recipefordisaster.domain.employee.Role.SERVER)
+
     /** A restaurant with the full six tables (a brand-new one starts with only two). */
     private val start: GameState = NewGameFactory.create(seed = 11L).let { it.copy(restaurant = it.restaurant.copy(tables = 6)) }
 
@@ -107,13 +110,13 @@ class ServiceNightTest {
 
     @Test
     fun `hired servers run plates out when the player leaves them on the pass`() {
-        val withRunner = start.copy(employees = start.employees + start.applicants.filter { it.role == com.recipefordisaster.domain.employee.Role.SERVER })
+        val withRunner = start.copy(employees = start.employees + listOf(aServer))
         // A player who takes orders and hands them in, but never collects food.
         val orderTaker: (ServiceNight) -> ServiceNight = { n ->
             val me = n.player
             when {
                 me.walking -> n
-                me.tickets.isNotEmpty() -> n.tapPass()
+                me.tickets.isNotEmpty() -> n.tapChef()
                 else -> n.parties.filter { it.stage == Stage.READY_TO_ORDER }.minByOrNull { it.stageSince }?.table?.let { n.tapTable(it) } ?: n
             }
         }
@@ -405,7 +408,7 @@ class ServiceNightTest {
     @Test
     fun `a server with no food to run clears tables that have sat dirty a while`() {
         val noHelpers = start.copy(employees = start.employees.filter { it.role == com.recipefordisaster.domain.employee.Role.COOK })
-        val withServer = start.copy(employees = start.employees.filter { it.role != com.recipefordisaster.domain.employee.Role.DISHWASHER })
+        val withServer = start.copy(employees = start.employees + listOf(aServer))
         val servesOnly: (ServiceNight) -> ServiceNight = { current ->
             val me = current.player
             when {
@@ -491,7 +494,7 @@ class ServiceNightTest {
 
     @Test
     fun `a runner leaves alone a plate the player is on their way to collect`() {
-        val withRunner = start.copy(employees = start.employees + start.applicants.filter { it.role == com.recipefordisaster.domain.employee.Role.SERVER })
+        val withRunner = start.copy(employees = start.employees + listOf(aServer))
         var n = waitFor(open(withRunner)) { night -> night.parties.any { it.stage == Stage.READY_TO_ORDER } }
         val party = n.parties.first { it.stage == Stage.READY_TO_ORDER }
         n = waitFor(n.tapTable(party.table!!)) { !it.player.walking }

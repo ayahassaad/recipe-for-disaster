@@ -82,14 +82,9 @@ object ServiceSimulator {
             activeEmployees.sumOf { EmployeePerformance.effectiveServiceSpeed(it) } / activeEmployees.size
         }
 
-        // Customers per active employee. Empty restaurant floor with
-        // customers waiting is the worst case, modeled as effectively
-        // infinite ratio rather than dividing by zero.
-        val staffingRatio = if (activeEmployees.isEmpty()) {
-            if (arrivals.isEmpty()) 0.0 else Double.MAX_VALUE
-        } else {
-            arrivals.size.toDouble() / activeEmployees.size
-        }
+        // Customers per person working, counting the owner: the player is on the floor every night,
+        // so a lone cook shares the load with them rather than carrying all of it.
+        val staffingRatio = arrivals.size.toDouble() / (activeEmployees.size + 1)
 
         val availableDishes = menu.filter { it.available }
         val dishesSold = mutableMapOf<DishId, Int>()

@@ -127,7 +127,8 @@ object MorningAdvisor {
         val floorStaff = working.count { it.role == Role.SERVER || it.role == Role.MANAGER }
         return when {
             outlook.kitchenTooSmall -> Need.COOK
-            floorStaff == 0 || outlook.expectedCustomers > floorStaff * 12 -> Need.SERVER
+            // The player waits tables too, so a server is only needed once the room is too busy for them.
+            outlook.expectedCustomers > (floorStaff + 1) * 12 -> Need.SERVER
             state.restaurant.cleanliness < 55 && working.none { it.role == Role.DISHWASHER } -> Need.DISHWASHER
             else -> null
         }
