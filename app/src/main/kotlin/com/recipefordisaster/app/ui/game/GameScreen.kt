@@ -198,7 +198,10 @@ private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, modi
     }
 
     open?.let { target ->
-        ModalBottomSheet(onDismissRequest = { open = null }) {
+        // No half-open state: Back (or a tap outside) closes the sheet in one go, instead of first
+        // shrinking it and leaving the player's next tap to land on the dimmed background.
+        val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(onDismissRequest = { open = null }, sheetState = sheetState) {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) { SheetContent(target, uiState, actions) }
         }
     }
@@ -451,7 +454,7 @@ private fun ResultsPlay(report: DayReport, gameOver: Boolean, onContinue: () -> 
     }
 
     if (showBill) {
-        ModalBottomSheet(onDismissRequest = { showBill = false }) {
+        ModalBottomSheet(onDismissRequest = { showBill = false }, sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
             Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) { BillReceipt(report) }
         }
     }
