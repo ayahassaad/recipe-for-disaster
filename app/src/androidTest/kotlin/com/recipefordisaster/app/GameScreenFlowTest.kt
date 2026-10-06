@@ -12,6 +12,7 @@ import com.recipefordisaster.app.ui.game.GameScreen
 import com.recipefordisaster.app.ui.game.GameViewModel
 import com.recipefordisaster.app.ui.game.actions
 import com.recipefordisaster.app.ui.start.StartScreen
+import com.recipefordisaster.app.ui.start.StartUiState
 import com.recipefordisaster.app.ui.start.StartViewModel
 import com.recipefordisaster.app.ui.theme.RecipeForDisasterTheme
 import com.recipefordisaster.data.db.GameDatabase
@@ -21,6 +22,7 @@ import com.recipefordisaster.domain.simulation.DefaultDayTickEngine
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
+import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -102,5 +104,23 @@ class GameScreenFlowTest {
 
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("Continue").assertExists() // present but disabled; the game flow test above covers enabled interaction.
+    }
+
+    @Test
+    fun newGameAsksBeforeThrowingAwayAnExistingRestaurant() {
+        var started = 0
+        composeTestRule.setContent {
+            RecipeForDisasterTheme {
+                StartScreen(uiState = StartUiState(isLoading = false, hasExistingSave = true), onNewGame = { started++ }, onContinueGame = {})
+            }
+        }
+        composeTestRule.onNodeWithText("New game").performClick()
+        composeTestRule.onNodeWithText("Start over?").assertExists()
+        composeTestRule.onNodeWithText("Keep my restaurant").performClick()
+        assertEquals(0, started)
+
+        composeTestRule.onNodeWithText("New game").performClick()
+        composeTestRule.onNodeWithText("Start over").performClick()
+        assertEquals(1, started)
     }
 }
