@@ -167,6 +167,11 @@
     <string name="cleanliness">Cleanliness</string>
     <string name="clean">Deep clean (%1$s)</string>
     <string name="condition">Condition</string>
+    <string name="confirm_day_off_title">Give %1$s the day off?</string>
+    <string name="confirm_let_go_title">Let %1$s go?</string>
+    <string name="confirm_let_go_body">They leave for good, and it costs %1$s.</string>
+    <string name="confirm_only_cook">They\'re your only cook: without them nobody cooks tonight, and every order takes ages.</string>
+    <string name="cancel">Cancel</string>
     <string name="staff_mood">Mood</string>
     <string name="staff_energy">Energy</string>
     <string name="staff_skill">Skill</string>

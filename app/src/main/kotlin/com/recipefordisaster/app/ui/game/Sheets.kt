@@ -14,8 +14,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -331,6 +336,47 @@ private fun PersonSheet(person: Employee, uiState: GameUiState.Playing, actions:
     Meter(stringResource(R.string.staff_mood), person.morale)
     Meter(stringResource(R.string.staff_energy), 100 - person.stress)
     Meter(stringResource(R.string.staff_skill), person.skill)
+    // The last cook on shift: without them nobody cooks tonight, so say so before it happens.
+    val cooksOnShift = uiState.morning.employees.count { it.status == EmployeeStatus.ACTIVE && it.role == com.recipefordisaster.domain.employee.Role.COOK }
+    val onlyCook = person.role == com.recipefordisaster.domain.employee.Role.COOK && person.status == EmployeeStatus.ACTIVE && cooksOnShift <= 1
+    var confirm by remember { mutableStateOf<StaffAction?>(null) }
+    confirm?.let { action ->
+        AlertDialog(
+            onDismissRequest = { confirm = null },
+            title = {
+                Text(
+                    when (action) {
+                        StaffAction.DAY_OFF -> stringResource(R.string.confirm_day_off_title, person.name)
+                        StaffAction.LET_GO -> stringResource(R.string.confirm_let_go_title, person.name)
+                    },
+                )
+            },
+            text = {
+                val lines = buildList {
+                    if (action == StaffAction.LET_GO) add(stringResource(R.string.confirm_let_go_body, coins(StaffingMarket.severance(person))))
+                    if (onlyCook) add(stringResource(R.string.confirm_only_cook))
+                }
+                Text(lines.joinToString("\n\n"))
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirm = null
+                    when (action) {
+                        StaffAction.DAY_OFF -> actions.onToggleRestDay(person.id)
+                        StaffAction.LET_GO -> actions.onToggleFire(person.id)
+                    }
+                }) {
+                    Text(
+                        when (action) {
+                            StaffAction.DAY_OFF -> stringResource(R.string.staff_day_off)
+                            StaffAction.LET_GO -> stringResource(R.string.staff_fire)
+                        },
+                    )
+                }
+            },
+            dismissButton = { TextButton(onClick = { confirm = null }) { Text(stringResource(R.string.cancel)) } },
+        )
+    }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         when {
             isNew -> OutlinedButton(onClick = { actions.onToggleHire(person.id) }) { Text(stringResource(R.string.undo)) }
@@ -338,9 +384,12 @@ private fun PersonSheet(person: Employee, uiState: GameUiState.Playing, actions:
             resting -> OutlinedButton(onClick = { actions.onToggleRestDay(person.id) }) { Text(stringResource(R.string.undo)) }
             else -> {
                 if (person.status == EmployeeStatus.ACTIVE) {
-                    FilledTonalButton(onClick = { actions.onToggleRestDay(person.id) }) { Text(stringResource(R.string.staff_day_off)) }
+                    // A day off is easy to undo, so it only asks when it would leave the kitchen empty.
+                    FilledTonalButton(onClick = { if (onlyCook) confirm = StaffAction.DAY_OFF else actions.onToggleRestDay(person.id) }) {
+                        Text(stringResource(R.string.staff_day_off))
+                    }
                 }
-                OutlinedButton(onClick = { actions.onToggleFire(person.id) }, enabled = uiState.cashNow >= StaffingMarket.severance(person)) {
+                OutlinedButton(onClick = { confirm = StaffAction.LET_GO }, enabled = uiState.cashNow >= StaffingMarket.severance(person)) {
                     Text(stringResource(R.string.staff_fire))
                 }
             }
@@ -384,3 +433,5 @@ private fun BigAction(text: String, enabled: Boolean, onClick: () -> Unit) {
     }
     Spacer(modifier = Modifier.height(2.dp))
 }
+
+private enum class StaffAction { DAY_OFF, LET_GO }
