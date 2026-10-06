@@ -1,5 +1,6 @@
 package com.recipefordisaster.app.ui.game
 
+import com.recipefordisaster.app.ui.scene.NightFocus
 import com.recipefordisaster.domain.service.ServiceNight
 import com.recipefordisaster.domain.service.ServiceNight.Errand
 import com.recipefordisaster.domain.service.ServiceNight.Kind
@@ -30,6 +31,19 @@ sealed interface NightHint {
     data object PutMopBack : NightHint
     data object Waiting : NightHint
     data object Cooking : NightHint
+
+    /** Where in the restaurant this hint means, for the "tap here" ring; null if it isn't about one place. */
+    fun focus(night: ServiceNight): NightFocus? = when (this) {
+        is Serve -> NightFocus.Table(table)
+        is TakeOrder -> NightFocus.Table(table)
+        is Clear -> NightFocus.Table(table)
+        is DoorWaiting -> NightFocus.Table(table)
+        HandIn, is PickUp -> NightFocus.Counter
+        Wash -> NightFocus.DishStation
+        GetMop, PutMopBack -> NightFocus.MopBucket
+        MopSpill -> night.messesOnFloor.firstOrNull()?.let { NightFocus.Spill(it.id) }
+        Washing, Mopping, OutOfFood, Waiting, Cooking -> null
+    }
 
     companion object {
         fun of(night: ServiceNight): NightHint {

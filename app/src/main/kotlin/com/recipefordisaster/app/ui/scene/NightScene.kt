@@ -88,6 +88,8 @@ fun NightScene(
     onTapMopBucket: () -> Unit,
     onTapMess: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    /** Something to point at with a pulsing ring, for players still learning what to tap. */
+    focus: NightFocus? = null,
 ) {
     val text = rememberTextMeasurer()
     val density = LocalDensity.current
@@ -192,6 +194,20 @@ fun NightScene(
                                 drawTableBubble(text, table, party.stage, waitedFraction, clock)
                             }
                         }
+                    }
+
+                    // "Tap here": a pulsing ring around whatever the hint is talking about.
+                    focus?.let { f ->
+                        val (center, radius) = when (f) {
+                            is NightFocus.Table -> SceneLayout.tables[f.table] to 16f
+                            NightFocus.Counter -> Point(ServiceFloor.pass.x, SceneLayout.counter.center.y) to 7f
+                            NightFocus.DishStation -> Point(87f, SceneLayout.counter.top + 1f) to 9f
+                            NightFocus.MopBucket -> SceneLayout.mopBucket.center to 9f
+                            is NightFocus.Spill -> (night.messes.firstOrNull { it.id == f.messId }?.at?.toPoint() ?: return@let) to 7f
+                        }
+                        val pulse = (clock * 1.4f) % 1f
+                        ring(center.x, center.y, radius + pulse * 3f, PlayerColor.copy(alpha = 0.9f * (1f - pulse)), 0.9f)
+                        ring(center.x, center.y, radius, PlayerColor.copy(alpha = 0.55f), 0.5f)
                     }
 
                     // Where you're heading, and the stops you've queued after it.
@@ -509,4 +525,13 @@ private fun Pen.drawDoorBubble(at: Point, waited: Float, clock: Float) {
     }
     box(c.x - 4f, c.y + 5.6f, 8f, 1f, Color(0x33000000), radius = 0.5f)
     box(c.x - 4f, c.y + 5.6f, 8f * (1f - waited), 1f, colour, radius = 0.5f)
+}
+
+/** What the night scene can point at to show a new player where to tap. Tables are 0-based. */
+sealed interface NightFocus {
+    data class Table(val table: Int) : NightFocus
+    data object Counter : NightFocus
+    data object DishStation : NightFocus
+    data object MopBucket : NightFocus
+    data class Spill(val messId: Int) : NightFocus
 }

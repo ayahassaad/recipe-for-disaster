@@ -364,6 +364,8 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
                 onTapMopBucket = { night = night.tapMopBucket() },
                 onTapMess = { id -> night = night.tapMess(id) },
                 modifier = Modifier.fillMaxSize(),
+                // For the first few nights, point at what the hint is talking about.
+                focus = if (session.setup.original.day <= GUIDED_DAYS) NightHint.of(night).focus(night) else null,
             )
             androidx.compose.animation.AnimatedVisibility(
                 visible = night.finished,
@@ -395,6 +397,9 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
         )
     }
 }
+
+/** For this many days, the night scene points at what to tap next. */
+private const val GUIDED_DAYS = 3
 
 /** Seconds the "Closing time!" sign stays up before the bill. */
 private const val CLOSING_PAUSE = 2.5f

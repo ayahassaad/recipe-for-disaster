@@ -221,7 +221,8 @@ class ServiceNightTest {
         assertTrue("dirty tables left: ${served.dirtyTables}", served.dirtyTables.size <= 1)
     }
 
-    private val noWashers get() = start.copy(employees = start.employees.filter { it.role != com.recipefordisaster.domain.employee.Role.DISHWASHER })
+    /** A few nights in (when spills start), with no dishwasher to mop them. */
+    private val noWashers get() = start.copy(day = 4, employees = start.employees.filter { it.role != com.recipefordisaster.domain.employee.Role.DISHWASHER })
 
     @Test
     fun `spills happen during the night and stay until someone mops them`() {
@@ -257,7 +258,7 @@ class ServiceNightTest {
     @Test
     fun `a hired dishwasher mops spills on their own`() {
         val washer = start.applicants.first().copy(role = com.recipefordisaster.domain.employee.Role.DISHWASHER)
-        val night = play(open(start.copy(employees = start.employees + washer)), ::busyPlayer)
+        val night = play(open(start.copy(day = 4, employees = start.employees + washer)), ::busyPlayer)
         assertTrue(night.messes.isNotEmpty())
         assertTrue("spills left: ${night.messesOnFloor}", night.messesOnFloor.isEmpty())
     }
@@ -417,5 +418,14 @@ class ServiceNightTest {
         val helped = play(open(withServer), servesOnly)
         assertTrue(helped.result().outcomes.count { it.dish != null } > alone.result().outcomes.count { it.dish != null })
         assertTrue(helped.dirtyTables.size < alone.dirtyTables.size)
+    }
+
+    @Test
+    fun `the first nights have no spills, and first-night guests are more patient`() {
+        assertTrue(open(start).messes.isEmpty())
+        assertTrue(open(start.copy(day = 2)).messes.isEmpty())
+        val firstNight = open(start).parties.first().patience
+        val later = open(start.copy(day = 4)).parties.first().patience
+        assertTrue(firstNight > later)
     }
 }

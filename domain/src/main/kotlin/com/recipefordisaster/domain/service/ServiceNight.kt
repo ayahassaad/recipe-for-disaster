@@ -637,6 +637,12 @@ data class ServiceNight(
         /** How long a plate sits on the pass before a runner takes it out instead of waiting for the player. */
         private const val RUNNER_DELAY = 3f
 
+        /** Guests' patience on the very first night, while the player learns. */
+        private const val FIRST_NIGHT_PATIENCE = 1.3f
+
+        /** No spills for the first few nights: there's enough to learn already. */
+        private const val QUIET_FLOOR_DAYS = 2
+
         /** How long a table sits dirty before a server with nothing else to do clears it. */
         private const val RUNNER_CLEAR_DELAY = 6f
         private const val GUEST_SPEED = 32f
@@ -688,7 +694,8 @@ data class ServiceNight(
                     guests = guests,
                     preferences = guests.map { g -> rankDishes(customers[g], menu, rng) },
                     arriveAt = arriveAt,
-                    patience = guests.map { customers[it].patience }.average().toFloat() / MINUTES_PER_SECOND + 12f,
+                    // The very first night is gentler: guests are a bit more forgiving while you learn the ropes.
+                    patience = (guests.map { customers[it].patience }.average().toFloat() / MINUTES_PER_SECOND + 12f) * (if (state.day <= 1) FIRST_NIGHT_PATIENCE else 1f),
                 )
             }
 
@@ -696,7 +703,7 @@ data class ServiceNight(
             // first guests are settling in: each happens a little after one of the later parties arrives,
             // at one of the open spots between tables.
             val later = parties.drop(parties.size / 4)
-            val spillCount = if (later.isEmpty()) 0 else (parties.size / 6 + (if (state.restaurant.cleanliness < 50) 1 else 0)).coerceAtMost(ServiceFloor.spillSpots.size)
+            val spillCount = if (later.isEmpty() || state.day <= QUIET_FLOOR_DAYS) 0 else (parties.size / 6 + (if (state.restaurant.cleanliness < 50) 1 else 0)).coerceAtMost(ServiceFloor.spillSpots.size)
             val spots = ServiceFloor.spillSpots.shuffledWith(rng)
             val messes = (0 until spillCount).map { k ->
                 val after = later[rng.nextInt(later.size)].arriveAt
