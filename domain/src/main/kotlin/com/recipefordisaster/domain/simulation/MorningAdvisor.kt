@@ -27,7 +27,7 @@ data class DailyCosts(
     companion object {
         fun of(state: GameState): DailyCosts {
             val staff = state.employees.filter { it.status != EmployeeStatus.QUIT && it.status != EmployeeStatus.FIRED }
-            val costs = state.restaurant.operatingCosts
+            val costs = state.restaurant.costsToday
             return DailyCosts(
                 wages = staff.sumOf { it.salaryPerDay },
                 premises = costs.rentPerDay + costs.utilitiesPerDay + costs.miscPerDay + state.equipment.sumOf { it.maintenanceCostPerDay },

@@ -58,4 +58,11 @@ class TableGrowthTest {
         val broke = start.copy(restaurant = start.restaurant.copy(tables = 6, cash = 100))
         assertEquals(6, DecisionApplier.apply(broke, PlayerDecisions(buyTable = true)).state.restaurant.tables)
     }
+
+    @Test
+    fun `rent is for the tables you have, so a small new restaurant pays less`() {
+        assertEquals(20L, start.restaurant.costsToday.rentPerDay)
+        assertEquals(60L, start.restaurant.copy(tables = 6).costsToday.rentPerDay)
+        assertEquals(120L, start.restaurant.copy(tables = 12).costsToday.rentPerDay)
+    }
 }

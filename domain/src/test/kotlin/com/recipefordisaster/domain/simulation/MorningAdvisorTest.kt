@@ -16,7 +16,7 @@ class MorningAdvisorTest {
         val costs = DailyCosts.of(start)
 
         assertEquals(start.employees.sumOf { it.salaryPerDay }, costs.wages)
-        assertTrue(costs.premises >= start.restaurant.operatingCosts.rentPerDay)
+        assertTrue(costs.premises >= start.restaurant.costsToday.rentPerDay)
     }
 
     @Test

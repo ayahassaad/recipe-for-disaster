@@ -126,7 +126,7 @@ class DefaultDayTickEngine(
             // day off or sickness rolled over to tomorrow's status.
             employees = start.employees,
             ingredientCosts = morning.spending.ingredients,
-            operatingCosts = start.restaurant.operatingCosts,
+            operatingCosts = start.restaurant.costsToday,
             equipment = equipmentAfterFailureChecks,
             miscellaneous = morning.spending.staffing + morning.spending.cleaning + morning.spending.menu,
             upgrades = morning.spending.repairs + morning.spending.upgrades,

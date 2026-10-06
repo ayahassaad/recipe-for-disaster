@@ -24,6 +24,13 @@ data class Restaurant(
 ) {
     /** The most guests tonight can bring: [capacity] is for a six-table room, and more tables mean more guests. */
     val guestCapacity: Int get() = capacity * tables / 6
+
+    /**
+     * What the restaurant pays each day. Rent in [operatingCosts] is for a full six-table room; a
+     * smaller room pays for what it uses (so a new restaurant isn't sunk by rent on empty floor),
+     * and every extra table bought adds to it.
+     */
+    val costsToday: OperatingCosts get() = operatingCosts.copy(rentPerDay = operatingCosts.rentPerDay * tables / 6)
 }
 
 @Serializable
