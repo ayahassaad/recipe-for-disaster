@@ -72,7 +72,7 @@
     <string name="end_fed">%1$d of %2$d guests fed</string>
     <string name="scene_menu_sign" translatable="false">MENU</string>
     <string name="scene_hiring_sign">HELP WANTED</string>
-    <string name="scene_hiring_sign_cook">COOK WANTED</string>
+    <string name="scene_hiring_sign_cook">COOK NEEDED</string>
     <string name="scene_hiring_sign_server">SERVER WANTED</string>
     <string name="scene_hiring_sign_dishwasher">DISHWASHER WANTED</string>
     <string name="need_cook">You need another cook. Your kitchen can cook about %1$d meals, but about %2$d guests are coming.</string>

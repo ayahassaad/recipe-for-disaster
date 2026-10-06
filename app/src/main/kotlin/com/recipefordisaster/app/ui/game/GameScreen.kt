@@ -198,14 +198,15 @@ fun GameScreen(
 private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, onMenu: () -> Unit, modifier: Modifier = Modifier) {
     val morning = uiState.morning
     val advice = remember(morning) { MorningAdvisor.adviceFor(morning) }
-    val model = remember(morning, advice) { sceneModelFor(morning, advice, hiringOpen = uiState.state.applicants.any { it.id !in uiState.plan.hires }) }
+    // The sign only goes up when the restaurant is actually short of someone, and says who.
+    val staffNeed = remember(morning) { MorningAdvisor.staffNeed(morning) }
+    val model = remember(morning, advice, staffNeed) { sceneModelFor(morning, advice, hiringOpen = staffNeed != null) }
     val costs = remember(morning) { DailyCosts.of(morning) }
     var open by remember { mutableStateOf<SceneTarget?>(null) }
 
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding().navigationBarsPadding()) {
         Hud(day = uiState.state.day, cash = uiState.cashNow, reputation = morning.restaurant.reputation, subtitle = stringResource(R.string.daily_costs, coins(costs.total)), onMenu = onMenu)
-        val need = remember(morning) { MorningAdvisor.staffNeed(morning) }
-        RestaurantScene(model = model, labels = sceneLabels(need), onTap = { open = it }, modifier = Modifier.weight(1f))
+        RestaurantScene(model = model, labels = sceneLabels(staffNeed), onTap = { open = it }, modifier = Modifier.weight(1f))
         // Opening with nothing the kitchen can cook means every guest walks straight back out.
         val noFood = remember(morning) {
             morning.menu.filter { it.available }.none { com.recipefordisaster.domain.inventory.InventoryOperations.canFulfill(morning.inventory, it.recipe) }
