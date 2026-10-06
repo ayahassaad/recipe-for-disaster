@@ -184,7 +184,9 @@ object MorningAdvisor {
             val cost = EquipmentOperations.repairCost(equipment)
             when {
                 EquipmentOperations.isBroken(equipment) -> advice += Advice.EquipmentBroken(equipment, cost)
-                equipment.condition < 35 -> advice += Advice.EquipmentWorn(equipment, cost)
+                // A worn fridge is the one that can break, so flag it as soon as it's worn.
+                equipment.condition < (if (com.recipefordisaster.domain.equipment.Fridge.isFridge(equipment)) com.recipefordisaster.domain.equipment.Fridge.WORN else 35) ->
+                    advice += Advice.EquipmentWorn(equipment, cost)
             }
         }
 

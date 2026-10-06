@@ -45,6 +45,7 @@ data class NightLabels(
     val dishStation: String,
     val dishSign: String,
     val mopBucket: String,
+    val fridge: String = "",
     val spill: String,
     val you: String,
     val menu: String,
@@ -93,6 +94,7 @@ fun NightScene(
     onTapDishStation: () -> Unit,
     onTapMopBucket: () -> Unit,
     onTapMess: (Int) -> Unit,
+    onTapFridge: () -> Unit = {},
     modifier: Modifier = Modifier,
     /** Something to point at with a pulsing ring, for players still learning what to tap. */
     focus: NightFocus? = null,
@@ -121,7 +123,8 @@ fun NightScene(
                     drawRoom(model.cleanliness, doorOpen = true, time = clock)
                     drawOven(model.ovenCondition, clock, onFire = false, level = model.ovenLevel)
                     drawStove(cooking, clock)
-                    drawSink()
+                    drawFridge(model.fridgeCondition, broken = night.fridgeBroken, struggling = night.fridgeStruggling, level = model.fridgeLevel, time = clock)
+                    if (night.fridgeBroken) drawAlert(text, Point(SceneLayout.fridge.right - 1f, SceneLayout.fridge.top + 1f), clock)
                     drawPantry(model.pantryFullness, model.pantryJars)
                     drawTables(layout)
                     drawMenuBoard(text, labels.menu)
@@ -220,6 +223,7 @@ fun NightScene(
                             NightFocus.Chef -> SceneLayout.cookSpot(0).let { Point(it.x, it.y - 3f) } to 9f
                             is NightFocus.Plate -> (readyPlates(night).indexOfFirst { it.id == f.partyId }.takeIf { it >= 0 }?.let { plateSpot(it) } ?: return@let) to 4.5f
                             NightFocus.DishStation -> Point(87f, SceneLayout.counter.top + 1f) to 9f
+                            NightFocus.Fridge -> SceneLayout.fridge.center to 10f
                             NightFocus.MopBucket -> SceneLayout.mopBucket.center to 9f
                             is NightFocus.Spill -> (night.messes.firstOrNull { it.id == f.messId }?.at?.toPoint() ?: return@let) to 7f
                         }
@@ -237,6 +241,7 @@ fun NightScene(
                             ServiceNight.Errand.HandIn -> ServiceFloor.chef
                             is ServiceNight.Errand.PickUp -> night.platesOnCounter.indexOfFirst { it.id == errand.partyId }.takeIf { it >= 0 }?.let { ServiceFloor.plateStand(it) }
                             ServiceNight.Errand.VisitDishStation -> ServiceFloor.dishStation
+                            ServiceNight.Errand.VisitFridge -> ServiceFloor.fridge
                             ServiceNight.Errand.VisitMopBucket -> ServiceFloor.mopBucket
                             is ServiceNight.Errand.CleanMess -> night.messes.firstOrNull { it.id == errand.messId }?.at
                             else -> null
@@ -302,6 +307,12 @@ fun NightScene(
                         }
                     }
 
+                    // Anyone fixing the fridge: banging away at it with a spanner.
+                    night.waiters.filter { it.errand == ServiceNight.Errand.FixFridge }.forEach { w ->
+                        val progress = ((night.time - w.routeStart) / (w.routeEnd - w.routeStart).coerceAtLeast(0.01f)).coerceIn(0f, 1f)
+                        drawFixingFridge(w.position(night.time).toPoint().let { Point(it.x, it.y - 2f) }, progress, clock)
+                    }
+
                     // Anyone washing up, scrubbing away at the sink (drawn over them, since their hands are in it).
                     night.waiters.filter { it.errand == ServiceNight.Errand.Wash }.forEach { w ->
                         val progress = ((night.time - w.routeStart) / (w.routeEnd - w.routeStart).coerceAtLeast(0.01f)).coerceIn(0f, 1f)
@@ -333,6 +344,8 @@ fun NightScene(
             val at = plateSpot(i)
             TapArea(Rect(at.x - 3.4f, at.y - 6f, at.x + 4f, at.y + 3f), unit, origin, labels.plate((party.table ?: 0) + 1)) { onTapPlate(party.id) }
         }
+        // The fridge, over the chef's end of the kitchen so it gets the tap.
+        TapArea(SceneLayout.fridge, unit, origin, labels.fridge, onTapFridge)
         TapArea(Rect(SceneLayout.mopBucket.left - 2f, SceneLayout.mopBucket.top - 8f, SceneLayout.mopBucket.right + 6f, SceneLayout.mopBucket.bottom), unit, origin, labels.mopBucket, onTapMopBucket)
         // Spills last, so they sit on top of the tables' tap areas.
         night.messesOnFloor.forEach { mess ->
@@ -612,6 +625,40 @@ sealed interface NightFocus {
     data object Chef : NightFocus
     data class Plate(val partyId: Int) : NightFocus
     data object DishStation : NightFocus
+    data object Fridge : NightFocus
     data object MopBucket : NightFocus
     data class Spill(val messId: Int) : NightFocus
+}
+
+/**
+ * Someone fixing the fridge: reaching up with a spanner and giving it a few good whacks (with sparks),
+ * a little ring beside them filling up to show how long is left.
+ */
+private fun Pen.drawFixingFridge(at: Point, progress: Float, clock: Float) {
+    val swing = sin(clock * 10f)
+    val hand = Point(at.x + 3.2f, at.y - 4.4f + swing * 1.2f)
+    line(at.x + 2.8f, at.y + 0.2f, hand.x, hand.y, Color(0xFF2B2B2B), 1.4f)
+    dot(hand, 0.9f, Palette.face)
+    // The spanner: a handle and an open jaw, swinging at the fridge.
+    val tip = Point(hand.x + 1.6f, hand.y - 3f - swing * 0.6f)
+    line(hand.x, hand.y, tip.x, tip.y, Palette.steelDark, 0.7f)
+    ring(tip.x, tip.y, 0.9f, Palette.steelDark, 0.5f)
+    if (swing > 0.8f) {
+        for (k in 0..3) {
+            val a = k * 1.57f + clock * 3f
+            line(tip.x + kotlin.math.cos(a) * 1.2f, tip.y + kotlin.math.sin(a) * 1.2f, tip.x + kotlin.math.cos(a) * 2.4f, tip.y + kotlin.math.sin(a) * 2.4f, Color(0xFFF2C230), 0.3f)
+        }
+    }
+    val ringAt = Point(at.x - 9f, at.y - 3f)
+    dot(ringAt, 2.8f, Color(0xEEFFFFFF))
+    ring(ringAt.x, ringAt.y, 2.2f, Color(0x33000000), 0.7f)
+    drawArc(
+        Color(0xFFE0A030),
+        startAngle = -90f,
+        sweepAngle = 360f * progress,
+        useCenter = false,
+        topLeft = p(ringAt.x - 2.2f, ringAt.y - 2.2f),
+        size = androidx.compose.ui.geometry.Size(u(4.4f), u(4.4f)),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(u(0.7f)),
+    )
 }

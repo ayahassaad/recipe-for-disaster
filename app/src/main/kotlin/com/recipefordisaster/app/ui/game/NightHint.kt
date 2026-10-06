@@ -32,6 +32,9 @@ sealed interface NightHint {
     data object Waiting : NightHint
     /** Everyone's gone; staff are clearing up before closing. */
     data object TidyingUp : NightHint
+    data object FixFridge : NightHint
+    data object FixingFridge : NightHint
+    data object FridgeStruggling : NightHint
     data object Cooking : NightHint
 
     /** Where in the restaurant this hint means, for the "tap here" ring; null if it isn't about one place. */
@@ -45,7 +48,8 @@ sealed interface NightHint {
         Wash -> NightFocus.DishStation
         GetMop, PutMopBack -> NightFocus.MopBucket
         MopSpill -> night.messesOnFloor.firstOrNull()?.let { NightFocus.Spill(it.id) }
-        Washing, Mopping, OutOfFood, Waiting, Cooking, TidyingUp -> null
+        FixFridge, FridgeStruggling -> NightFocus.Fridge
+        Washing, Mopping, OutOfFood, Waiting, Cooking, TidyingUp, FixingFridge -> null
     }
 
     companion object {
@@ -64,7 +68,11 @@ sealed interface NightHint {
             return when {
                 me.errand == Errand.Wash -> Washing
                 me.errand is Errand.Mopping -> Mopping
+                me.errand == Errand.FixFridge -> FixingFridge
                 carrying?.table != null -> Serve(carrying.table!!)
+                // A broken fridge stops orders, so fixing it comes before almost anything else.
+                night.fridgeBroken && !night.fridgeBeingFixed -> FixFridge
+                night.fridgeStruggling -> FridgeStruggling
                 me.tickets.isNotEmpty() && !handingIn -> HandIn
                 toCollect?.table != null && me.freeHands - collecting.size > 0 -> PickUp(toCollect.table!!, toCollect.id)
                 // Guests at the door with nowhere to sit, because a table needs clearing: they'll walk out soon.

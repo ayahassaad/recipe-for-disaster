@@ -56,6 +56,10 @@ object ServiceSimulator {
         val staffingRatio: Double,
         /** Stock left after every meal served today was cooked, or null if stock wasn't modeled. */
         val inventoryAfter: InventoryState? = null,
+        /** The fridge broke during service tonight. */
+        val fridgeBrokeTonight: Boolean = false,
+        /** ...and was still broken at closing time (nobody fixed it). */
+        val fridgeLeftBroken: Boolean = false,
     ) {
         fun missedCount(reason: MissedMealReason): Int = outcomes.count { it.missedReason == reason }
     }

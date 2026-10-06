@@ -35,9 +35,11 @@ object InventoryOperations {
      * MVP, and still enough to create real pressure against over-ordering
      * perishables.
      */
-    fun applySpoilage(inventory: InventoryState): InventoryState {
+    fun applySpoilage(inventory: InventoryState, coldSpoilsFaster: Boolean = false): InventoryState {
         val updated = inventory.ingredients.mapValues { (_, ingredient) ->
-            val spoiled = ingredient.quantityOnHand * ingredient.spoilageRatePerDay
+            // With the fridge broken, the cold stuff goes off three times as fast.
+            val rate = if (coldSpoilsFaster && com.recipefordisaster.domain.equipment.Fridge.isCold(ingredient)) (ingredient.spoilageRatePerDay * 3).coerceAtMost(1.0) else ingredient.spoilageRatePerDay
+            val spoiled = ingredient.quantityOnHand * rate
             ingredient.copy(quantityOnHand = (ingredient.quantityOnHand - spoiled).coerceAtLeast(0.0))
         }
         return inventory.copy(ingredients = updated)

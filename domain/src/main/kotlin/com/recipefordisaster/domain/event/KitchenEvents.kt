@@ -1,6 +1,7 @@
 package com.recipefordisaster.domain.event
 
 import com.recipefordisaster.domain.equipment.EquipmentOperations
+import com.recipefordisaster.domain.equipment.Fridge
 import com.recipefordisaster.domain.simulation.LogTone
 
 /**
@@ -22,14 +23,14 @@ internal object KitchenEvents {
         severity = Severity.SEVERE,
         cooldownDays = 10,
         unique = false,
-        prerequisite = { state -> state.equipment.any { !EquipmentOperations.isBroken(it) && it.condition < 35 } },
+        prerequisite = { state -> Fridge.cookingKit(state.equipment).any { !EquipmentOperations.isBroken(it) && it.condition < 35 } },
         weight = { state ->
-            val worst = state.equipment.filter { !EquipmentOperations.isBroken(it) }.minOf { it.condition }
+            val worst = Fridge.cookingKit(state.equipment).filter { !EquipmentOperations.isBroken(it) }.minOf { it.condition }
             val grease = if (state.restaurant.cleanliness < 40) 0.4 else 0.0
             (0.3 + (35 - worst) / 30.0 + grease).toFloat()
         },
         resolve = { state, _ ->
-            val burning = state.equipment.filter { !EquipmentOperations.isBroken(it) }.minBy { it.condition }
+            val burning = Fridge.cookingKit(state.equipment).filter { !EquipmentOperations.isBroken(it) }.minBy { it.condition }
             EventOutcome(
                 ruleId = "kitchen_fire",
                 description = "The ${burning.name} burst into flames mid-service. Everyone's fine. The ${burning.name} is not. The fire service will inspect tomorrow.",
@@ -78,19 +79,24 @@ internal object KitchenEvents {
         severity = Severity.MODERATE,
         cooldownDays = 8,
         unique = false,
-        prerequisite = { state -> state.inventory.ingredients.values.filter { it.spoilageRatePerDay >= 0.05 }.sumOf { it.quantityOnHand } > 3.0 },
-        weight = { state ->
-            val averageWear = if (state.equipment.isEmpty()) 30.0 else state.equipment.map { 100 - it.condition }.average()
-            (0.2 + averageWear / 150.0).toFloat()
+        // Only a worn fridge gives up, so a morning repair keeps it from happening.
+        prerequisite = { state ->
+            val fridge = Fridge.of(state)
+            state.day >= 3 && fridge != null && !EquipmentOperations.isBroken(fridge) && Fridge.isWorn(fridge) &&
+                state.inventory.ingredients.values.filter { Fridge.isCold(it) }.sumOf { it.quantityOnHand } > 3.0
         },
+        weight = { state -> (0.2 + (Fridge.WORN - (Fridge.of(state)?.condition ?: Fridge.WORN)) / 40.0).toFloat() },
         resolve = { state, _ ->
             val ingredients = state.inventory.ingredients.mapValues { (_, ingredient) ->
-                if (ingredient.spoilageRatePerDay >= 0.05) ingredient.copy(quantityOnHand = ingredient.quantityOnHand / 2) else ingredient
+                if (Fridge.isCold(ingredient)) ingredient.copy(quantityOnHand = ingredient.quantityOnHand / 2) else ingredient
             }
             EventOutcome(
                 ruleId = "fridge_failure",
-                description = "The fridge gave up overnight. Half the perishables are now officially \"compost.\"",
-                resultingState = state.copy(inventory = state.inventory.copy(ingredients = ingredients)),
+                description = "The fridge gave up overnight. Half the perishables are now officially \"compost.\" Fix it before tonight.",
+                resultingState = state.copy(
+                    inventory = state.inventory.copy(ingredients = ingredients),
+                    equipment = state.equipment.map { if (Fridge.isFridge(it)) it.copy(condition = 0) else it },
+                ),
                 tone = LogTone.BAD,
             )
         },

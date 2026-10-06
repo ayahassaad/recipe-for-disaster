@@ -170,6 +170,7 @@ object NewGameFactory {
                     failureProbabilityBase = 0.02,
                     upgradeLevel = 1,
                 ),
+                com.recipefordisaster.domain.equipment.Fridge.starter(),
             ),
             ledger = Ledger(history = emptyList()),
             log = listOf(SimulationLogEntry(day = 0, message = "You just inherited a restaurant. Nobody can explain why. Good luck.")),

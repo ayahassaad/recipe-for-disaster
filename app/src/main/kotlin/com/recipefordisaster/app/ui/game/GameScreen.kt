@@ -265,6 +265,9 @@ private fun Hud(day: Int, cash: Long, reputation: Int, subtitle: String, onMenu:
     }
 }
 
+/** The oven (the cooking kit, as opposed to the fridge). */
+internal fun oven(state: GameState) = com.recipefordisaster.domain.equipment.Fridge.cookingKit(state.equipment).firstOrNull()
+
 /** Builds what the scene shows from the restaurant as the player has set it up. */
 internal fun sceneModelFor(state: GameState, advice: List<Advice>, hiringOpen: Boolean): SceneModel {
     val working = state.employees.filter { it.status == EmployeeStatus.ACTIVE }
@@ -279,7 +282,8 @@ internal fun sceneModelFor(state: GameState, advice: List<Advice>, hiringOpen: B
         when (item) {
             is Advice.Restock, is Advice.DishUnmakeable -> SceneTarget.Pantry
             is Advice.KitchenTooSmall -> if (hiringOpen) SceneTarget.HiringSign else null
-            is Advice.EquipmentBroken, is Advice.EquipmentWorn -> SceneTarget.Oven
+            is Advice.EquipmentBroken -> if (com.recipefordisaster.domain.equipment.Fridge.isFridge(item.equipment)) SceneTarget.Fridge else SceneTarget.Oven
+            is Advice.EquipmentWorn -> if (com.recipefordisaster.domain.equipment.Fridge.isFridge(item.equipment)) SceneTarget.Fridge else SceneTarget.Oven
             is Advice.Dirty -> SceneTarget.Mop
             is Advice.StaffExhausted -> SceneTarget.Staff(item.employee.id)
             is Advice.LosingMoney -> null // shown as red money in the bar instead
@@ -287,8 +291,10 @@ internal fun sceneModelFor(state: GameState, advice: List<Advice>, hiringOpen: B
     }.toSet()
     return SceneModel(
         staff = working.map { StaffFigure(it.id, it.name, it.role, it.morale, it.stress) },
-        ovenCondition = state.equipment.firstOrNull()?.condition ?: 100,
-        ovenLevel = state.equipment.firstOrNull()?.upgradeLevel ?: 1,
+        ovenCondition = oven(state)?.condition ?: 100,
+        ovenLevel = oven(state)?.upgradeLevel ?: 1,
+        fridgeCondition = com.recipefordisaster.domain.equipment.Fridge.of(state)?.condition ?: 100,
+        fridgeLevel = com.recipefordisaster.domain.equipment.Fridge.of(state)?.upgradeLevel ?: 1,
         tableCount = state.restaurant.tables,
         pantryFullness = fullness,
         pantryJars = jars,
@@ -320,6 +326,7 @@ private fun sceneLabels(need: MorningAdvisor.Need? = null): SceneLabels {
             },
         ),
         oven = stringResource(R.string.scene_oven),
+        fridge = stringResource(R.string.scene_fridge),
         pantry = stringResource(R.string.scene_pantry),
         mop = stringResource(R.string.scene_mop),
         hiringSign = stringResource(R.string.scene_hiring),
@@ -409,6 +416,7 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
                 onTapDishStation = { night = night.tapDishStation() },
                 onTapMopBucket = { night = night.tapMopBucket() },
                 onTapMess = { id -> night = night.tapMess(id) },
+                onTapFridge = { night = night.tapFridge() },
                 modifier = Modifier.fillMaxSize(),
                 // For the first few nights, point at what the hint is talking about.
                 focus = if (session.setup.original.day <= GUIDED_DAYS) NightHint.of(night).focus(night) else null,
@@ -468,6 +476,9 @@ private fun nightHint(night: ServiceNight): String = when (val hint = NightHint.
     NightHint.PutMopBack -> stringResource(R.string.hint_put_mop_back)
     NightHint.Waiting -> stringResource(R.string.hint_waiting)
     NightHint.TidyingUp -> stringResource(R.string.hint_tidying_up)
+    NightHint.FixFridge -> stringResource(R.string.hint_fix_fridge)
+    NightHint.FixingFridge -> stringResource(R.string.hint_fixing_fridge)
+    NightHint.FridgeStruggling -> stringResource(R.string.hint_fridge_struggling)
     NightHint.Cooking -> stringResource(R.string.hint_cooking)
 }
 
@@ -488,6 +499,7 @@ private fun nightLabels(): NightLabels {
         dishStation = stringResource(R.string.night_dish_station),
         dishSign = stringResource(R.string.night_dish_sign),
         mopBucket = stringResource(R.string.night_mop_bucket),
+        fridge = stringResource(R.string.night_fridge),
         spill = stringResource(R.string.night_spill),
         you = stringResource(R.string.night_you),
         menu = stringResource(R.string.scene_menu_sign),

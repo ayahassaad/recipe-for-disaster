@@ -32,6 +32,7 @@ import com.recipefordisaster.domain.employee.Role as StaffRole
 /** Something in the restaurant the player can tap. */
 sealed interface SceneTarget {
     data object Oven : SceneTarget
+    data object Fridge : SceneTarget
     data object Pantry : SceneTarget
     data object MenuBoard : SceneTarget
     data object Mop : SceneTarget
@@ -69,12 +70,15 @@ data class SceneModel(
     val ovenLevel: Int = 1,
     /** How many tables are in the dining room. */
     val tableCount: Int = 6,
+    val fridgeCondition: Int = 100,
+    val fridgeLevel: Int = 1,
 )
 
 data class SceneLabels(
     val menu: String,
     val hiring: String,
     val oven: String,
+    val fridge: String = "",
     val pantry: String,
     val mop: String,
     val hiringSign: String,
@@ -128,7 +132,7 @@ fun RestaurantScene(
                 drawRoom(model.cleanliness, doorOpen = false, time = time)
                 drawOven(model.ovenCondition, time, model.ovenOnFire, model.ovenLevel)
                 drawStove(false, time)
-                drawSink()
+                drawFridge(model.fridgeCondition, broken = model.fridgeCondition <= 0, struggling = false, level = model.fridgeLevel, time = time)
                 drawDishStation(text, labels.dishSign)
                 drawPantry(model.pantryFullness, model.pantryJars)
                 drawTables(ServiceFloor.layout(model.tableCount))
@@ -163,6 +167,7 @@ fun RestaurantScene(
         run {
             val targets = listOf(
                 SceneTarget.Oven to labels.oven,
+                SceneTarget.Fridge to labels.fridge,
                 SceneTarget.Pantry to labels.pantry,
                 SceneTarget.MenuBoard to labels.menu,
                 SceneTarget.Mop to labels.mop,
@@ -209,6 +214,7 @@ internal fun staffPositions(staff: List<StaffFigure>): List<Pair<StaffFigure, Po
 
 private fun rectFor(target: SceneTarget, staffSpots: List<Pair<StaffFigure, Point>>): Rect? = when (target) {
     SceneTarget.Oven -> SceneLayout.oven
+    SceneTarget.Fridge -> SceneLayout.fridge
     SceneTarget.Pantry -> SceneLayout.pantry
     SceneTarget.MenuBoard -> SceneLayout.menuBoard
     SceneTarget.Mop -> Rect(SceneLayout.mopBucket.left, SceneLayout.mopBucket.top - 6f, SceneLayout.mopBucket.right + 4f, SceneLayout.mopBucket.bottom)

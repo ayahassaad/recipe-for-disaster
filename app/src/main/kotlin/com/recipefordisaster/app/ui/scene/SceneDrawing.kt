@@ -395,20 +395,53 @@ internal fun Pen.drawStove(busy: Boolean, time: Float) {
     dot(pan.x + 0.3f, pan.y + 0.2f, 0.7f, Color(0xFFF2B32F))
 }
 
-internal fun Pen.drawSink() {
-    val s = SceneLayout.sink
-    oval(s.center.x, s.bottom + 0.6f, s.width / 2, 0.8f, Palette.shadow)
-    box(s, Palette.steel)
-    box(s.left + 1f, s.top + 3f, s.width / 2 - 1.4f, s.height - 4f, Palette.steelDark, radius = 1f)
-    box(s.center.x + 0.4f, s.top + 3f, s.width / 2 - 1.4f, s.height - 4f, Palette.steelDark, radius = 1f)
-    // Tap and hot/cold handles.
-    box(s.center.x - 0.6f, s.top + 0.4f, 1.2f, 2.2f, Palette.steelMid, radius = 0.4f)
-    line(s.center.x, s.top + 1.4f, s.center.x - 2f, s.top + 3.6f, Palette.steelMid, 0.6f)
-    dot(s.center.x - 2f, s.top + 1.2f, 0.5f, Color(0xFFD94B3B))
-    dot(s.center.x + 2f, s.top + 1.2f, 0.5f, Color(0xFF4F86C6))
-    // Bubbles in one basin.
-    dot(s.left + 3f, s.top + 6f, 0.8f, Color(0xBBFFFFFF))
-    dot(s.left + 4.2f, s.top + 7f, 0.5f, Color(0xBBFFFFFF))
+/**
+ * The fridge: a tall two-door fridge (freezer on top) with handles and a little status light, green
+ * when it's fine, amber when it's worn, red and dark when it's broken. [struggling] makes it judder and
+ * the light flicker, just before it gives up. The better models look the part: white enamel for the
+ * sturdy one, black steel with a display for the best.
+ */
+internal fun Pen.drawFridge(condition: Int, broken: Boolean, struggling: Boolean, level: Int, time: Float) {
+    val shake = if (struggling) sin(time * 40f) * 0.25f else 0f
+    val f = Rect(SceneLayout.fridge.left + shake, SceneLayout.fridge.top, SceneLayout.fridge.right + shake, SceneLayout.fridge.bottom)
+    val (body, door, handle) = when {
+        level >= 3 -> Triple(Color(0xFF26292F), Color(0xFF353A42), Color(0xFF9AA3AD))
+        level == 2 -> Triple(Color(0xFFE7E4DC), Color(0xFFF7F5EF), Color(0xFF9AA3AD))
+        else -> Triple(Palette.steelMid, Palette.steel, Palette.steelDark)
+    }
+    oval(f.center.x, f.bottom + 0.6f, f.width / 2, 0.9f, Palette.shadow)
+    box(f, body, radius = 1.2f)
+    // Freezer door on top, fridge door below, with a gap between.
+    val split = f.top + f.height * 0.36f
+    box(f.left + 0.6f, f.top + 0.6f, f.width - 1.2f, split - f.top - 1f, door, radius = 0.8f)
+    box(f.left + 0.6f, split + 0.4f, f.width - 1.2f, f.bottom - split - 1f, door, radius = 0.8f)
+    // Long handles down the right-hand edge.
+    box(f.right - 2.4f, f.top + 2f, 0.8f, split - f.top - 4f, handle, radius = 0.4f)
+    box(f.right - 2.4f, split + 2f, 0.8f, (f.bottom - split) * 0.5f, handle, radius = 0.4f)
+    // A magnet and a shopping note on the door, because every restaurant fridge has one.
+    if (!broken) {
+        box(f.left + 2f, split + 3f, 4.2f, 4.6f, Color(0xFFFFFCF2), radius = 0.2f)
+        line(f.left + 2.6f, split + 4.6f, f.left + 5.4f, split + 4.6f, Color(0x55000000), 0.2f)
+        line(f.left + 2.6f, split + 5.8f, f.left + 4.8f, split + 5.8f, Color(0x55000000), 0.2f)
+        dot(f.left + 4.1f, split + 3f, 0.6f, Palette.serverRed)
+    }
+    if (level >= 3) box(f.left + 2f, f.top + 2f, 4f, 2f, Color(0xFF0E2F4A), radius = 0.3f)
+    // Status light: green, amber when worn, flickering just before it goes, red when broken.
+    val flicker = struggling && sin(time * 30f) > 0f
+    val light = when {
+        broken -> Palette.alert
+        flicker -> Color(0xFF3A2A10)
+        struggling || condition < com.recipefordisaster.domain.equipment.Fridge.WORN -> Color(0xFFE0A030)
+        else -> Color(0xFF4CAF50)
+    }
+    dot(f.left + 7.6f, f.top + 2.6f, 0.75f, light)
+    if (broken) {
+        // Door hanging open a crack, a puddle where it's dripping, and no hum.
+        line(f.left + 0.6f, split + 0.6f, f.left + 0.6f, f.bottom - 0.8f, Color(0xFF1A1A1A), 0.5f)
+        oval(f.center.x, f.bottom + 1.2f, 3f, 0.8f, Color(0x998FC6EA))
+        val drip = (time * 1.2f) % 1f
+        dot(f.center.x - 1f, f.bottom - 0.5f + drip * 1.6f, 0.35f, Color(0xFF8FC6EA))
+    }
 }
 
 /** Shelves of lidded, labelled jars plus flour sacks; [fullness] 0-1 decides how much is stocked. */

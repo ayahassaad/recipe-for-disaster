@@ -6,6 +6,7 @@ import com.recipefordisaster.domain.employee.EmployeeStatus
 import com.recipefordisaster.domain.employee.Role
 import com.recipefordisaster.domain.equipment.EquipmentCatalog
 import com.recipefordisaster.domain.equipment.EquipmentOperations
+import com.recipefordisaster.domain.equipment.Fridge
 import com.recipefordisaster.domain.inventory.InventoryOperations
 import com.recipefordisaster.domain.inventory.InventoryState
 import com.recipefordisaster.domain.menu.Dish
@@ -63,6 +64,14 @@ data class ServiceNight(
     val tableCount: Int = ServiceFloor.TABLE_COUNT,
     /** For guests who gave up: at which step (the door, waiting to order, or waiting for food). */
     val gaveUpAt: Map<Int, WaitedFor> = emptyMap(),
+    /** When a worn fridge is going to give up tonight, if it is (rolled when the doors open). */
+    val fridgeBreaksAt: Float? = null,
+    /** The fridge isn't working: dishes needing cold ingredients can't be made until it's fixed. */
+    val fridgeBroken: Boolean = false,
+    /** The fridge broke during service tonight (as opposed to being broken already). */
+    val fridgeBrokeTonight: Boolean = false,
+    /** When the cold food last went off a bit while the fridge was broken. */
+    val fridgeLastSpoil: Float = 0f,
 ) {
 
     /** What a guest was waiting for when they gave up. */
@@ -181,6 +190,14 @@ data class ServiceNight(
         data class Mopping(val messId: Int) : Errand
         @Serializable
         data object Rest : Errand
+
+        /** Go to the fridge to fix it. */
+        @Serializable
+        data object VisitFridge : Errand
+
+        /** Banging the fridge back into life; it works again when this ends. */
+        @Serializable
+        data object FixFridge : Errand
     }
 
     @Serializable
@@ -280,6 +297,15 @@ data class ServiceNight(
     /** Go and mop up a spill (you need the mop in hand when you get there). */
     fun tapMess(messId: Int): ServiceNight = enqueue(Errand.CleanMess(messId))
 
+    /** Go and fix the fridge (only does anything while it's broken). */
+    fun tapFridge(): ServiceNight = enqueue(Errand.VisitFridge)
+
+    /** The fridge is about to give up: its light is flickering. */
+    val fridgeStruggling: Boolean get() = !fridgeBroken && fridgeBreaksAt != null && time >= fridgeBreaksAt - FRIDGE_WARNING && time < fridgeBreaksAt
+
+    /** Someone is on their way to fix the fridge, or fixing it now. */
+    val fridgeBeingFixed: Boolean get() = waiters.any { w -> w.errand == Errand.FixFridge || w.errand == Errand.VisitFridge || Errand.VisitFridge in w.queue }
+
     /**
      * Taps queue up: if the player is already on their way somewhere, the
      * new stop goes on the end of the list instead of cutting the current
@@ -289,6 +315,8 @@ data class ServiceNight(
         val me = player
         // An empty, clean table has nothing to do: ignore the tap rather than send the player on a wasted trip.
         if (errand is Errand.VisitTable && partyAt(errand.table) == null && errand.table !in dirtyTables) return this
+        // A working fridge doesn't need fixing.
+        if (errand == Errand.VisitFridge && !fridgeBroken) return this
         if (me.errand == null) return send(me.id, errand)
         if (errand == me.errand || errand in me.queue || me.queue.size >= MAX_QUEUED) return this
         return copy(waiters = waiters.map { if (it.isPlayer) it.copy(queue = it.queue + errand) else it })
@@ -307,7 +335,8 @@ data class ServiceNight(
             Errand.HandIn -> ServiceFloor.chef
             is Errand.PickUp -> platesOnCounter.indexOfFirst { it.id == errand.partyId }.takeIf { it >= 0 }?.let { ServiceFloor.plateStand(it) } ?: ServiceFloor.pass
             Errand.VisitDishStation -> ServiceFloor.dishStation
-            Errand.Wash, is Errand.Mopping -> here
+            Errand.Wash, is Errand.Mopping, Errand.FixFridge -> here
+            Errand.VisitFridge -> ServiceFloor.fridge
             Errand.VisitMopBucket -> ServiceFloor.mopBucket
             is Errand.CleanMess -> messes.firstOrNull { it.id == errand.messId }?.at ?: here
             Errand.Rest -> waiter.restSpot
@@ -323,6 +352,7 @@ data class ServiceNight(
     fun advance(dt: Float): ServiceNight {
         if (finished) return this
         var night = copy(time = time + dt)
+        night = night.fridgeStep()
         night = night.arrivals()
         night = night.seatParties()
         night = night.checkPatience()
@@ -331,6 +361,21 @@ data class ServiceNight(
         night = night.moveWaiters()
         night = night.directStaff()
         if (night.time > HARD_STOP) night = night.closeUp()
+        return night
+    }
+
+    /** A worn fridge gives up at its time; while it's broken, the cold food slowly goes off. */
+    private fun fridgeStep(): ServiceNight {
+        var night = this
+        if (!fridgeBroken && fridgeBreaksAt != null && time >= fridgeBreaksAt && !fridgeBrokeTonight) {
+            night = night.copy(fridgeBroken = true, fridgeBrokeTonight = true, fridgeLastSpoil = time)
+        }
+        if (night.fridgeBroken && time - night.fridgeLastSpoil >= FRIDGE_SPOIL_EVERY) {
+            val spoiled = night.inventory.ingredients.mapValues { (_, ingredient) ->
+                if (Fridge.isCold(ingredient)) ingredient.copy(quantityOnHand = ingredient.quantityOnHand * (1 - FRIDGE_SPOIL)) else ingredient
+            }
+            night = night.copy(inventory = night.inventory.copy(ingredients = spoiled), fridgeLastSpoil = time)
+        }
         return night
     }
 
@@ -347,7 +392,8 @@ data class ServiceNight(
             }
             // Anyone with nothing on the menu they can eat or afford reads it at the door and leaves —
             // and so does anyone whose dishes have all sold out (the kitchen has run out of ingredients).
-            val (staying, leaving) = party.guests.zip(party.preferences).partition { (_, prefs) -> prefs.any { night.canMake(it, night.inventory) } }
+            // (A broken fridge doesn't send people away at the door: it might be fixed by the time they order.)
+            val (staying, leaving) = party.guests.zip(party.preferences).partition { (_, prefs) -> prefs.any { night.canMake(it, night.inventory, fridgeMatters = false) } }
             var results = night.results
             leaving.forEach { (guest, prefs) ->
                 results = results + (guest to missed(guest, if (prefs.isEmpty()) MissedMealReason.NOTHING_SUITABLE else MissedMealReason.OUT_OF_STOCK))
@@ -427,14 +473,21 @@ data class ServiceNight(
         }
     }
 
-    /** Whether the kitchen could cook this dish from [stock]: it's on tonight's menu and the ingredients are there. */
-    private fun canMake(dishId: DishId, stock: InventoryState): Boolean {
+    /**
+     * Whether the kitchen could cook this dish from [stock]: it's on tonight's menu, the ingredients are
+     * there, and (while the fridge is broken) it doesn't need anything cold.
+     */
+    private fun canMake(dishId: DishId, stock: InventoryState, fridgeMatters: Boolean = true): Boolean {
         val dish = menu.firstOrNull { it.id == dishId } ?: return false
+        if (fridgeMatters && fridgeBroken && needsCold(dish)) return false
         return dish.available && InventoryOperations.canFulfill(stock, dish.recipe)
     }
 
-    /** Whether anything on the menu can still be cooked tonight. */
-    val kitchenHasFood: Boolean get() = menu.any { canMake(it.id, inventory) }
+    /** Whether a dish uses anything that has to be kept in the fridge. */
+    fun needsCold(dish: Dish): Boolean = dish.recipe.ingredientRequirements.keys.any { id -> inventory.ingredients[id]?.let { Fridge.isCold(it) } == true }
+
+    /** Whether anything on the menu can still be cooked tonight (a broken fridge can be fixed, so it doesn't count). */
+    val kitchenHasFood: Boolean get() = menu.any { canMake(it.id, inventory, fridgeMatters = false) }
 
     private fun runKitchen(): ServiceNight {
         var night = this
@@ -533,6 +586,11 @@ data class ServiceNight(
                     val orders = party.preferences.map { prefs ->
                         prefs.firstOrNull { night.canMake(it, stock) }?.also { id -> stock = InventoryOperations.consume(stock, night.menu.first { it.id == id }.recipe) }
                     }
+                    // With the fridge broken, anyone who'd want something cold can't order yet: they wait for it to be fixed.
+                    val waitingForFridge = night.fridgeBroken && party.preferences.zip(orders).any { (prefs, order) ->
+                        order == null && prefs.any { night.canMake(it, night.inventory, fridgeMatters = false) }
+                    }
+                    if (waitingForFridge) return night
                     var results = night.results
                     party.guests.zip(orders).forEach { (guest, dish) -> if (dish == null && guest !in results) results = results + (guest to missed(guest, MissedMealReason.OUT_OF_STOCK)) }
                     night = night.copy(inventory = stock, results = results)
@@ -607,6 +665,14 @@ data class ServiceNight(
                 }
             }
             is Errand.Mopping -> night = night.copy(messes = night.messes.map { if (it.id == errand.messId) it.copy(cleaned = true) else it })
+            Errand.VisitFridge -> {
+                val someoneOnIt = night.waiters.any { it.id != waiterId && it.errand == Errand.FixFridge }
+                if (night.fridgeBroken && !someoneOnIt) {
+                    updateWaiter { it.copy(route = listOf(it.position(time)), routeStart = time, routeEnd = time + FIX_FRIDGE, errand = Errand.FixFridge) }
+                }
+            }
+            // Patched up: it works for the rest of the night (a proper repair is a morning job).
+            Errand.FixFridge -> night = night.copy(fridgeBroken = false)
             Errand.Wash, Errand.Rest, null -> {}
         }
         return night
@@ -630,6 +696,8 @@ data class ServiceNight(
                     // Only dishwashers bring a mop; bussers stick to tables and dishes.
                     val mess = if (waiter.kind == Kind.DISHWASHER) night.messesOnFloor.firstOrNull { it.id !in claimedMesses } else null
                     when {
+                        // A dishwasher sees to a broken fridge before anything else.
+                        waiter.kind == Kind.DISHWASHER && night.fridgeBroken && !night.fridgeBeingFixed -> Errand.VisitFridge
                         waiter.dirtyDishes.isNotEmpty() && (waiter.freeHands == 0 || table == null) -> Errand.VisitDishStation
                         mess != null -> Errand.CleanMess(mess.id)
                         table != null && waiter.freeHands > 0 -> Errand.VisitTable(table)
@@ -677,7 +745,14 @@ data class ServiceNight(
     fun result(): ServiceSimulator.ServiceResult {
         val outcomes = arrivalOrder.indices.map { results[it] ?: missed(it, MissedMealReason.TIRED_OF_WAITING) }
         val sold = outcomes.mapNotNull { it.dish?.id }.groupingBy { it }.eachCount()
-        return ServiceSimulator.ServiceResult(outcomes = outcomes, dishesSold = sold, staffingRatio = staffingRatio, inventoryAfter = inventory)
+        return ServiceSimulator.ServiceResult(
+            outcomes = outcomes,
+            dishesSold = sold,
+            staffingRatio = staffingRatio,
+            inventoryAfter = inventory,
+            fridgeBrokeTonight = fridgeBrokeTonight,
+            fridgeLeftBroken = fridgeBroken,
+        )
     }
 
     companion object {
@@ -722,6 +797,19 @@ data class ServiceNight(
 
         /** Seconds to mop up a spill. */
         private const val MOP = 1.5f
+
+        /** How long the fridge's light flickers before it gives up. */
+        const val FRIDGE_WARNING = 6f
+
+        /** Seconds to get a broken fridge going again. */
+        private const val FIX_FRIDGE = 4f
+
+        /** While the fridge is broken, the cold food loses [FRIDGE_SPOIL] of itself every this many seconds. */
+        private const val FRIDGE_SPOIL_EVERY = 10f
+        private const val FRIDGE_SPOIL = 0.1
+
+        /** A worn fridge can break during service from this day on. */
+        private const val FRIDGE_BREAKS_FROM_DAY = 4
 
         /** Satisfaction each guest loses per spill on the floor when they finish eating, counting up to [MAX_MESS_PENALTIES]. */
         private const val MESS_PENALTY = 6
@@ -812,6 +900,17 @@ data class ServiceNight(
             val (slots, secondsPerDish) = kitchenPace(state)
 
             val active = state.employees.count { it.status == EmployeeStatus.ACTIVE }
+            // A worn fridge might give up tonight (the more worn, the likelier), some time after things get going.
+            // One that's already broken stays broken until someone fixes it.
+            val fridge = Fridge.of(state)
+            val fridgeBrokenAtOpen = fridge != null && EquipmentOperations.isBroken(fridge)
+            val fridgeBreaksAt = if (fridge != null && !fridgeBrokenAtOpen && Fridge.isWorn(fridge) && state.day >= FRIDGE_BREAKS_FROM_DAY) {
+                val chance = 0.25f + 0.5f * (Fridge.WORN - fridge.condition) / Fridge.WORN.toFloat()
+                if (rng.nextFloat() < chance) 35f + rng.nextFloat() * 60f else null
+            } else {
+                null
+            }
+
             return ServiceNight(
                 time = 0f,
                 parties = parties,
@@ -826,6 +925,8 @@ data class ServiceNight(
                 arrivalOrder = customers,
                 messes = messes,
                 tableCount = tableCount,
+                fridgeBreaksAt = fridgeBreaksAt,
+                fridgeBroken = fridgeBrokenAtOpen,
                 hosted = state.employees.any { it.status == EmployeeStatus.ACTIVE && it.role == Role.HOST },
             )
         }
@@ -848,7 +949,7 @@ data class ServiceNight(
             val cooks = state.employees.filter { it.status == EmployeeStatus.ACTIVE && it.role == Role.COOK }
             val slots = cooks.size.coerceAtLeast(1)
             val skill = if (cooks.isEmpty()) 0.35f else (cooks.map { EmployeePerformance.effectiveServiceSpeed(it) }.average() / 45.0).toFloat().coerceIn(0.5f, 1.6f)
-            val broken = state.equipment.count { EquipmentOperations.isBroken(it) }
+            val broken = Fridge.cookingKit(state.equipment).count { EquipmentOperations.isBroken(it) }
             return slots to 3.2f / skill * (if (broken > 0) 1.8f else 1f) / EquipmentCatalog.cookingSpeed(state.equipment)
         }
 

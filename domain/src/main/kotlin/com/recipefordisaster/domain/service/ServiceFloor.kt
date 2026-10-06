@@ -60,6 +60,9 @@ object ServiceFloor {
     /** Where tickets are handed in and plates picked up. */
     val pass = FloorPoint(50f, 49f)
 
+    /** Where you stand to fix the fridge: in front of the counter, below it. */
+    val fridge = FloorPoint(60f, 49f)
+
     /** Where the player stands to hand orders to the chef: at the counter, right in front of the cook. */
     val chef = FloorPoint(16f, 49f)
 

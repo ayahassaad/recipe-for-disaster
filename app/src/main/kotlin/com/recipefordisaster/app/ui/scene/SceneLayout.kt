@@ -36,7 +36,8 @@ object SceneLayout {
     const val KITCHEN_BOTTOM = 38f
     val oven = Rect(6f, 8f, 26f, 26f)
     val stove = Rect(30f, 8f, 50f, 26f)
-    val sink = Rect(54f, 8f, 66f, 22f)
+    /** The fridge, where the old sink used to be: tall, between the stove and the pantry. */
+    val fridge = Rect(54f, 4f, 66f, 27f)
     val pantry = Rect(70f, 5f, 96f, 30f)
 
     // The pass: the counter between kitchen and dining room, where plates are handed over.

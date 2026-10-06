@@ -59,4 +59,13 @@ class NightHintTest {
         assertEquals(NightHint.Clear(0), NightHint.of(gone))
         assertEquals(NightHint.TidyingUp, NightHint.of(gone.copy(dirtyTables = emptySet())))
     }
+
+    @Test
+    fun `a broken fridge is pointed out before taking orders, and a struggling one is warned about`() {
+        val broken = withParty(Stage.READY_TO_ORDER, 2).copy(fridgeBroken = true)
+        assertEquals(NightHint.FixFridge, NightHint.of(broken))
+        assertEquals(com.recipefordisaster.app.ui.scene.NightFocus.Fridge, NightHint.of(broken).focus(broken))
+        val struggling = night.copy(fridgeBreaksAt = night.time + 2f)
+        assertEquals(NightHint.FridgeStruggling, NightHint.of(struggling))
+    }
 }

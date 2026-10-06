@@ -24,8 +24,18 @@ object EquipmentCatalog {
         Model(level = 3, name = "Convection Oven", price = 1_200, speed = 2, maintenancePerDay = 3, failureBase = 0.005),
     )
 
+    /** Fridges: a sturdier one breaks down less and wears more slowly. They don't cook, so no speed. */
+    val fridges: List<Model> = listOf(
+        Model(level = 1, name = "Old Fridge", price = 400, speed = 0, maintenancePerDay = 3, failureBase = 0.01),
+        Model(level = 2, name = "Sturdy Fridge", price = 350, speed = 0, maintenancePerDay = 2, failureBase = 0.005),
+        Model(level = 3, name = "Steel Fridge", price = 900, speed = 0, maintenancePerDay = 2, failureBase = 0.002),
+    )
+
+    /** The models this kind of machine comes in. */
+    fun modelsFor(equipment: Equipment): List<Model> = if (Fridge.isFridge(equipment)) fridges else ovens
+
     /** The next model up from this machine, or null if it's already the best there is. */
-    fun nextModel(equipment: Equipment): Model? = ovens.firstOrNull { it.level == equipment.upgradeLevel + 1 }
+    fun nextModel(equipment: Equipment): Model? = modelsFor(equipment).firstOrNull { it.level == equipment.upgradeLevel + 1 }
 
     fun upgradeCost(equipment: Equipment): Long? = nextModel(equipment)?.price
 

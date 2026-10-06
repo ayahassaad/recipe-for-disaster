@@ -136,10 +136,12 @@ class GameViewModel(
             _uiState.value = GameUiState.Loading
             when (val result = gameRepository.load()) {
                 is SaveLoadResult.Success -> {
+                    // Saves from before the fridge existed get one.
+                    val state = com.recipefordisaster.domain.equipment.Fridge.ensure(result.state)
                     // If the app was closed during service, pick the night back up where it was left.
                     val night = gameRepository.loadNight()?.takeIf { it.setup.original == result.state }
                     _uiState.value = GameUiState.Playing(
-                        result.state,
+                        if (night != null) result.state else state,
                         dayLog = emptyList(),
                         night = night?.let { NightSession(it.setup, it.night, it.morningSpending, it.dailySeed) },
                     )
@@ -184,12 +186,13 @@ class GameViewModel(
         val session = current.night ?: return
         viewModelScope.launch {
             val result = dayTickEngine.closeService(session.setup, finalNight.result(), SeededRandomSource(session.dailySeed + 2))
-            gameRepository.save(result.newState)
+            val newState = com.recipefordisaster.domain.equipment.Fridge.ensure(result.newState)
+            gameRepository.save(newState)
             gameRepository.clearNight()
             val report = result.summary?.let { summary ->
                 result.newState.ledger.history.lastOrNull()?.let { books -> DayReport(summary, books, result.event, session.morningSpending, session.setup.morning.state, finalNight.gaveUpCounts()) }
             }
-            _uiState.value = GameUiState.Playing(result.newState, dayLog = result.log, lastEvent = result.event, report = report)
+            _uiState.value = GameUiState.Playing(newState, dayLog = result.log, lastEvent = result.event, report = report)
         }
     }
 

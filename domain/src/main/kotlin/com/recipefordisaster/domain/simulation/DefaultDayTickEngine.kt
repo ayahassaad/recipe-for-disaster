@@ -7,6 +7,7 @@ import com.recipefordisaster.domain.employee.EmployeePerformance
 import com.recipefordisaster.domain.employee.EmployeeStatus
 import com.recipefordisaster.domain.employee.StaffingMarket
 import com.recipefordisaster.domain.equipment.EquipmentOperations
+import com.recipefordisaster.domain.equipment.Fridge
 import com.recipefordisaster.domain.event.EventEngine
 import com.recipefordisaster.domain.event.Severity
 import com.recipefordisaster.domain.inventory.InventoryOperations
@@ -80,7 +81,16 @@ class DefaultDayTickEngine(
         val customersFed = serviceResult.outcomes.count { it.dish != null }
 
         // 3. Closing
-        val inventoryAfterSpoilage = InventoryOperations.applySpoilage(serviceResult.inventoryAfter ?: start.inventory)
+        // A fridge that broke tonight and was never fixed is still broken in the morning.
+        val fridgeBrokenOvernight = serviceResult.fridgeLeftBroken || Fridge.of(start)?.let { EquipmentOperations.isBroken(it) } == true
+        val inventoryAfterSpoilage = InventoryOperations.applySpoilage(serviceResult.inventoryAfter ?: start.inventory, coldSpoilsFaster = fridgeBrokenOvernight)
+        if (serviceResult.fridgeBrokeTonight) {
+            dayLog += SimulationLogEntry(
+                state.day,
+                if (serviceResult.fridgeLeftBroken) "The fridge broke during service and nobody fixed it. The cold food is spoiling." else "The fridge broke during service. Patched up for now, but it needs a proper repair.",
+                LogTone.BAD,
+            )
+        }
 
         val employeesAfterDay = start.employees.map { employee ->
             when (employee.status) {
@@ -97,8 +107,10 @@ class DefaultDayTickEngine(
             0.0
         }
         val equipmentAfterWear = start.equipment.map { EquipmentOperations.applyDailyWear(it, usageIntensity) }
+            .map { if (Fridge.isFridge(it) && serviceResult.fridgeLeftBroken) it.copy(condition = 0) else it }
         val equipmentAfterFailureChecks = equipmentAfterWear.map { equipment ->
-            if (EquipmentOperations.rollForFailure(equipment, rng)) {
+            // The fridge has its own ways of breaking (overnight event, or mid-service); this roll is for the cooking kit.
+            if (!Fridge.isFridge(equipment) && EquipmentOperations.rollForFailure(equipment, rng)) {
                 dayLog += SimulationLogEntry(state.day, "The ${equipment.name} broke down. The kitchen will be slower until it's repaired.", LogTone.BAD)
                 equipment.copy(condition = 0)
             } else {

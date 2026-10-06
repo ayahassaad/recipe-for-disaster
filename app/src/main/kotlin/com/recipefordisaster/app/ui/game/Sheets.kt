@@ -59,7 +59,8 @@ private const val BUY_STEP = 5.0
 internal fun SheetContent(target: SceneTarget, uiState: GameUiState.Playing, actions: GameActions) {
     Column(modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         when (target) {
-            SceneTarget.Oven -> OvenSheet(uiState, actions)
+            SceneTarget.Oven -> oven(uiState.state)?.let { EquipmentSheet(it, uiState, actions) }
+            SceneTarget.Fridge -> com.recipefordisaster.domain.equipment.Fridge.of(uiState.state)?.let { EquipmentSheet(it, uiState, actions) }
             SceneTarget.Pantry -> PantrySheet(uiState, actions)
             SceneTarget.MenuBoard -> MenuSheet(uiState, actions)
             SceneTarget.Mop -> CleaningSheet(uiState, actions)
@@ -74,8 +75,8 @@ internal fun SheetContent(target: SceneTarget, uiState: GameUiState.Playing, act
 }
 
 @Composable
-private fun OvenSheet(uiState: GameUiState.Playing, actions: GameActions) {
-    val equipment = uiState.state.equipment.firstOrNull() ?: return
+private fun EquipmentSheet(equipment: com.recipefordisaster.domain.equipment.Equipment, uiState: GameUiState.Playing, actions: GameActions) {
+    val isFridge = com.recipefordisaster.domain.equipment.Fridge.isFridge(equipment)
     val upgrading = equipment.id in uiState.plan.upgrades
     val repairing = equipment.id in uiState.plan.repairs && !upgrading
     val cost = EquipmentOperations.repairCost(equipment)
@@ -83,7 +84,9 @@ private fun OvenSheet(uiState: GameUiState.Playing, actions: GameActions) {
     SectionTitle(if (upgrading && next != null) next.name else equipment.name)
     Meter(stringResource(R.string.condition), if (repairing || upgrading) 100 else equipment.condition)
     if (EquipmentOperations.isBroken(equipment) && !repairing && !upgrading) {
-        Text(stringResource(R.string.broken), style = MaterialTheme.typography.bodyLarge, color = DisasterRed)
+        Text(stringResource(if (isFridge) R.string.fridge_broken else R.string.broken), style = MaterialTheme.typography.bodyLarge, color = DisasterRed)
+    } else if (isFridge && com.recipefordisaster.domain.equipment.Fridge.isWorn(equipment) && !repairing && !upgrading) {
+        Text(stringResource(R.string.fridge_worn), style = MaterialTheme.typography.bodyLarge, color = MustardAmber)
     }
     when {
         upgrading -> {}
@@ -99,9 +102,9 @@ private fun OvenSheet(uiState: GameUiState.Playing, actions: GameActions) {
             Text(stringResource(R.string.upgrade_ordered, next?.name ?: ""), style = MaterialTheme.typography.bodyLarge, color = LeafGreen)
             OutlinedButton(onClick = { actions.onToggleUpgrade(equipment.id) }) { Text(stringResource(R.string.undo)) }
         }
-        next == null -> Text(stringResource(R.string.upgrade_best), style = MaterialTheme.typography.bodyLarge)
+        next == null -> Text(stringResource(if (isFridge) R.string.upgrade_best_fridge else R.string.upgrade_best), style = MaterialTheme.typography.bodyLarge)
         else -> {
-            Text(stringResource(R.string.upgrade_pitch, next.name), style = MaterialTheme.typography.bodyLarge)
+            Text(stringResource(if (isFridge) R.string.upgrade_pitch_fridge else R.string.upgrade_pitch, next.name), style = MaterialTheme.typography.bodyLarge)
             val affordable = uiState.cashNow >= next.price
             BigAction(stringResource(R.string.upgrade_buy, next.name, coins(next.price)), enabled = affordable) {
                 if (repairing) actions.onToggleRepair(equipment.id) // no need to fix the old one too

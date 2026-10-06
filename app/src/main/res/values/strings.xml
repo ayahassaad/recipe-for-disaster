@@ -55,6 +55,10 @@
     <string name="closing_time_fed">%1$d of %2$d guests fed tonight</string>
     <string name="hint_tidying_up">Everyone\'s gone. Clearing up, then it\'s closing time.</string>
     <string name="hint_last_clear">Last job: clear table %1$d, then wash up to close.</string>
+    <string name="hint_fix_fridge">The fridge broke! Nobody can order until it\'s fixed. Tap the fridge.</string>
+    <string name="hint_fixing_fridge">Fixing the fridge…</string>
+    <string name="hint_fridge_struggling">The fridge is struggling! It\'s about to give up.</string>
+    <string name="night_fridge">Fridge: fix it if it breaks</string>
     <string name="hint_waiting">Waiting for guests to come in…</string>
     <string name="hint_cooking">The kitchen is cooking…</string>
     <string name="night_table">Table %1$d: %2$s</string>
@@ -211,6 +215,11 @@
     <string name="broken">Broken. The kitchen works at half speed.</string>
     <string name="fix">Fix (%1$s)</string>
     <string name="fine">Working fine</string>
+    <string name="scene_fridge">Fridge</string>
+    <string name="fridge_broken">Broken! Cold food spoils fast and dishes that need it can\'t be made.</string>
+    <string name="fridge_worn">Worn out. It could break down, even during service.</string>
+    <string name="upgrade_pitch_fridge">A %1$s breaks down less and wears out more slowly.</string>
+    <string name="upgrade_best_fridge">This is the best fridge money can buy.</string>
     <string name="upgrade_title">Get a better one</string>
     <string name="upgrade_pitch">A %1$s cooks faster, breaks down less and wears out more slowly.</string>
     <string name="upgrade_buy">Buy a %1$s (%2$s)</string>
