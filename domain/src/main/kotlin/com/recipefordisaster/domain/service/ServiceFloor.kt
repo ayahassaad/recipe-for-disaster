@@ -60,6 +60,18 @@ object ServiceFloor {
     /** Where tickets are handed in and plates picked up. */
     val pass = FloorPoint(50f, 49f)
 
+    /** Where the player stands to hand orders to the chef: at the counter, right in front of the cook. */
+    val chef = FloorPoint(16f, 49f)
+
+    /** How many waiting plates fit on the counter. */
+    const val PLATES_ON_COUNTER = 4
+
+    /** The [i]th waiting plate on the counter (between the pass and the dish station). */
+    fun plate(i: Int): FloorPoint = FloorPoint(56f + i * 6.4f, 41f)
+
+    /** Where the player stands to pick up the [i]th waiting plate: in front of the counter. */
+    fun plateStand(i: Int): FloorPoint = FloorPoint(plate(i).x, pass.y)
+
     /** The dish station at the right end of the counter, where dirty plates are washed. */
     val dishStation = FloorPoint(86f, 49f)
 

@@ -233,7 +233,9 @@ fun NightScene(
                     (listOfNotNull(me.errand) + me.queue).forEachIndexed { k, errand ->
                         val spot = when (errand) {
                             is ServiceNight.Errand.VisitTable -> layout.stand(errand.table)
-                            ServiceNight.Errand.VisitPass, ServiceNight.Errand.HandIn, is ServiceNight.Errand.PickUp -> ServiceFloor.pass
+                            ServiceNight.Errand.VisitPass -> ServiceFloor.pass
+                            ServiceNight.Errand.HandIn -> ServiceFloor.chef
+                            is ServiceNight.Errand.PickUp -> night.platesOnCounter.indexOfFirst { it.id == errand.partyId }.takeIf { it >= 0 }?.let { ServiceFloor.plateStand(it) }
                             ServiceNight.Errand.VisitDishStation -> ServiceFloor.dishStation
                             ServiceNight.Errand.VisitMopBucket -> ServiceFloor.mopBucket
                             is ServiceNight.Errand.CleanMess -> night.messes.firstOrNull { it.id == errand.messId }?.at
@@ -416,10 +418,10 @@ private fun Pen.drawTickets(text: TextMeasurer, night: ServiceNight) {
 
 /** Finished plates on the counter, each with a flag showing which table it's for. */
 /** Plates waiting on the counter, oldest first (as many as fit). */
-private fun readyPlates(night: ServiceNight) = night.parties.filter { it.stage == Stage.READY_AT_PASS }.sortedBy { it.stageSince }.take(4)
+private fun readyPlates(night: ServiceNight) = night.platesOnCounter
 
-/** Where the [i]th waiting plate sits on the counter, between the pass and the dish station. */
-private fun plateSpot(i: Int) = Point(56f + i * 6.4f, SceneLayout.counter.top + 3f)
+/** Where the [i]th waiting plate sits on the counter (the same spot the player walks to). */
+private fun plateSpot(i: Int) = ServiceFloor.plate(i).toPoint()
 
 private fun Pen.drawReadyPlates(text: TextMeasurer, night: ServiceNight) {
     readyPlates(night).forEachIndexed { i, party ->

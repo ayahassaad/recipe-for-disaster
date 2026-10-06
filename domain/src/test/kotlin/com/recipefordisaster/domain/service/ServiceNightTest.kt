@@ -508,4 +508,18 @@ class ServiceNightTest {
         n = waitFor(n) { night -> night.parties.first { it.id == party.id }.stage != Stage.READY_AT_PASS }
         assertEquals(ServiceNight.PLAYER_ID, n.parties.first { it.id == party.id }.heldBy)
     }
+
+    @Test
+    fun `handing in walks to the chef, and picking up walks to the plate`() {
+        val noRunners = start.copy(employees = start.employees.filter { it.role == com.recipefordisaster.domain.employee.Role.COOK })
+        var n = waitFor(open(noRunners)) { night -> night.parties.any { it.stage == Stage.READY_TO_ORDER } }
+        val party = n.parties.first { it.stage == Stage.READY_TO_ORDER }
+        n = waitFor(n.tapTable(party.table!!)) { !it.player.walking }
+        n = n.tapChef()
+        assertEquals(ServiceFloor.chef, n.player.route.last())
+        n = waitFor(n) { !it.player.walking }
+        n = waitFor(n) { night -> night.parties.first { it.id == party.id }.stage == Stage.READY_AT_PASS }
+        n = n.tapPlate(party.id)
+        assertEquals(ServiceFloor.plateStand(0), n.player.route.last())
+    }
 }

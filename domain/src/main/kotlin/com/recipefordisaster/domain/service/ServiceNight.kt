@@ -217,6 +217,9 @@ data class ServiceNight(
 
     val finished: Boolean get() = parties.all { it.stage == Stage.DONE }
 
+    /** Plates waiting on the counter, oldest first, as many as fit. */
+    val platesOnCounter: List<Party> get() = parties.filter { it.stage == Stage.READY_AT_PASS }.sortedBy { it.stageSince }.take(ServiceFloor.PLATES_ON_COUNTER)
+
     /** Where tonight's tables are. */
     val layout: TableLayout get() = ServiceFloor.layout(tableCount)
 
@@ -289,7 +292,10 @@ data class ServiceNight(
         val destination = when (errand) {
             is Errand.VisitTable -> layout.stand(errand.table)
             is Errand.Serve -> layout.stand(errand.table)
-            Errand.VisitPass, Errand.HandIn, is Errand.PickUp -> ServiceFloor.pass
+            Errand.VisitPass -> ServiceFloor.pass
+            // Walk right up to the chef to hand orders in, and to the plate itself to pick it up.
+            Errand.HandIn -> ServiceFloor.chef
+            is Errand.PickUp -> platesOnCounter.indexOfFirst { it.id == errand.partyId }.takeIf { it >= 0 }?.let { ServiceFloor.plateStand(it) } ?: ServiceFloor.pass
             Errand.VisitDishStation -> ServiceFloor.dishStation
             Errand.Wash, is Errand.Mopping -> here
             Errand.VisitMopBucket -> ServiceFloor.mopBucket
