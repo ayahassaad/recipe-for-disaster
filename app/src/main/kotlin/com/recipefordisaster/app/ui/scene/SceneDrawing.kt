@@ -163,8 +163,11 @@ internal fun Pen.drawRoom(cleanliness: Int, doorOpen: Boolean, time: Float) {
     // Dirt: more stains the dirtier it gets, always in the same places so they don't jump around.
     val stains = ((100 - cleanliness) / 12).coerceIn(0, STAIN_SPOTS.size)
     STAIN_SPOTS.take(stains).forEachIndexed { i, spot ->
-        oval(spot.x, spot.y, 2.6f + i % 3, 1.6f + (i % 2) * 0.6f, Palette.dirt)
-        dot(spot.x + 3.2f, spot.y - 1f, 0.6f, Palette.dirt)
+        // Grey scuffs and crumbs ground into the boards — nothing like a fresh, shiny spill.
+        val scuff = Color(0x335A4A3A)
+        line(spot.x - 2.6f, spot.y, spot.x + 2.2f, spot.y - 0.8f, scuff, 0.7f)
+        line(spot.x - 1.4f, spot.y + 1f, spot.x + 2.8f, spot.y + 0.4f, scuff, 0.5f)
+        for (k in 0..2) dot(spot.x - 1.5f + k * 1.6f, spot.y + 1.8f - (k % 2) * 0.6f, 0.25f, Color(0x555A4A3A))
     }
     if (cleanliness < 45) drawRat(Point(88f, 132f), time)
 
