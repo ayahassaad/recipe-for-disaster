@@ -45,6 +45,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.recipefordisaster.app.R
 import com.recipefordisaster.domain.service.ServiceNight
@@ -183,6 +184,10 @@ private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, modi
                 fontWeight = if (noFood) FontWeight.SemiBold else null,
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
+                // Always two lines tall, so a longer hint never pushes the restaurant up.
+                minLines = 2,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -327,6 +332,10 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
             text = nightHint(night),
             style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center,
+            // Always two lines tall, so the restaurant doesn't jump when a hint wraps.
+            minLines = 2,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
         )
     }

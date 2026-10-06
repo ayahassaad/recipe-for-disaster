@@ -29,7 +29,7 @@
     <string name="open_doors">Open the doors</string>
 
     <!-- The restaurant scene -->
-    <string name="hint_no_food">The pantry is empty, so nothing on the menu can be cooked. Tap the pantry and buy food before you open.</string>
+    <string name="hint_no_food">The pantry is empty! Tap the pantry and buy food before you open.</string>
     <string name="hint_alerts">Tap anything with a red ! to sort it out</string>
     <string name="hint_ready">All ready. Open the doors!</string>
     <string name="tonight_takings">Tonight %1$s</string>
@@ -44,7 +44,7 @@
     <string name="hint_mop_spill">Tap the spill to mop it up.</string>
     <string name="hint_mopping">Mopping…</string>
     <string name="hint_put_mop_back">Floor\'s clean. Tap the bucket to put the mop back.</string>
-    <string name="hint_out_of_food">The kitchen has run out of food, so guests are leaving at the door. Restock the pantry in the morning.</string>
+    <string name="hint_out_of_food">The kitchen is out of food, so guests are leaving. Restock in the morning.</string>
     <string name="hint_waiting">Waiting for guests to come in…</string>
     <string name="hint_cooking">The kitchen is cooking…</string>
     <string name="night_table">Table %1$d: %2$s</string>
