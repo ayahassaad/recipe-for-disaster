@@ -327,6 +327,10 @@ private fun PersonSheet(person: Employee, uiState: GameUiState.Playing, actions:
         }
         if (status != null) Text(status, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
     }
+    // How they're doing. Energy is stress turned round, so every bar reads "full is good".
+    Meter(stringResource(R.string.staff_mood), person.morale)
+    Meter(stringResource(R.string.staff_energy), 100 - person.stress)
+    Meter(stringResource(R.string.staff_skill), person.skill)
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         when {
             isNew -> OutlinedButton(onClick = { actions.onToggleHire(person.id) }) { Text(stringResource(R.string.undo)) }
