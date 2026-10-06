@@ -14,6 +14,7 @@ import com.recipefordisaster.domain.restaurant.CleanlinessModel
 import com.recipefordisaster.domain.restaurant.ReputationModel
 import com.recipefordisaster.domain.restaurant.RestaurantStatus
 import com.recipefordisaster.domain.simulation.ServiceSimulator.MissedMealReason
+import kotlinx.serialization.Serializable
 
 /**
  * The real implementation of the core simulation loop. One day, in order:
@@ -252,6 +253,7 @@ class DefaultDayTickEngine(
 }
 
 /** A day with the doors about to open: the original state, the morning carried out, and tonight's guests. */
+@Serializable
 data class ServiceSetup(
     val original: GameState,
     val morning: com.recipefordisaster.domain.decision.AppliedDecisions,

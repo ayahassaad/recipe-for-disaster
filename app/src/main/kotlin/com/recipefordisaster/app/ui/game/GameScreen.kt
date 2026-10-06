@@ -77,6 +77,7 @@ import com.recipefordisaster.domain.simulation.MorningAdvisor
 data class GameActions(
     val onStartService: () -> Unit = {},
     val onFinishService: (ServiceNight) -> Unit = {},
+    val onNightProgress: (ServiceNight) -> Unit = {},
     val onNextMorning: () -> Unit = {},
     val onDismissIntro: () -> Unit = {},
     val onRestockAll: () -> Unit = {},
@@ -96,6 +97,7 @@ data class GameActions(
 fun GameViewModel.actions(): GameActions = GameActions(
     onStartService = ::startService,
     onFinishService = ::finishService,
+    onNightProgress = ::saveNightProgress,
     onNextMorning = ::nextMorning,
     onDismissIntro = ::dismissIntro,
     onRestockAll = ::restockAll,
@@ -143,7 +145,7 @@ fun GameScreen(
             val gameOver = status == RestaurantStatus.BANKRUPT || status == RestaurantStatus.CONDEMNED
             when {
                 uiState.showIntro -> IntroScreen(onStart = actions.onDismissIntro, modifier = modifier)
-                uiState.night != null -> NightPlay(session = uiState.night, onFinished = actions.onFinishService, modifier = modifier)
+                uiState.night != null -> NightPlay(session = uiState.night, onFinished = actions.onFinishService, onProgress = actions.onNightProgress, modifier = modifier)
                 uiState.report != null -> ResultsPlay(report = uiState.report, gameOver = gameOver, onContinue = actions.onNextMorning, modifier = modifier)
                 gameOver -> FinalBillScreen(state = uiState.state, onBackToStart = onBackToStart, modifier = modifier)
                 else -> MorningPlay(uiState = uiState, actions = actions, modifier = modifier)
@@ -285,11 +287,29 @@ private fun sceneLabels(need: MorningAdvisor.Need? = null): SceneLabels {
  * close the day.
  */
 @Composable
-private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit, modifier: Modifier = Modifier) {
+private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit, onProgress: (ServiceNight) -> Unit, modifier: Modifier = Modifier) {
     var night by remember(session) { mutableStateOf(session.opening) }
     var clock by remember { mutableFloatStateOf(0f) }
     val model = remember(session) { sceneModelFor(session.setup.morning.state, emptyList(), hiringOpen = false) }
     val currentOnFinished by rememberUpdatedState(onFinished)
+    val currentOnProgress by rememberUpdatedState(onProgress)
+
+    // Save the night every few seconds, and whenever the app goes into the background,
+    // so closing the app mid-service picks up at the same moment next time.
+    LaunchedEffect(session) {
+        while (true) {
+            kotlinx.coroutines.delay(3_000)
+            currentOnProgress(night)
+        }
+    }
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP) currentOnProgress(night)
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     LaunchedEffect(session) {
         var last = withFrameNanos { it }

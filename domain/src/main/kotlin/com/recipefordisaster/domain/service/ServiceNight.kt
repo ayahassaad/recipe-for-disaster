@@ -17,6 +17,7 @@ import com.recipefordisaster.domain.simulation.ServiceSetup
 import com.recipefordisaster.domain.simulation.ServiceSimulator
 import com.recipefordisaster.domain.simulation.ServiceSimulator.CustomerServiceOutcome
 import com.recipefordisaster.domain.simulation.ServiceSimulator.MissedMealReason
+import kotlinx.serialization.Serializable
 
 /**
  * One night of service, played live. Guests arrive in parties, get seated
@@ -34,6 +35,7 @@ import com.recipefordisaster.domain.simulation.ServiceSimulator.MissedMealReason
  * When [finished], [result] hands back the same [ServiceSimulator.ServiceResult]
  * the automatic night produces, and the day closes as normal.
  */
+@Serializable
 data class ServiceNight(
     val time: Float,
     val parties: List<Party>,
@@ -58,6 +60,7 @@ data class ServiceNight(
 ) {
 
     /** A spill on the floor. Guests who finish their meal while it's there notice it. */
+    @Serializable
     data class Mess(val id: Int, val at: FloorPoint, val appearsAt: Float, val cleaned: Boolean = false)
 
     /** Spills on the floor right now. */
@@ -79,6 +82,7 @@ data class ServiceNight(
         DONE,
     }
 
+    @Serializable
     data class Party(
         val id: Int,
         /** Indices into [arrivalOrder]. */
@@ -105,14 +109,18 @@ data class ServiceNight(
     }
 
     /** Something a waiter can hold in one hand. */
+    @Serializable
     sealed interface HandItem {
         /** A party's food (one hand holds a whole table's order). */
+        @Serializable
         data class Plate(val partyId: Int) : HandItem
 
         /** The dirty plates cleared from a table, on their way to the dish station. */
+        @Serializable
         data class DirtyDishes(val table: Int) : HandItem
 
         /** The mop, from the bucket by the door. */
+        @Serializable
         data object Mop : HandItem
     }
 
@@ -123,29 +131,40 @@ data class ServiceNight(
      */
     enum class Kind { PLAYER, RUNNER, DISHWASHER, BUSSER }
 
+    @Serializable
     sealed interface Errand {
         /** Go to a table and do whatever it needs: serve it if you're carrying its food, otherwise take its order. */
+        @Serializable
         data class VisitTable(val table: Int) : Errand
+        @Serializable
         data object VisitPass : Errand
+        @Serializable
         data class Serve(val table: Int) : Errand
 
         /** Take dirty dishes to the dish station and wash them. */
+        @Serializable
         data object VisitDishStation : Errand
 
         /** Standing at the dish station washing up. */
+        @Serializable
         data object Wash : Errand
 
         /** Go to the bucket: grab the mop, or put it back if you're holding it. */
+        @Serializable
         data object VisitMopBucket : Errand
 
         /** Go to a spill and mop it up (the player needs the mop in hand; dishwashers bring their own). */
+        @Serializable
         data class CleanMess(val messId: Int) : Errand
 
         /** Standing at a spill mopping it; it's gone when this ends. */
+        @Serializable
         data class Mopping(val messId: Int) : Errand
+        @Serializable
         data object Rest : Errand
     }
 
+    @Serializable
     data class Waiter(
         val id: String,
         val isPlayer: Boolean,

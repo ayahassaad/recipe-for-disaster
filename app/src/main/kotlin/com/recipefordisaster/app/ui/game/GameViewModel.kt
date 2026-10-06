@@ -15,6 +15,7 @@ import com.recipefordisaster.domain.equipment.EquipmentId
 import com.recipefordisaster.domain.inventory.IngredientId
 import com.recipefordisaster.domain.menu.DishId
 import com.recipefordisaster.domain.simulation.DaySummary
+import com.recipefordisaster.domain.service.NightInProgress
 import com.recipefordisaster.domain.service.ServiceNight
 import com.recipefordisaster.domain.simulation.DefaultDayTickEngine
 import com.recipefordisaster.domain.simulation.ServiceSetup
@@ -123,6 +124,7 @@ class GameViewModel(
             val seed = Random.nextLong()
             val newState = NewGameFactory.create(seed)
             gameRepository.save(newState)
+            gameRepository.clearNight()
             _uiState.value = GameUiState.Playing(newState, dayLog = emptyList(), showIntro = true)
         }
     }
@@ -131,7 +133,15 @@ class GameViewModel(
         viewModelScope.launch {
             _uiState.value = GameUiState.Loading
             when (val result = gameRepository.load()) {
-                is SaveLoadResult.Success -> _uiState.value = GameUiState.Playing(result.state, dayLog = emptyList())
+                is SaveLoadResult.Success -> {
+                    // If the app was closed during service, pick the night back up where it was left.
+                    val night = gameRepository.loadNight()?.takeIf { it.setup.original == result.state }
+                    _uiState.value = GameUiState.Playing(
+                        result.state,
+                        dayLog = emptyList(),
+                        night = night?.let { NightSession(it.setup, it.night, it.morningSpending, it.dailySeed) },
+                    )
+                }
                 is SaveLoadResult.NoSaveFound -> _uiState.value = GameUiState.Error("There's no saved game to continue.")
                 is SaveLoadResult.Corrupted -> _uiState.value = GameUiState.Error("Your save couldn't be read (${result.reason}). Start a new game instead.")
             }
@@ -140,7 +150,8 @@ class GameViewModel(
 
     /**
      * Opens the doors: carries out the morning and starts tonight's service
-     * for the player to play. Nothing is saved until the night is over.
+     * for the player to play. The night is saved as it goes (see
+     * [saveNightProgress]); the day itself is saved once the night is over.
      */
     fun startService() {
         val current = _uiState.value
@@ -149,7 +160,16 @@ class GameViewModel(
         val dailySeed = current.state.seed * 6_364_136_223_846_793_005L + current.state.day
         val setup = dayTickEngine.openService(current.state, current.plan, SeededRandomSource(dailySeed))
         val night = ServiceNight.open(setup, SeededRandomSource(dailySeed + 1))
-        _uiState.value = current.copy(night = NightSession(setup, night, current.preview.spending, dailySeed))
+        val session = NightSession(setup, night, current.preview.spending, dailySeed)
+        _uiState.value = current.copy(night = session)
+        viewModelScope.launch { gameRepository.saveNight(NightInProgress(setup, night, session.morningSpending, dailySeed)) }
+    }
+
+    /** Saves how far the night has got, so closing the app mid-service doesn't lose it. */
+    fun saveNightProgress(night: ServiceNight) {
+        val session = (_uiState.value as? GameUiState.Playing)?.night ?: return
+        if (night.finished) return
+        viewModelScope.launch { gameRepository.saveNight(NightInProgress(session.setup, night, session.morningSpending, session.dailySeed)) }
     }
 
     /** The last guest has gone: close the books on the night the player played, save, and show the results. */
@@ -160,6 +180,7 @@ class GameViewModel(
         viewModelScope.launch {
             val result = dayTickEngine.closeService(session.setup, finalNight.result(), SeededRandomSource(session.dailySeed + 2))
             gameRepository.save(result.newState)
+            gameRepository.clearNight()
             val report = result.summary?.let { summary ->
                 result.newState.ledger.history.lastOrNull()?.let { books -> DayReport(summary, books, result.event, session.morningSpending, session.setup.morning.state) }
             }

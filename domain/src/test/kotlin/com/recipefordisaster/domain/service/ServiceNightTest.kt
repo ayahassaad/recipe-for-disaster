@@ -343,4 +343,16 @@ class ServiceNightTest {
         assertTrue(summary.gaveUpWaiting > 0)
         assertEquals(0, summary.unfedKitchenFull)
     }
+
+    @Test
+    fun `a night half-way through saves and loads back exactly, and carries on the same`() {
+        val setup = engine.openService(start, PlayerDecisions(), SeededRandomSource(1L))
+        var n = ServiceNight.open(setup, SeededRandomSource(2L))
+        repeat(900) { n = busyPlayer(n).advance(0.05f) } // 45 seconds in: guests seated, food cooking, plates in hand
+        val saved = NightInProgress(setup, n, com.recipefordisaster.domain.decision.DecisionSpending(), 7L)
+        val json = com.recipefordisaster.domain.simulation.GameStateJson.instance
+        val loaded = json.decodeFromString(NightInProgress.serializer(), json.encodeToString(NightInProgress.serializer(), saved))
+        assertEquals(saved, loaded)
+        assertEquals(play(n, ::busyPlayer).result(), play(loaded.night, ::busyPlayer).result())
+    }
 }

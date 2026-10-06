@@ -2,6 +2,7 @@ package com.recipefordisaster.app.testing
 
 import com.recipefordisaster.data.repository.GameRepository
 import com.recipefordisaster.data.repository.SaveLoadResult
+import com.recipefordisaster.domain.service.NightInProgress
 import com.recipefordisaster.domain.simulation.GameState
 
 /**
@@ -30,5 +31,19 @@ class FakeGameRepository(private var stored: GameState? = null) : GameRepository
 
     override suspend fun clear() {
         stored = null
+        night = null
+    }
+
+    var night: NightInProgress? = null
+        private set
+
+    override suspend fun saveNight(night: NightInProgress) {
+        this.night = night
+    }
+
+    override suspend fun loadNight(): NightInProgress? = night
+
+    override suspend fun clearNight() {
+        night = null
     }
 }

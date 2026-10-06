@@ -9,6 +9,7 @@ import com.recipefordisaster.domain.inventory.InventoryState
 import com.recipefordisaster.domain.menu.Dish
 import com.recipefordisaster.domain.menu.DishId
 import com.recipefordisaster.domain.menu.violates
+import kotlinx.serialization.Serializable
 
 /**
  * This is where the product brief's central chain actually happens:
@@ -40,6 +41,7 @@ object ServiceSimulator {
         TIRED_OF_WAITING,
     }
 
+    @Serializable
     data class CustomerServiceOutcome(
         val customer: Customer,
         val dish: Dish?,

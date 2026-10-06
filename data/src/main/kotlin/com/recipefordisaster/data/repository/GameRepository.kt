@@ -2,6 +2,7 @@ package com.recipefordisaster.data.repository
 
 import com.recipefordisaster.data.db.GameDatabase
 import com.recipefordisaster.data.db.SaveEntity
+import com.recipefordisaster.domain.service.NightInProgress
 import com.recipefordisaster.domain.simulation.GameState
 import com.recipefordisaster.domain.simulation.GameStateJson
 import com.recipefordisaster.domain.simulation.GameStateValidator
@@ -18,6 +19,13 @@ interface GameRepository {
     suspend fun load(): SaveLoadResult
     suspend fun hasExistingSave(): Boolean
     suspend fun clear()
+
+    /** Saves the night being played, so closing the app mid-service doesn't lose it. */
+    suspend fun saveNight(night: NightInProgress)
+
+    /** The night that was being played when the app closed, or null (also if it can't be read). */
+    suspend fun loadNight(): NightInProgress?
+    suspend fun clearNight()
 }
 
 /**
@@ -81,5 +89,34 @@ class RoomGameRepository(
 
     override suspend fun clear() {
         database.saveDao().clear()
+        database.saveDao().clearNight()
+    }
+
+    override suspend fun saveNight(night: NightInProgress) {
+        database.saveDao().upsert(
+            SaveEntity(
+                id = 1,
+                schemaVersion = GameDatabase.CURRENT_SAVE_SCHEMA_VERSION,
+                stateJson = GameStateJson.instance.encodeToString(NightInProgress.serializer(), night),
+                savedAtEpochMillis = System.currentTimeMillis(),
+            ),
+        )
+    }
+
+    override suspend fun loadNight(): NightInProgress? {
+        val entity = database.saveDao().getNight() ?: return null
+        if (entity.schemaVersion != GameDatabase.CURRENT_SAVE_SCHEMA_VERSION) return null
+        // A night that can't be read is simply dropped: the player goes back to that morning instead.
+        return try {
+            GameStateJson.instance.decodeFromString(NightInProgress.serializer(), entity.stateJson)
+        } catch (e: SerializationException) {
+            null
+        } catch (e: IllegalArgumentException) {
+            null
+        }
+    }
+
+    override suspend fun clearNight() {
+        database.saveDao().clearNight()
     }
 }

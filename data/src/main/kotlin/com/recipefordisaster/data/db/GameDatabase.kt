@@ -41,6 +41,13 @@ interface SaveDao {
 
     @Query("DELETE FROM saves WHERE id = 0")
     suspend fun clear()
+
+    // Row 1 holds a night of service that's still being played, if any (same table, so no migration).
+    @Query("SELECT * FROM saves WHERE id = 1")
+    suspend fun getNight(): SaveEntity?
+
+    @Query("DELETE FROM saves WHERE id = 1")
+    suspend fun clearNight()
 }
 
 @Database(

@@ -13,6 +13,7 @@ import com.recipefordisaster.domain.simulation.LogTone
 import com.recipefordisaster.domain.simulation.PlayerDecisions
 import com.recipefordisaster.domain.simulation.SimulationLogEntry
 import kotlin.math.ceil
+import kotlinx.serialization.Serializable
 
 /** Fair-play bounds on what a dish can be priced at, relative to what customers think it's worth. */
 object PriceRules {
@@ -22,6 +23,7 @@ object PriceRules {
 }
 
 /** Money the morning's decisions committed, by category — these land in the day's [com.recipefordisaster.domain.economy.DailyFinancials]. */
+@Serializable
 data class DecisionSpending(
     val ingredients: Long = 0,
     val repairs: Long = 0,
@@ -33,6 +35,7 @@ data class DecisionSpending(
     val total: Long get() = ingredients + repairs + upgrades + staffing + cleaning + menu
 }
 
+@Serializable
 data class AppliedDecisions(
     val state: GameState,
     val spending: DecisionSpending,

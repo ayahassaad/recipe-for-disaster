@@ -122,4 +122,28 @@ class RoomGameRepositoryTest {
 
         assertTrue(result is SaveLoadResult.Corrupted)
     }
+
+    @Test
+    fun aNightInProgressIsSavedSeparatelyAndLoadsBack() = runTest {
+        val start = com.recipefordisaster.domain.simulation.NewGameFactory.create(seed = 5L)
+        val engine = com.recipefordisaster.domain.simulation.DefaultDayTickEngine(com.recipefordisaster.domain.event.EventEngine(emptyList()))
+        val setup = engine.openService(start, com.recipefordisaster.domain.simulation.PlayerDecisions(), com.recipefordisaster.domain.simulation.SeededRandomSource(1L))
+        var night = com.recipefordisaster.domain.service.ServiceNight.open(setup, com.recipefordisaster.domain.simulation.SeededRandomSource(2L))
+        repeat(200) { night = night.advance(0.05f) }
+        val inProgress = com.recipefordisaster.domain.service.NightInProgress(setup, night, com.recipefordisaster.domain.decision.DecisionSpending(), 3L)
+
+        repository.save(start)
+        repository.saveNight(inProgress)
+
+        assertEquals(inProgress, repository.loadNight())
+        assertEquals(SaveLoadResult.Success(start), repository.load()) // the day's save is untouched
+        repository.clearNight()
+        assertEquals(null, repository.loadNight())
+    }
+
+    @Test
+    fun anUnreadableNightIsDroppedRatherThanCrashing() = runTest {
+        database.saveDao().upsert(SaveEntity(id = 1, schemaVersion = GameDatabase.CURRENT_SAVE_SCHEMA_VERSION, stateJson = "{not json", savedAtEpochMillis = 0))
+        assertEquals(null, repository.loadNight())
+    }
 }

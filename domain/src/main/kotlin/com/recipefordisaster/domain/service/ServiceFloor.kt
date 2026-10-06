@@ -2,8 +2,10 @@ package com.recipefordisaster.domain.service
 
 import kotlin.math.abs
 import kotlin.math.hypot
+import kotlinx.serialization.Serializable
 
 /** A spot on the restaurant floor, in floor units (the room is [ServiceFloor.WIDTH] x [ServiceFloor.HEIGHT]). */
+@Serializable
 data class FloorPoint(val x: Float, val y: Float) {
     fun lerp(to: FloorPoint, t: Float): FloorPoint {
         val f = t.coerceIn(0f, 1f)
