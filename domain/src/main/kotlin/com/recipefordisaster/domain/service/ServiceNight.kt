@@ -53,6 +53,8 @@ data class ServiceNight(
     val results: Map<Int, CustomerServiceOutcome> = emptyMap(),
     /** Tables guests have left dirty plates on; nobody can sit there until they're cleared. */
     val dirtyTables: Set<Int> = emptySet(),
+    /** When each dirty table was left, so helpers can step in on ones that have sat a while. */
+    val dirtiedAt: Map<Int, Float> = emptyMap(),
     /** Spills, rolled when the doors opened: each shows up at its time and stays until someone mops it. */
     val messes: List<Mess> = emptyList(),
     /** Whether a host is on the door tonight: guests wait longer, and one more party fits inside. */
@@ -420,7 +422,11 @@ data class ServiceNight(
                         results = results + (guest to CustomerServiceOutcome(customer, dish, satisfaction, waitedMinutes))
                     }
                     // They leave their dirty plates behind; the table needs clearing before anyone else can sit there.
-                    night = night.copy(results = results, dirtyTables = night.dirtyTables + listOfNotNull(party.table))
+                    night = night.copy(
+                        results = results,
+                        dirtyTables = night.dirtyTables + listOfNotNull(party.table),
+                        dirtiedAt = night.dirtiedAt + listOfNotNull(party.table?.let { it to time }),
+                    )
                         .updateParty(party.id) { it.copy(stage = Stage.LEAVING_HAPPY, stageSince = time, until = time + LEAVE) }
                 }
                 (party.stage == Stage.LEAVING_HAPPY || party.stage == Stage.LEAVING_ANGRY) && time >= party.until ->
@@ -464,7 +470,7 @@ data class ServiceNight(
                     updateWaiter { it.copy(hands = it.hands - HandItem.Plate(party.id)) }
                 } else if (party == null && errand.table in night.dirtyTables && waiter.freeHands > 0) {
                     // Clear the table: its dirty plates go in one hand.
-                    night = night.copy(dirtyTables = night.dirtyTables - errand.table)
+                    night = night.copy(dirtyTables = night.dirtyTables - errand.table, dirtiedAt = night.dirtiedAt - errand.table)
                     updateWaiter { it.copy(hands = it.hands + HandItem.DirtyDishes(errand.table)) }
                 } else if ((waiter.kind == Kind.PLAYER || waiter.kind == Kind.RUNNER) && party != null && party.stage == Stage.READY_TO_ORDER && errand.table in waiter.tables) {
                     // Each guest has the first thing they like that the kitchen can still make, and its
@@ -563,10 +569,17 @@ data class ServiceNight(
                         else -> null
                     }
                 }
-                else -> when {
-                    waiter.plates.isNotEmpty() -> night.parties.first { it.id == waiter.plates.first() }.table?.let { Errand.Serve(it) }
-                    night.parties.any { it.stage == Stage.READY_AT_PASS && time - it.stageSince >= RUNNER_DELAY } -> Errand.VisitPass
-                    else -> null
+                else -> {
+                    // Food first; when there's none to run, servers clear tables that have sat dirty a while.
+                    val claimed = night.waiters.flatMap { listOfNotNull(it.errand) + it.queue }.filterIsInstance<Errand.VisitTable>().map { it.table }.toSet()
+                    val stale = night.dirtyTables.firstOrNull { it !in claimed && time - (night.dirtiedAt[it] ?: time) >= RUNNER_CLEAR_DELAY }
+                    when {
+                        waiter.plates.isNotEmpty() -> night.parties.first { it.id == waiter.plates.first() }.table?.let { Errand.Serve(it) }
+                        night.parties.any { it.stage == Stage.READY_AT_PASS && time - it.stageSince >= RUNNER_DELAY } && waiter.freeHands > 0 -> Errand.VisitPass
+                        waiter.dirtyDishes.isNotEmpty() -> Errand.VisitDishStation
+                        stale != null && waiter.freeHands > 0 -> Errand.VisitTable(stale)
+                        else -> null
+                    }
                 }
             }
             val here = waiter.position(time)
@@ -623,6 +636,9 @@ data class ServiceNight(
 
         /** How long a plate sits on the pass before a runner takes it out instead of waiting for the player. */
         private const val RUNNER_DELAY = 3f
+
+        /** How long a table sits dirty before a server with nothing else to do clears it. */
+        private const val RUNNER_CLEAR_DELAY = 6f
         private const val GUEST_SPEED = 32f
         private const val PLAYER_SPEED = 60f
         private const val STAFF_SPEED = 42f

@@ -181,8 +181,8 @@ class ServiceNightTest {
 
     @Test
     fun `guests leave dirty plates, and nobody sits at a dirty table`() {
-        var n = open(start.copy(employees = start.employees.filter { it.role != com.recipefordisaster.domain.employee.Role.DISHWASHER }))
-        // Serve but never clear: tables fill up with dirty plates and stay empty.
+        var n = open(start.copy(employees = start.employees.filter { it.role == com.recipefordisaster.domain.employee.Role.COOK }))
+        // Serve but never clear, with nobody to help: tables fill up with dirty plates and stay empty.
         n = play(n) { current ->
             val me = current.player
             when {
@@ -374,7 +374,7 @@ class ServiceNightTest {
 
     @Test
     fun `with every table dirty, guests end up waiting at the door with nowhere to sit`() {
-        var n = open(noWashers)
+        var n = open(start.copy(employees = start.employees.filter { it.role == com.recipefordisaster.domain.employee.Role.COOK }))
         var seen = false
         // Serve but never clear.
         while (!n.finished) {
@@ -398,5 +398,24 @@ class ServiceNightTest {
             val firstQuarter = n.parties[(n.parties.size / 4).coerceAtMost(n.parties.lastIndex)].arriveAt
             assertTrue(n.messes.all { it.appearsAt > firstQuarter })
         }
+    }
+
+    @Test
+    fun `a server with no food to run clears tables that have sat dirty a while`() {
+        val noHelpers = start.copy(employees = start.employees.filter { it.role == com.recipefordisaster.domain.employee.Role.COOK })
+        val withServer = start.copy(employees = start.employees.filter { it.role != com.recipefordisaster.domain.employee.Role.DISHWASHER })
+        val servesOnly: (ServiceNight) -> ServiceNight = { current ->
+            val me = current.player
+            when {
+                me.walking -> current
+                me.plates.isNotEmpty() -> current.parties.first { it.id == me.plates.first() }.table?.let { current.tapTable(it) } ?: current
+                me.tickets.isNotEmpty() || current.parties.any { it.stage == Stage.READY_AT_PASS } -> current.tapPass()
+                else -> current.parties.filter { it.stage == Stage.READY_TO_ORDER }.minByOrNull { it.stageSince }?.table?.let { current.tapTable(it) } ?: current
+            }
+        }
+        val alone = play(open(noHelpers), servesOnly)
+        val helped = play(open(withServer), servesOnly)
+        assertTrue(helped.result().outcomes.count { it.dish != null } > alone.result().outcomes.count { it.dish != null })
+        assertTrue(helped.dirtyTables.size < alone.dirtyTables.size)
     }
 }
