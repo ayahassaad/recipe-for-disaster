@@ -1,0 +1,45 @@
+package com.recipefordisaster.app.ui.game
+
+import com.recipefordisaster.domain.event.EventEngine
+import com.recipefordisaster.domain.service.ServiceFloor
+import com.recipefordisaster.domain.service.ServiceNight
+import com.recipefordisaster.domain.service.ServiceNight.Stage
+import com.recipefordisaster.domain.simulation.DefaultDayTickEngine
+import com.recipefordisaster.domain.simulation.NewGameFactory
+import com.recipefordisaster.domain.simulation.PlayerDecisions
+import com.recipefordisaster.domain.simulation.SeededRandomSource
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class NightHintTest {
+
+    private val start = NewGameFactory.create(seed = 11L).let { s -> s.copy(employees = s.employees.filter { it.role == com.recipefordisaster.domain.employee.Role.COOK }) }
+    private val engine = DefaultDayTickEngine(EventEngine(emptyList()))
+    private val night = ServiceNight.open(engine.openService(start, PlayerDecisions(), SeededRandomSource(1)), SeededRandomSource(2))
+
+    private fun withParty(stage: Stage, table: Int) = night.copy(
+        parties = night.parties.mapIndexed { i, p -> if (i == 0) p.copy(stage = stage, table = table, stageSince = 0f, orderedAt = 0f) else p },
+    )
+
+    private val spill = listOf(ServiceNight.Mess(0, ServiceFloor.spillSpots.first(), appearsAt = 0f))
+
+    @Test
+    fun `taking an order comes before mopping a spill`() {
+        assertEquals(NightHint.TakeOrder(2), NightHint.of(withParty(Stage.READY_TO_ORDER, 2).copy(messes = spill)))
+    }
+
+    @Test
+    fun `food waiting on the counter comes before a spill`() {
+        assertEquals(NightHint.PickUp(4), NightHint.of(withParty(Stage.READY_AT_PASS, 4).copy(messes = spill)))
+    }
+
+    @Test
+    fun `clearing a table comes before mopping`() {
+        assertEquals(NightHint.Clear(1), NightHint.of(night.copy(dirtyTables = setOf(1), messes = spill)))
+    }
+
+    @Test
+    fun `a spill is pointed out when nothing more urgent needs doing`() {
+        assertEquals(NightHint.GetMop, NightHint.of(night.copy(messes = spill)))
+    }
+}

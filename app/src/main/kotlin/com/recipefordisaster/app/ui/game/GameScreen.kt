@@ -401,38 +401,22 @@ private const val CLOSING_PAUSE = 2.5f
 
 /** One line telling the player the most useful thing to do right now. */
 @Composable
-private fun nightHint(night: ServiceNight): String {
-    val me = night.player
-    val mine = night.parties.filter { it.table in me.tables }
-    fun number(table: Int?) = (table ?: 0) + 1
-    val carrying = me.plates.firstOrNull()?.let { id -> night.parties.firstOrNull { it.id == id } }
-    val ready = mine.filter { it.stage == ServiceNight.Stage.READY_AT_PASS }.minByOrNull { it.stageSince }
-    val ordering = mine.filter { it.stage == ServiceNight.Stage.READY_TO_ORDER }.minByOrNull { it.stageSince }
-    val headingToWash = me.errand == ServiceNight.Errand.VisitDishStation || ServiceNight.Errand.VisitDishStation in me.queue
-    val dirty = night.dirtyTables.firstOrNull()
-    val noWasher = night.waiters.none { it.kind == ServiceNight.Kind.DISHWASHER }
-    val nobodyClears = noWasher && night.waiters.none { it.kind == ServiceNight.Kind.BUSSER }
-    val spill = night.messesOnFloor.isNotEmpty() && noWasher
-    val plans = listOfNotNull(me.errand) + me.queue
-    return when {
-        me.errand == ServiceNight.Errand.Wash -> stringResource(R.string.hint_washing)
-        me.errand is ServiceNight.Errand.Mopping -> stringResource(R.string.hint_mopping)
-        carrying != null -> stringResource(R.string.hint_serve, number(carrying.table))
-        me.dirtyDishes.isNotEmpty() && !headingToWash -> stringResource(R.string.hint_wash)
-        me.tickets.isNotEmpty() && me.queue.none { it == ServiceNight.Errand.VisitPass } && me.errand != ServiceNight.Errand.VisitPass -> stringResource(R.string.hint_hand_in)
-        ready != null -> stringResource(R.string.hint_pick_up, number(ready.table))
-        // Guests at the door with nowhere to sit, because a table needs clearing: they'll walk out soon.
-        night.waitingAtDoor.isNotEmpty() && !night.hasFreeTable && dirty != null && nobodyClears &&
-            plans.none { it == ServiceNight.Errand.VisitTable(dirty) } -> stringResource(R.string.hint_door_waiting, number(dirty))
-        ordering != null -> stringResource(R.string.hint_take_order, number(ordering.table))
-        spill && me.holdingMop && plans.none { it is ServiceNight.Errand.CleanMess } -> stringResource(R.string.hint_mop_spill)
-        spill && !me.holdingMop && ServiceNight.Errand.VisitMopBucket !in plans -> stringResource(R.string.hint_get_mop)
-        dirty != null && nobodyClears -> stringResource(R.string.hint_clear, number(dirty))
-        me.holdingMop && night.messesOnFloor.isEmpty() && ServiceNight.Errand.VisitMopBucket !in plans -> stringResource(R.string.hint_put_mop_back)
-        !night.kitchenHasFood -> stringResource(R.string.hint_out_of_food)
-        night.parties.any { it.stage == ServiceNight.Stage.NOT_YET_ARRIVED || it.stage == ServiceNight.Stage.QUEUEING } -> stringResource(R.string.hint_waiting)
-        else -> stringResource(R.string.hint_cooking)
-    }
+private fun nightHint(night: ServiceNight): String = when (val hint = NightHint.of(night)) {
+    NightHint.Washing -> stringResource(R.string.hint_washing)
+    NightHint.Mopping -> stringResource(R.string.hint_mopping)
+    is NightHint.Serve -> stringResource(R.string.hint_serve, hint.table + 1)
+    NightHint.HandIn -> stringResource(R.string.hint_hand_in)
+    is NightHint.PickUp -> stringResource(R.string.hint_pick_up, hint.table + 1)
+    is NightHint.DoorWaiting -> stringResource(R.string.hint_door_waiting, hint.table + 1)
+    is NightHint.TakeOrder -> stringResource(R.string.hint_take_order, hint.table + 1)
+    NightHint.Wash -> stringResource(R.string.hint_wash)
+    is NightHint.Clear -> stringResource(R.string.hint_clear, hint.table + 1)
+    NightHint.OutOfFood -> stringResource(R.string.hint_out_of_food)
+    NightHint.MopSpill -> stringResource(R.string.hint_mop_spill)
+    NightHint.GetMop -> stringResource(R.string.hint_get_mop)
+    NightHint.PutMopBack -> stringResource(R.string.hint_put_mop_back)
+    NightHint.Waiting -> stringResource(R.string.hint_waiting)
+    NightHint.Cooking -> stringResource(R.string.hint_cooking)
 }
 
 @Composable
