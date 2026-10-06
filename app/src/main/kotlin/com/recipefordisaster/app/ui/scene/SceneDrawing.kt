@@ -212,13 +212,8 @@ private fun Pen.drawCounter() {
         close()
     }
     dot(70f, c.top - 1.1f, 0.35f, Palette.gold)
-    // Order tickets clipped to a rail above the pass.
+    // The ticket rail above the pass; real orders hang on it during service.
     line(10f, c.top - 0.6f, 40f, c.top - 0.6f, Palette.steelDark, 0.3f)
-    listOf(13f, 20f, 28f).forEachIndexed { i, x ->
-        box(x, c.top - 0.5f, 4.2f, 5f - i * 0.6f, Color(0xFFFFFCF2), radius = 0.2f)
-        line(x + 0.8f, c.top + 1.2f, x + 3.4f, c.top + 1.2f, Color(0x66000000), 0.2f)
-        line(x + 0.8f, c.top + 2.4f, x + 2.8f, c.top + 2.4f, Color(0x66000000), 0.2f)
-    }
 }
 
 /** The dish station at the right end of the counter: a deep basin with suds, a drying rack, and a sign. */
