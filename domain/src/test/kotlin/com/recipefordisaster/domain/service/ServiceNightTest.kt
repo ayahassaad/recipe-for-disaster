@@ -371,4 +371,22 @@ class ServiceNightTest {
         while (n.player.walking) n = n.advance(0.05f)
         assertEquals(listOf(party.id), n.player.tickets)
     }
+
+    @Test
+    fun `with every table dirty, guests end up waiting at the door with nowhere to sit`() {
+        var n = open(noWashers)
+        var seen = false
+        // Serve but never clear.
+        while (!n.finished) {
+            val me = n.player
+            n = when {
+                me.walking -> n
+                me.plates.isNotEmpty() -> n.parties.first { it.id == me.plates.first() }.table?.let { n.tapTable(it) } ?: n
+                me.tickets.isNotEmpty() || n.parties.any { it.stage == Stage.READY_AT_PASS } -> n.tapPass()
+                else -> n.parties.filter { it.stage == Stage.READY_TO_ORDER }.minByOrNull { it.stageSince }?.table?.let { n.tapTable(it) } ?: n
+            }.advance(0.05f)
+            if (n.waitingAtDoor.isNotEmpty() && !n.hasFreeTable && n.dirtyTables.isNotEmpty()) seen = true
+        }
+        assertTrue(seen)
+    }
 }

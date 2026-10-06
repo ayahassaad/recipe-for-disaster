@@ -393,6 +393,9 @@ private fun nightHint(night: ServiceNight): String {
         me.dirtyDishes.isNotEmpty() && !headingToWash -> stringResource(R.string.hint_wash)
         me.tickets.isNotEmpty() && me.queue.none { it == ServiceNight.Errand.VisitPass } && me.errand != ServiceNight.Errand.VisitPass -> stringResource(R.string.hint_hand_in)
         ready != null -> stringResource(R.string.hint_pick_up, number(ready.table))
+        // Guests at the door with nowhere to sit, because a table needs clearing: they'll walk out soon.
+        night.waitingAtDoor.isNotEmpty() && !night.hasFreeTable && dirty != null && nobodyClears &&
+            plans.none { it == ServiceNight.Errand.VisitTable(dirty) } -> stringResource(R.string.hint_door_waiting, number(dirty))
         ordering != null -> stringResource(R.string.hint_take_order, number(ordering.table))
         spill && me.holdingMop && plans.none { it is ServiceNight.Errand.CleanMess } -> stringResource(R.string.hint_mop_spill)
         spill && !me.holdingMop && ServiceNight.Errand.VisitMopBucket !in plans -> stringResource(R.string.hint_get_mop)

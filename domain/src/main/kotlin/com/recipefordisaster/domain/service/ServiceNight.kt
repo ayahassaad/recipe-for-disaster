@@ -205,6 +205,23 @@ data class ServiceNight(
 
     fun partyAt(table: Int): Party? = parties.firstOrNull { it.table == table && it.occupiesTable }
 
+    /** Parties standing inside the door, waiting for a table. */
+    val waitingAtDoor: List<Party> get() = parties.filter { it.stage == Stage.QUEUEING }
+
+    /** Whether there's a clean, empty table for the next party to sit at. */
+    val hasFreeTable: Boolean get() = (0 until ServiceFloor.TABLE_COUNT).any { t -> t !in dirtyTables && partyAt(t) == null }
+
+    /** How long this party will wait at each step before giving up (longer with a host on the door). */
+    fun patienceOf(party: Party): Float = party.patience * (if (hosted) HOST_PATIENCE else 1f)
+
+    /** How close a party is to giving up, 0 (just started waiting) to 1 (about to leave). */
+    fun impatience(party: Party): Float = when (party.stage) {
+        Stage.QUEUEING -> (time - party.stageSince) / (patienceOf(party) * 0.8f)
+        Stage.READY_TO_ORDER -> (time - party.stageSince) / patienceOf(party)
+        Stage.ORDER_TAKEN, Stage.IN_KITCHEN, Stage.COOKING, Stage.READY_AT_PASS, Stage.CARRIED -> (time - party.orderedAt) / (patienceOf(party) * FOOD_PATIENCE)
+        else -> 0f
+    }.coerceIn(0f, 1f)
+
     // ------------------------------------------------------------ the player's commands
 
     /** Go to a table: take their order if they're ready, or serve them if you're carrying their food. */
@@ -329,13 +346,10 @@ data class ServiceNight(
     private fun checkPatience(): ServiceNight {
         var night = this
         for (party in parties) {
-            val waited = time - party.stageSince
             // A host chatting to people, handing out menus and topping up water buys you time.
-            val patience = party.patience * (if (hosted) HOST_PATIENCE else 1f)
             val givesUp = when (party.stage) {
-                Stage.QUEUEING -> waited > patience * 0.8f
-                Stage.READY_TO_ORDER -> waited > patience
-                Stage.ORDER_TAKEN, Stage.IN_KITCHEN, Stage.COOKING, Stage.READY_AT_PASS, Stage.CARRIED -> time - party.orderedAt > party.patience * FOOD_PATIENCE
+                Stage.QUEUEING, Stage.READY_TO_ORDER, Stage.ORDER_TAKEN, Stage.IN_KITCHEN, Stage.COOKING, Stage.READY_AT_PASS, Stage.CARRIED ->
+                    impatience(party) >= 1f
                 else -> false
             }
             if (givesUp) night = night.stormOut(party.id, MissedMealReason.TIRED_OF_WAITING)

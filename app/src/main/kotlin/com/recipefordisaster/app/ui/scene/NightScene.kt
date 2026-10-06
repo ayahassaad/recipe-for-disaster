@@ -148,11 +148,15 @@ fun NightScene(
                         when (party.stage) {
                             Stage.NOT_YET_ARRIVED, Stage.DONE -> {}
                             Stage.QUEUEING -> {
+                                val waited = night.impatience(party)
+                                val first = ServiceFloor.queueSpot(queueIndex).toPoint()
                                 party.guests.forEachIndexed { g, guest ->
                                     val spot = ServiceFloor.queueSpot(queueIndex++).toPoint()
-                                    val mood = (70 - (time - party.stageSince) / (party.patience * 0.8f) * 60).toInt()
+                                    val mood = (70 - waited * 60).toInt()
                                     drawGuest(spot, guest, mood, angry = mood < 25, walkPhase = null, g)
                                 }
+                                // A "we need a table" bubble with their patience, so a crowd at the door is hard to miss.
+                                drawDoorBubble(first, waited, clock)
                             }
                             Stage.WALKING_TO_TABLE -> {
                                 val table = party.table ?: return@forEach
@@ -177,11 +181,7 @@ fun NightScene(
                             }
                             else -> {
                                 val table = party.table ?: return@forEach
-                                val waitedFraction = when (party.stage) {
-                                    Stage.READY_TO_ORDER -> (time - party.stageSince) / party.patience
-                                    Stage.EATING -> 0f
-                                    else -> (time - party.orderedAt) / (party.patience * 1.8f)
-                                }.coerceIn(0f, 1f)
+                                val waitedFraction = night.impatience(party)
                                 party.guests.forEachIndexed { g, guest ->
                                     val seat = ServiceFloor.seats(table)[g]
                                     val eating = party.stage == Stage.EATING
@@ -489,4 +489,24 @@ private fun Pen.drawProgressRing(center: Point, progress: Float) {
         size = androidx.compose.ui.geometry.Size(u(6f), u(6f)),
         style = androidx.compose.ui.graphics.drawscope.Stroke(u(0.8f)),
     )
+}
+
+/** Over a party waiting at the door: a bubble with an empty table in it, and a bar of how long they'll wait. */
+private fun Pen.drawDoorBubble(at: Point, waited: Float, clock: Float) {
+    val c = Point(at.x + 3f, at.y - 13f + sin(clock * 4f) * 0.3f)
+    dot(c.x, c.y + 0.3f, 4.2f, Color(0x33000000))
+    dot(c.x, c.y, 4f, Color.White)
+    shape(Color.White) { moveTo(c.x - 1.2f, c.y + 3.2f); lineTo(c.x + 1.2f, c.y + 3.2f); lineTo(c.x - 1.6f, c.y + 5.4f); close() }
+    // A little table with two chairs.
+    dot(c.x, c.y, 1.6f, Color(0xFFE9A5A5))
+    box(c.x - 3.2f, c.y - 0.8f, 1.2f, 1.6f, Palette.serverRed, radius = 0.3f)
+    box(c.x + 2f, c.y - 0.8f, 1.2f, 1.6f, Palette.serverRed, radius = 0.3f)
+    // Patience: green, going amber, then red as they're about to walk out.
+    val colour = when {
+        waited > 0.75f -> Palette.alert
+        waited > 0.45f -> Color(0xFFE0A030)
+        else -> PlayerColor
+    }
+    box(c.x - 4f, c.y + 5.6f, 8f, 1f, Color(0x33000000), radius = 0.5f)
+    box(c.x - 4f, c.y + 5.6f, 8f * (1f - waited), 1f, colour, radius = 0.5f)
 }

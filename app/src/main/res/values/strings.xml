@@ -41,6 +41,7 @@
     <string name="hint_hand_in">Take the order to the kitchen. Tap the counter.</string>
     <string name="hint_pick_up">Table %1$d\'s food is ready. Tap the counter.</string>
     <string name="hint_serve">Take the food to table %1$d. Tap the table.</string>
+    <string name="hint_door_waiting">Guests are waiting at the door! Clear table %1$d so they can sit.</string>
     <string name="hint_clear">Table %1$d needs clearing. Tap it to pick up the dirty plates.</string>
     <string name="hint_wash">Take the dirty plates to the dish station (top right).</string>
     <string name="hint_washing">Washing up…</string>
