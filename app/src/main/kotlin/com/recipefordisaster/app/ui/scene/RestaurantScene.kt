@@ -113,6 +113,7 @@ fun RestaurantScene(
         val helperColor = remember(model.staff) { helperColors(model.staff) }
 
         Canvas(modifier = Modifier.fillMaxSize()) {
+            drawSurround(origin, unit)
             // Nobody gets drawn outside the room, even on their way out of the door.
             clipRect(origin.x, origin.y, origin.x + unit * SceneLayout.WIDTH, origin.y + unit * SceneLayout.HEIGHT) {
             val pen = Pen(this, unit, origin)

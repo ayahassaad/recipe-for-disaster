@@ -102,6 +102,7 @@ fun NightScene(
         val helperColor = remember(model.staff) { helperColors(model.staff) }
 
         Canvas(modifier = Modifier.fillMaxSize()) {
+            drawSurround(origin, unit)
             clipRect(origin.x, origin.y, origin.x + unit * SceneLayout.WIDTH, origin.y + unit * SceneLayout.HEIGHT) {
                 val pen = Pen(this, unit, origin)
                 with(pen) {

@@ -117,6 +117,21 @@ internal object Palette {
 
 // ---------------------------------------------------------------- the room
 
+/**
+ * Fills whatever screen space the room doesn't cover on a tall phone: the
+ * kitchen's back wall carries on above it and the dark front wall below,
+ * so the restaurant reads as filling the screen rather than floating in it.
+ */
+internal fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSurround(origin: androidx.compose.ui.geometry.Offset, unit: Float) {
+    val top = origin.y
+    val bottom = origin.y + unit * SceneLayout.HEIGHT
+    if (top > 0f) {
+        drawRect(Palette.kitchenTileB, size = Size(size.width, top + 1f))
+        drawRect(Palette.grout, topLeft = androidx.compose.ui.geometry.Offset(0f, top - unit * 0.4f), size = Size(size.width, unit * 0.4f))
+    }
+    if (bottom < size.height) drawRect(Palette.woodDark, topLeft = androidx.compose.ui.geometry.Offset(0f, bottom - 1f), size = Size(size.width, size.height - bottom + 1f))
+}
+
 internal fun Pen.drawRoom(cleanliness: Int, doorOpen: Boolean, time: Float) {
     drawRect(Palette.wall, topLeft = p(0f, 0f), size = Size(u(SceneLayout.WIDTH), u(SceneLayout.HEIGHT)))
 
