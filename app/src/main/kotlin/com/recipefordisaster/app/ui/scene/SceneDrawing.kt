@@ -389,27 +389,36 @@ internal fun Pen.drawSink() {
 }
 
 /** Shelves of lidded, labelled jars plus flour sacks; [fullness] 0-1 decides how much is stocked. */
-internal fun Pen.drawPantry(fullness: Float) {
+/**
+ * The pantry shelves: one jar per ingredient, filled to how much is left,
+ * so an empty pantry looks empty. [jars] is each jar's level (0-1).
+ */
+internal fun Pen.drawPantry(fullness: Float, jars: List<Float> = emptyList()) {
     val shelf = SceneLayout.pantry
     oval(shelf.center.x, shelf.bottom + 0.6f, shelf.width / 2, 1f, Palette.shadow)
     box(shelf, Palette.wood, radius = 0.8f)
     box(shelf.left + 0.6f, shelf.top + 0.6f, shelf.width - 1.2f, shelf.height - 1.2f, Color(0xFF6E4429), radius = 0.6f)
     val rows = 3
     val perRow = 4
-    val filled = (fullness.coerceIn(0f, 1f) * rows * perRow).toInt()
-    val jarColors = listOf(Color(0xFFE5B85C), Color(0xFF7FB069), Color(0xFFC0392B), Color(0xFFF2E9DC))
+    val levels = jars.ifEmpty { List(rows * perRow) { if (it < fullness * rows * perRow) 1f else 0f } }
+    val jarColors = listOf(Color(0xFFE5B85C), Color(0xFF7FB069), Color(0xFFC0392B), Color(0xFFF2E9DC), Color(0xFFB5651D), Color(0xFF8E6C8A), Color(0xFFD9C27E), Color(0xFF6FA8C9))
     for (r in 0 until rows) {
         val rowTop = shelf.top + 1.5f + r * 7.8f
         box(shelf.left + 0.6f, rowTop + 6.2f, shelf.width - 1.2f, 0.9f, Palette.woodLight, radius = 0.2f)
         for (c in 0 until perRow) {
             val i = r * perRow + c
             val jx = shelf.left + 1.6f + c * 6.1f
-            if (i < filled) {
-                box(jx, rowTop + 1.6f, 4.6f, 4.6f, Color(0xCCFFFFFF), radius = 0.9f) // glass
-                box(jx + 0.5f, rowTop + 2.6f, 3.6f, 3.2f, jarColors[i % jarColors.size], radius = 0.7f) // contents
+            val level = levels.getOrNull(i)
+            if (level != null) {
+                box(jx, rowTop + 1.6f, 4.6f, 4.6f, Color(0x99FFFFFF), radius = 0.9f) // glass
+                if (level > 0f) {
+                    // Contents fill the jar from the bottom, as high as there's food left.
+                    val h = 3.6f * level.coerceIn(0.15f, 1f)
+                    box(jx + 0.5f, rowTop + 5.8f - h, 3.6f, h, jarColors[i % jarColors.size], radius = 0.6f)
+                }
+                if (level < 0.25f) dot(jx + 2.3f, rowTop + 4f, 0.7f, if (level <= 0f) Color(0xFFC0392B) else Color(0xFFE0A030)) // nearly or completely out
                 box(jx - 0.1f, rowTop + 0.9f, 4.8f, 1.2f, Color(0xFF8C8C8C), radius = 0.3f) // lid
-                box(jx + 1f, rowTop + 3.4f, 2.6f, 1.4f, Color(0xFFFFFCF0), radius = 0.2f) // label
-            } else {
+            } else if (jars.isEmpty()) {
                 box(jx, rowTop + 1.6f, 4.6f, 4.6f, Color(0x33FFFFFF), radius = 0.9f)
                 outline(Rect(jx, rowTop + 1.6f, jx + 4.6f, rowTop + 6.2f), Color(0x66FFFFFF), radius = 0.9f, width = 0.25f)
             }

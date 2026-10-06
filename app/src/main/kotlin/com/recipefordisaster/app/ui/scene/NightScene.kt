@@ -109,7 +109,7 @@ fun NightScene(
                     drawOven(model.ovenCondition, clock, onFire = false, level = model.ovenLevel)
                     drawStove(cooking, clock)
                     drawSink()
-                    drawPantry(model.pantryFullness)
+                    drawPantry(model.pantryFullness, model.pantryJars)
                     drawTables()
                     drawMenuBoard(text, labels.menu)
                     // The mop stays in the bucket unless someone's carrying it.

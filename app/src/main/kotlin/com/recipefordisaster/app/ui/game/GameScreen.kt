@@ -227,6 +227,12 @@ internal fun sceneModelFor(state: GameState, advice: List<Advice>, hiringOpen: B
     val working = state.employees.filter { it.status == EmployeeStatus.ACTIVE }
     val used = state.inventory.ingredients.values.mapNotNull { MorningAdvisor.nightsOfStock(state, it) }
     val fullness = if (used.isEmpty()) 1f else used.map { (it / 2.0).coerceIn(0.0, 1.0) }.average().toFloat()
+    // One jar per ingredient, filled to how long it'll last: full is two nights or more, empty is none left.
+    val jars = state.inventory.ingredients.values.sortedBy { it.name }.map { ingredient ->
+        val nights = MorningAdvisor.nightsOfStock(state, ingredient)
+        val level = nights?.let { it / 2.0 } ?: if (ingredient.quantityOnHand > 0) 0.6 else 0.0
+        level.coerceIn(0.0, 1.0).toFloat()
+    }
     val alerts = advice.mapNotNull { item ->
         when (item) {
             is Advice.Restock, is Advice.DishUnmakeable -> SceneTarget.Pantry
@@ -242,6 +248,7 @@ internal fun sceneModelFor(state: GameState, advice: List<Advice>, hiringOpen: B
         ovenCondition = state.equipment.firstOrNull()?.condition ?: 100,
         ovenLevel = state.equipment.firstOrNull()?.upgradeLevel ?: 1,
         pantryFullness = fullness,
+        pantryJars = jars,
         cleanliness = state.restaurant.cleanliness,
         hiring = hiringOpen,
         alerts = alerts,

@@ -55,6 +55,8 @@ data class SceneModel(
     val staff: List<StaffFigure>,
     val ovenCondition: Int,
     val pantryFullness: Float,
+    /** How full each ingredient's jar is (0 = none left, 1 = plenty), in a fixed order. */
+    val pantryJars: List<Float> = emptyList(),
     val cleanliness: Int,
     val hiring: Boolean,
     /** Things that need the player — each gets a pulsing red "!". */
@@ -121,7 +123,7 @@ fun RestaurantScene(
                 drawStove(false, time)
                 drawSink()
                 drawDishStation(text, labels.dishSign)
-                drawPantry(model.pantryFullness)
+                drawPantry(model.pantryFullness, model.pantryJars)
                 drawTables()
                 drawMenuBoard(text, labels.menu)
                 drawMopBucket()
