@@ -231,11 +231,10 @@ internal fun sceneModelFor(state: GameState, advice: List<Advice>, hiringOpen: B
     val working = state.employees.filter { it.status == EmployeeStatus.ACTIVE }
     val used = state.inventory.ingredients.values.mapNotNull { MorningAdvisor.nightsOfStock(state, it) }
     val fullness = if (used.isEmpty()) 1f else used.map { (it / 2.0).coerceIn(0.0, 1.0) }.average().toFloat()
-    // One jar per ingredient, filled to how long it'll last: full is two nights or more, empty is none left.
-    val jars = state.inventory.ingredients.values.sortedBy { it.name }.map { ingredient ->
-        val nights = MorningAdvisor.nightsOfStock(state, ingredient)
-        val level = nights?.let { it / 2.0 } ?: if (ingredient.quantityOnHand > 0) 0.6 else 0.0
-        level.coerceIn(0.0, 1.0).toFloat()
+    // One jar per ingredient tonight's menu uses, filled to how long it'll last:
+    // full is two nights or more, empty is none left. Ingredients nobody needs stay off the shelf.
+    val jars = state.inventory.ingredients.values.sortedBy { it.name }.mapNotNull { ingredient ->
+        MorningAdvisor.nightsOfStock(state, ingredient)?.let { (it / 2.0).coerceIn(0.0, 1.0).toFloat() }
     }
     val alerts = advice.mapNotNull { item ->
         when (item) {
