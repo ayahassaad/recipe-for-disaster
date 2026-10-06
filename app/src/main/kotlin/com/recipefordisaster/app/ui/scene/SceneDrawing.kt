@@ -604,6 +604,8 @@ internal fun Pen.drawPerson(
     walkPhase: Float? = null,
     /** Apron (servers) or overalls (dishwashers) colour; null for the usual red or blue. */
     apron: Color? = null,
+    /** Leave the arms off: the caller draws them doing something (holding a plate to wash, say). */
+    armsBusy: Boolean = false,
 ) {
     val y = at.y - bob + if (slumped) 0.8f else 0f
     oval(at.x, at.y + 3.6f, 4.2f, 1.3f, Palette.shadow)
@@ -626,10 +628,12 @@ internal fun Pen.drawPerson(
     // Arms and hands first, so the body overlaps the tops of the sleeves.
     val armSwing = step * 0.6f
     val hand = if (outfit == Outfit.WASHER) Color(0xFFF2C230) else Palette.face
-    box(at.x - 5.2f, y - 0.4f + armSwing, 1.8f, 4.4f, shade, radius = 0.9f)
-    box(at.x + 3.4f, y - 0.4f - armSwing, 1.8f, 4.4f, shade, radius = 0.9f)
-    dot(at.x - 4.3f, y + 4.2f + armSwing, 0.9f, hand)
-    dot(at.x + 4.3f, y + 4.2f - armSwing, 0.9f, hand)
+    if (!armsBusy) {
+        box(at.x - 5.2f, y - 0.4f + armSwing, 1.8f, 4.4f, shade, radius = 0.9f)
+        box(at.x + 3.4f, y - 0.4f - armSwing, 1.8f, 4.4f, shade, radius = 0.9f)
+        dot(at.x - 4.3f, y + 4.2f + armSwing, 0.9f, hand)
+        dot(at.x + 4.3f, y + 4.2f - armSwing, 0.9f, hand)
+    }
     box(at.x - 4f, y - 1.2f, 8f, 6.4f, top, radius = 2.4f)
     box(at.x - 4f, y + 2.6f, 8f, 2.6f, shade.copy(alpha = 0.35f), radius = 1.6f)
 

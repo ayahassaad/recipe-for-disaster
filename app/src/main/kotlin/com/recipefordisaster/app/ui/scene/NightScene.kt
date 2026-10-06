@@ -263,8 +263,10 @@ fun NightScene(
                             bob = bob,
                             sweat = (figure?.stress ?: 0) >= 70,
                             variant = (figure?.name ?: "you").hashCode().mod(5),
-                            walkPhase = if (walking) time * 2.4f else null,
+                            walkPhase = if (walking && waiter.errand != ServiceNight.Errand.Wash) time * 2.4f else null,
                             apron = if (waiter.isPlayer) PlayerColor else helperColor[waiter.id],
+                            // While washing up, the arms are drawn holding the plate instead.
+                            armsBusy = waiter.errand == ServiceNight.Errand.Wash,
                         )
                         // What's in each hand (left, then right), and a notepad for tickets not yet handed in.
                         waiter.hands.forEachIndexed { k, item ->
@@ -290,10 +292,22 @@ fun NightScene(
                                 centeredText(text, (table + 1).toString(), Point(nx + 1.7f, ny + 1.4f), size = 2.2f, color = Palette.ink, bold = true)
                             }
                         }
-                        if (waiter.isPlayer) drawYouMarker(text, labels.you, Point(at.x, at.y - 12f), clock)
+                        if (waiter.isPlayer) {
+                            // Standing at the chef, the marker would sit on the chef's face: put it beside you instead.
+                            val atChef = waiter.position(time).distanceTo(ServiceFloor.chef) < 4f
+                            drawYouMarker(text, labels.you, if (atChef) Point(at.x + 10f, at.y - 6f) else Point(at.x, at.y - 12f), clock)
+                        }
                         else {
                             helperColor[waiter.id]?.let { dot(at.x, at.y - 11.4f, 1.1f, it) }
                         }
+                    }
+
+                    // Anyone washing up, scrubbing away at the sink (drawn over them, since their hands are in it).
+                    night.waiters.filter { it.errand == ServiceNight.Errand.Wash }.forEach { w ->
+                        val progress = ((night.time - w.routeStart) / (w.routeEnd - w.routeStart).coerceAtLeast(0.01f)).coerceIn(0f, 1f)
+                        // Sleeves match the outfit: the black waistcoat for you and servers, blue overalls for a dishwasher.
+                        val sleeve = if (w.kind == ServiceNight.Kind.DISHWASHER) Palette.washerBlue else Color(0xFF2B2B2B)
+                        drawWashingUp(w.position(night.time).toPoint().let { Point(it.x, it.y - 2f) }, progress, clock, sleeve)
                     }
                 }
             }
@@ -474,24 +488,60 @@ private fun Pen.drawDirtyStack(at: Point) {
 }
 
 /** The dish station at the right end of the counter: a deep basin, a drying rack, and a sign. */
-/** The dish station, plus a ring over anyone washing up there. */
-private fun Pen.drawDishStation(text: TextMeasurer, sign: String, night: ServiceNight, clock: Float) {
-    drawDishStation(text, sign)
-    // Someone washing up: a ring that fills as the dishes get done.
-    night.waiters.filter { it.errand == ServiceNight.Errand.Wash }.forEach { w ->
-        val progress = ((night.time - w.routeStart) / (w.routeEnd - w.routeStart).coerceAtLeast(0.01f)).coerceIn(0f, 1f)
-        val at = w.position(night.time).toPoint()
-        drawArc(
-            Palette.washerBlue,
-            startAngle = -90f,
-            sweepAngle = 360f * progress,
-            useCenter = false,
-            topLeft = p(at.x - 3f, at.y - 16f),
-            size = androidx.compose.ui.geometry.Size(u(6f), u(6f)),
-            style = androidx.compose.ui.graphics.drawscope.Stroke(u(0.8f)),
-        )
-        dot(at.x + sin(clock * 10f) * 0.6f, at.y - 13f, 0.6f, Color(0xCCFFFFFF))
+/** The dish station; anyone washing up there is drawn by [drawWashingUp]. */
+@Suppress("UNUSED_PARAMETER")
+private fun Pen.drawDishStation(text: TextMeasurer, sign: String, night: ServiceNight, clock: Float) = drawDishStation(text, sign)
+
+/**
+ * Someone washing up, facing you: a plate held in front of them in both hands, a yellow sponge
+ * scrubbing round on it, and soap bubbles drifting up and popping. Clean plates stack up on the
+ * drying rack as the job gets done, and a little ring beside them shows how long is left.
+ */
+private fun Pen.drawWashingUp(at: Point, progress: Float, clock: Float, sleeve: Color) {
+    // The plate, held at chest height and tilting a little as it's scrubbed.
+    val tilt = sin(clock * 9f) * 0.6f
+    val plate = Point(at.x, at.y + 3.2f + tilt * 0.3f)
+    oval(plate.x, plate.y + 0.4f, 3.1f, 1.4f, Color(0x22000000))
+    oval(plate.x, plate.y, 3f, 1.3f, Color(0xFFF7FBFF))
+    ring(plate.x, plate.y, 1.6f, Color(0x2A2F6188), 0.2f)
+    // Arms from the shoulders, bent forward to hold it at the rim.
+    for (side in listOf(-1f, 1f)) {
+        box(at.x + side * 4.3f - 0.9f, at.y - 0.4f, 1.8f, 3.4f, sleeve, radius = 0.9f)
+        line(at.x + side * 4.3f, at.y + 2.6f, plate.x + side * 3.1f, plate.y + 0.1f, sleeve, 1.6f)
+        dot(plate.x + side * 3.1f, plate.y + 0.1f, 0.9f, Palette.face)
     }
+    // The sponge going round and round on it, with a little foam.
+    val sponge = Point(plate.x + kotlin.math.cos(clock * 11f) * 1.2f, plate.y - 0.2f + kotlin.math.sin(clock * 11f) * 0.4f)
+    dot(sponge.x - 0.6f, sponge.y - 0.6f, 0.7f, Color.White)
+    box(sponge.x - 1f, sponge.y - 0.6f, 2f, 1.2f, Color(0xFFF2C230), radius = 0.4f)
+    // Soap bubbles floating up and away, fading as they go.
+    for (k in 0..6) {
+        val phase = (clock * 0.7f + k * 0.143f) % 1f
+        val x = plate.x - 3f + (k % 4) * 2f + sin(clock * 2.5f + k) * 1.2f
+        val y = plate.y - 1f - phase * 9f
+        val r = 0.7f + 0.8f * phase
+        val alpha = (1f - phase).coerceAtMost(0.95f)
+        dot(x, y, r, Color(0xFFDDF1FF).copy(alpha = alpha * 0.7f))
+        ring(x, y, r, Color(0xFF4F9FD6).copy(alpha = alpha), 0.28f)
+        dot(x - r * 0.35f, y - r * 0.35f, r * 0.25f, Color.White.copy(alpha = alpha))
+    }
+    // Clean plates piling up on the drying rack as the job gets done.
+    val done = (progress * 4).toInt()
+    for (k in 0 until done) oval(91f, SceneLayout.counter.top + 3.6f - k * 0.9f, 1.9f, 0.7f, Color.White)
+    // How long is left: a ring beside them, clear of the "YOU" marker.
+    val ringAt = Point(at.x - 9f, at.y - 3f)
+    dot(ringAt, 2.8f, Color(0xEEFFFFFF))
+    ring(ringAt.x, ringAt.y, 2.2f, Color(0x332F6188), 0.7f)
+    drawArc(
+        Palette.washerBlue,
+        startAngle = -90f,
+        sweepAngle = 360f * progress,
+        useCenter = false,
+        topLeft = p(ringAt.x - 2.2f, ringAt.y - 2.2f),
+        size = androidx.compose.ui.geometry.Size(u(4.4f), u(4.4f)),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(u(0.7f)),
+    )
+    for (k in 0..2) dot(ringAt.x - 0.8f + k * 0.8f, ringAt.y + 0.1f, 0.3f, Palette.washerBlue)
 }
 
 /** A spill: a puddle with splashes and a shine, plus a wobbling warning so it catches the eye. */
