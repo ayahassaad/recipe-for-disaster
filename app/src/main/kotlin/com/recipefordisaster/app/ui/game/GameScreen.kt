@@ -56,6 +56,7 @@ import com.recipefordisaster.app.ui.scene.SceneLabels
 import com.recipefordisaster.app.ui.scene.SceneModel
 import com.recipefordisaster.app.ui.scene.SceneTarget
 import com.recipefordisaster.app.ui.scene.StaffFigure
+import com.recipefordisaster.app.ui.theme.ChalkWhite
 import com.recipefordisaster.app.ui.theme.DisasterRed
 import com.recipefordisaster.app.ui.theme.ReceiptInk
 import com.recipefordisaster.domain.employee.EmployeeId
@@ -324,6 +325,7 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
     LaunchedEffect(session) {
         var last = withFrameNanos { it }
         var reported = false
+        var closedAt = -1f
         while (true) {
             val now = withFrameNanos { it }
             val dt = ((now - last) / 1_000_000_000f).coerceAtMost(0.1f)
@@ -332,8 +334,12 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
             if (!night.finished) {
                 night = night.advance(dt)
             } else if (!reported) {
-                reported = true
-                currentOnFinished(night)
+                // The last guest has gone: a moment of "Closing time!" before the bill.
+                if (closedAt < 0f) closedAt = clock
+                if (clock - closedAt >= CLOSING_PAUSE) {
+                    reported = true
+                    currentOnFinished(night)
+                }
             }
         }
     }
@@ -346,18 +352,37 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
             reputation = session.setup.morning.state.restaurant.reputation,
             subtitle = stringResource(R.string.tonight_takings, signedCoins(night.takings)),
         )
-        NightScene(
-            night = night,
-            model = model,
-            labels = labels,
-            clock = clock,
-            onTapTable = { night = night.tapTable(it) },
-            onTapCounter = { night = night.tapPass() },
-            onTapDishStation = { night = night.tapDishStation() },
-            onTapMopBucket = { night = night.tapMopBucket() },
-            onTapMess = { id -> night = night.tapMess(id) },
-            modifier = Modifier.weight(1f),
-        )
+        Box(modifier = Modifier.weight(1f)) {
+            NightScene(
+                night = night,
+                model = model,
+                labels = labels,
+                clock = clock,
+                onTapTable = { night = night.tapTable(it) },
+                onTapCounter = { night = night.tapPass() },
+                onTapDishStation = { night = night.tapDishStation() },
+                onTapMopBucket = { night = night.tapMopBucket() },
+                onTapMess = { id -> night = night.tapMess(id) },
+                modifier = Modifier.fillMaxSize(),
+            )
+            androidx.compose.animation.AnimatedVisibility(
+                visible = night.finished,
+                enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.scaleIn(initialScale = 0.8f),
+                modifier = Modifier.align(Alignment.Center).padding(horizontal = 32.dp),
+            ) {
+                val result = night.result()
+                Chalkboard {
+                    Text(stringResource(R.string.closing_time), style = MaterialTheme.typography.headlineMedium, color = ChalkWhite, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                    Text(
+                        stringResource(R.string.closing_time_fed, result.outcomes.count { it.dish != null }, result.outcomes.size),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = ChalkWhite.copy(alpha = 0.85f),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    )
+                }
+            }
+        }
         Text(
             text = nightHint(night),
             style = MaterialTheme.typography.titleMedium,
@@ -370,6 +395,9 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
         )
     }
 }
+
+/** Seconds the "Closing time!" sign stays up before the bill. */
+private const val CLOSING_PAUSE = 2.5f
 
 /** One line telling the player the most useful thing to do right now. */
 @Composable
