@@ -135,6 +135,18 @@ private fun PantrySheet(uiState: GameUiState.Playing, actions: GameActions) {
         Text(stringResource(R.string.food_stocked), style = MaterialTheme.typography.titleMedium, color = LeafGreen)
     } else {
         BigAction(stringResource(R.string.food_restock_all, coins(restockCost)), enabled = uiState.cashNow >= restockCost, onClick = actions.onRestockAll)
+        // Say what that buys, so a small price doesn't look like a mistake.
+        Text(
+            stringResource(
+                R.string.food_restock_what,
+                restock.entries.joinToString(", ") { (id, quantity) ->
+                    val ingredient = morning.inventory.ingredients.getValue(id)
+                    "${formatQuantity(quantity)} ${ingredient.unit} ${ingredient.name.lowercase()}"
+                },
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+        )
     }
     if (uiState.plan.purchases.isNotEmpty()) {
         TextButton(onClick = actions.onClearPurchases) { Text(stringResource(R.string.food_undo)) }
@@ -173,8 +185,9 @@ private fun PantryRow(ingredient: Ingredient, nights: Double?, bought: Double, c
             }
         }
         val description = stringResource(R.string.buy_more_label, ingredient.name)
+        // The price is on the button, so buying never costs a surprise.
         FilledTonalButton(onClick = onBuy, enabled = canAfford, modifier = Modifier.semantics { contentDescription = description }) {
-            Text(stringResource(R.string.buy_more))
+            Text(stringResource(R.string.buy_more_price, coins(DecisionApplier.purchaseCost(ingredient.purchasePricePerUnit, BUY_STEP))))
         }
     }
 }

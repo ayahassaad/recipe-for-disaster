@@ -145,6 +145,8 @@
     <!-- Food -->
     <string name="food_restock_all">Restock all (%1$s)</string>
     <string name="food_stocked">Shelves are stocked</string>
+    <string name="food_restock_what">Tops up everything to two nights\' worth: %1$s.</string>
+    <string name="buy_more_price">+5 (%1$s)</string>
     <string name="food_undo">Undo today\'s shopping</string>
     <string name="pantry_title">Pantry</string>
     <string name="stock_out">Out</string>
