@@ -70,7 +70,7 @@ class BalanceSimulationTest {
 
     @Test
     fun `every event in the library fires at least once across many runs`() {
-        val policies = listOf(BalancePolicies.sensiblePlayer, BalancePolicies.carelessOwner, BalancePolicies.doNothing)
+        val policies = listOf(BalancePolicies.sensiblePlayer, BalancePolicies.carelessOwner, BalancePolicies.doNothing, BalancePolicies.slaveDriver)
         val fired = seeds.flatMap { seed -> policies.flatMap { play(seed, it).firedRuleIds } }.toSet()
         val neverFired = EventLibrary.rules.map { it.id }.toSet() - fired
         if (System.getProperty("balanceReport") != null) println("never fired: $neverFired")
@@ -93,12 +93,15 @@ internal object BalancePolicies {
         }.toMap()
     }
 
+    /** Keeps the place running (stock, repairs, cleaning) but never hires help or gives anyone a day off. */
+    val slaveDriver: (GameState) -> PlayerDecisions = { state -> sensiblePlayer(state).copy(hires = emptySet(), restDays = emptySet()) }
+
     /** A reasonable, not optimal, player: keeps stock topped up, staffs to demand, and does basic upkeep. */
     val sensiblePlayer: (GameState) -> PlayerDecisions = { state ->
         val purchases = restockToPar(state)
 
         val working = state.employees.filter { it.status != EmployeeStatus.SICK }
-        val expectedCustomers = state.restaurant.capacity * state.restaurant.reputation / 100
+        val expectedCustomers = state.restaurant.guestCapacity * state.restaurant.reputation / 100
         val budget = state.restaurant.cash - 300
         val hires = mutableSetOf<EmployeeId>()
         val roomToGrow = state.employees.size < 6 && state.restaurant.cash > 600

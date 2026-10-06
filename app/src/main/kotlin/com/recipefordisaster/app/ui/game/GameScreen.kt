@@ -58,6 +58,7 @@ import com.recipefordisaster.app.ui.scene.SceneTarget
 import com.recipefordisaster.app.ui.scene.StaffFigure
 import com.recipefordisaster.app.ui.theme.ChalkWhite
 import com.recipefordisaster.app.ui.theme.DisasterRed
+import com.recipefordisaster.app.ui.theme.LeafGreen
 import com.recipefordisaster.app.ui.theme.ReceiptInk
 import com.recipefordisaster.domain.employee.EmployeeId
 import com.recipefordisaster.domain.employee.EmployeeStatus
@@ -93,6 +94,7 @@ data class GameActions(
     val onToggleRepair: (EquipmentId) -> Unit = {},
     val onToggleUpgrade: (EquipmentId) -> Unit = {},
     val onToggleDeepClean: () -> Unit = {},
+    val onToggleBuyTable: () -> Unit = {},
 )
 
 fun GameViewModel.actions(): GameActions = GameActions(
@@ -113,6 +115,7 @@ fun GameViewModel.actions(): GameActions = GameActions(
     onToggleRepair = ::toggleRepair,
     onToggleUpgrade = ::toggleUpgrade,
     onToggleDeepClean = ::toggleDeepClean,
+    onToggleBuyTable = ::toggleBuyTable,
 )
 
 /**
@@ -147,7 +150,13 @@ fun GameScreen(
             when {
                 uiState.showIntro -> IntroScreen(onStart = actions.onDismissIntro, modifier = modifier)
                 uiState.night != null -> NightPlay(session = uiState.night, onFinished = actions.onFinishService, onProgress = actions.onNightProgress, modifier = modifier)
-                uiState.report != null -> ResultsPlay(report = uiState.report, gameOver = gameOver, onContinue = actions.onNextMorning, modifier = modifier)
+                uiState.report != null -> ResultsPlay(
+                    report = uiState.report,
+                    gameOver = gameOver,
+                    newTable = uiState.state.restaurant.tables > uiState.report.startOfService.restaurant.tables,
+                    onContinue = actions.onNextMorning,
+                    modifier = modifier,
+                )
                 gameOver -> FinalBillScreen(state = uiState.state, onBackToStart = onBackToStart, modifier = modifier)
                 else -> MorningPlay(uiState = uiState, actions = actions, modifier = modifier)
             }
@@ -251,6 +260,7 @@ internal fun sceneModelFor(state: GameState, advice: List<Advice>, hiringOpen: B
         staff = working.map { StaffFigure(it.id, it.name, it.role, it.morale, it.stress) },
         ovenCondition = state.equipment.firstOrNull()?.condition ?: 100,
         ovenLevel = state.equipment.firstOrNull()?.upgradeLevel ?: 1,
+        tableCount = state.restaurant.tables,
         pantryFullness = fullness,
         pantryJars = jars,
         cleanliness = state.restaurant.cleanliness,
@@ -285,6 +295,7 @@ private fun sceneLabels(need: MorningAdvisor.Need? = null): SceneLabels {
         mop = stringResource(R.string.scene_mop),
         hiringSign = stringResource(R.string.scene_hiring),
         dishSign = stringResource(R.string.night_dish_sign),
+        tables = stringResource(R.string.scene_tables),
         staff = { figure -> String.format(staffLabel, figure.name, roles[figure.role] ?: "") },
     )
 }
@@ -448,7 +459,7 @@ private fun nightLabels(): NightLabels {
 /** After the night: the restaurant quiet again, the receipt over it, and on to the next day. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ResultsPlay(report: DayReport, gameOver: Boolean, onContinue: () -> Unit, modifier: Modifier = Modifier) {
+private fun ResultsPlay(report: DayReport, gameOver: Boolean, newTable: Boolean, onContinue: () -> Unit, modifier: Modifier = Modifier) {
     var showBill by remember { mutableStateOf(false) }
     val event = report.event
     val baseModel = remember(report) { sceneModelFor(report.startOfService, emptyList(), hiringOpen = false) }
@@ -466,7 +477,13 @@ private fun ResultsPlay(report: DayReport, gameOver: Boolean, onContinue: () -> 
         Hud(day = report.summary.day, cash = report.summary.cashAfter, reputation = report.summary.reputationAfter, subtitle = "")
         Box(modifier = Modifier.weight(1f)) {
             RestaurantScene(model = model, labels = sceneLabels(), onTap = {})
-            EndOfNightPanel(visible = true, report = report, onShowBill = { showBill = true }, modifier = Modifier.align(Alignment.BottomCenter))
+            EndOfNightPanel(
+                visible = true,
+                report = report,
+                onShowBill = { showBill = true },
+                newTable = newTable,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
         }
         Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
             SignButton(text = stringResource(if (gameOver) R.string.bill_game_over else R.string.bill_next), onClick = onContinue)
@@ -499,7 +516,7 @@ private fun lostTip(report: DayReport): String? {
 
 /** The receipt that slides up over the restaurant once the last guest has left. */
 @Composable
-private fun EndOfNightPanel(visible: Boolean, report: DayReport, onShowBill: () -> Unit, modifier: Modifier = Modifier) {
+private fun EndOfNightPanel(visible: Boolean, report: DayReport, onShowBill: () -> Unit, newTable: Boolean = false, modifier: Modifier = Modifier) {
     val event = report.event
     val profit = report.books.profitOrLoss
     AnimatedVisibility(
@@ -529,6 +546,9 @@ private fun EndOfNightPanel(visible: Boolean, report: DayReport, onShowBill: () 
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )
+            if (newTable) {
+                Text(stringResource(R.string.new_table_tomorrow), style = MaterialTheme.typography.titleMedium, color = LeafGreen, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
+            }
             // The biggest reason guests went without, with what to do about it.
             lostTip(report)?.let { tip ->
                 Text(tip, style = MaterialTheme.typography.bodyMedium, color = DisasterRed, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 4.dp))

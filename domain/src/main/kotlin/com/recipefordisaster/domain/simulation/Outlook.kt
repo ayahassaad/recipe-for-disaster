@@ -36,9 +36,9 @@ object OutlookCalculator {
     fun forTonight(state: GameState): Outlook {
         val restaurant = state.restaurant
         val modifier = (100 + state.pendingDemandModifierPercent).coerceAtLeast(0) / 100.0
-        val expected = (restaurant.capacity * restaurant.reputation.coerceIn(0, 100) / 100.0 * modifier)
+        val expected = (restaurant.guestCapacity * restaurant.reputation.coerceIn(0, 100) / 100.0 * modifier)
             .roundToInt()
-            .coerceIn(0, restaurant.capacity)
+            .coerceIn(0, restaurant.guestCapacity)
 
         val serving = state.menu.filter { it.available }
         val lowStock = state.inventory.ingredients.values.filter { ingredient ->

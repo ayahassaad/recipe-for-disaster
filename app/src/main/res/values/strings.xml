@@ -193,6 +193,15 @@
     <string name="diet_shellfish_allergy">allergic to shellfish</string>
     <string name="diet_vegetarian">vegetarian</string>
     <string name="diet_vegan">vegan</string>
+    <string name="scene_tables">Tables: see how many you have, or buy more</string>
+    <string name="tables_title">Tables</string>
+    <string name="tables_have">You have %1$d tables.</string>
+    <string name="tables_free_coming">A new table arrives free each morning until you have %1$d.</string>
+    <string name="tables_pitch">Another table means more guests every night, and more to run around for.</string>
+    <string name="tables_buy">Buy table %1$d (%2$s)</string>
+    <string name="tables_bought">Table %1$d is going in this morning.</string>
+    <string name="tables_full">The room is full. That\'s as many tables as it can hold.</string>
+    <string name="new_table_tomorrow">A new table arrives tomorrow!</string>
     <string name="staff_mood">Mood</string>
     <string name="staff_energy">Energy</string>
     <string name="staff_skill">Skill</string>

@@ -22,6 +22,8 @@ import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
+import com.recipefordisaster.domain.service.ServiceFloor
+import com.recipefordisaster.domain.service.TableLayout
 
 /**
  * Everything drawn in the restaurant scene, as flat shapes with enough
@@ -34,6 +36,14 @@ internal class Pen(private val scope: DrawScope, val unit: Float, private val or
     fun p(point: Point) = Offset(origin.x + point.x * unit, origin.y + point.y * unit)
     fun p(x: Float, y: Float) = Offset(origin.x + x * unit, origin.y + y * unit)
     fun u(units: Float) = units * unit
+
+    /**
+     * A pen that draws everything [s] times smaller, shrinking towards [center]: for the tables (and the
+     * people at them) in a room packed with more than six. Draw with the usual full-size offsets from
+     * [center] and they come out scaled.
+     */
+    fun around(center: Point, s: Float): Pen =
+        if (s == 1f) this else Pen(scope, unit * s, Offset(origin.x + center.x * unit * (1 - s), origin.y + center.y * unit * (1 - s)))
 
     fun box(rect: Rect, color: Color, radius: Float = 1.5f) =
         drawRoundRect(color, topLeft = p(rect.left, rect.top), size = Size(u(rect.width), u(rect.height)), cornerRadius = CornerRadius(u(radius)))
@@ -446,11 +456,14 @@ internal fun Pen.drawPantry(fullness: Float, jars: List<Float> = emptyList()) {
 
 // ---------------------------------------------------------------- the dining room
 
-internal fun Pen.drawTables() {
-    SceneLayout.tables.forEach { table ->
-        drawChair(Point(table.x - 12f, table.y), facingRight = true)
-        drawChair(Point(table.x + 12f, table.y), facingRight = false)
-        drawTable(table)
+internal fun Pen.drawTables(layout: TableLayout = ServiceFloor.layout(ServiceFloor.TABLE_COUNT)) {
+    layout.tables.forEach { at ->
+        val table = at.toPoint()
+        with(around(table, layout.scale)) {
+            drawChair(Point(table.x - 12f, table.y), facingRight = true)
+            drawChair(Point(table.x + 12f, table.y), facingRight = false)
+            drawTable(table)
+        }
     }
 }
 

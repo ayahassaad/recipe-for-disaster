@@ -19,6 +19,7 @@ object GameStateValidator {
         if (state.restaurant.reputation !in 0..100) problems += "reputation out of range (${state.restaurant.reputation})"
         if (state.restaurant.cleanliness !in 0..100) problems += "cleanliness out of range (${state.restaurant.cleanliness})"
         if (state.restaurant.capacity < 0) problems += "capacity is negative (${state.restaurant.capacity})"
+        if (state.restaurant.tables !in 1..com.recipefordisaster.domain.restaurant.TableGrowth.MAX) problems += "table count out of range (${state.restaurant.tables})"
 
         (state.employees + state.applicants).forEach { employee ->
             if (employee.morale !in 0..100) problems += "employee ${employee.id.value} morale out of range (${employee.morale})"

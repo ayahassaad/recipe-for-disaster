@@ -13,6 +13,7 @@ import com.recipefordisaster.domain.inventory.InventoryOperations
 import com.recipefordisaster.domain.restaurant.CleanlinessModel
 import com.recipefordisaster.domain.restaurant.ReputationModel
 import com.recipefordisaster.domain.restaurant.RestaurantStatus
+import com.recipefordisaster.domain.restaurant.TableGrowth
 import com.recipefordisaster.domain.simulation.ServiceSimulator.MissedMealReason
 import kotlinx.serialization.Serializable
 
@@ -90,8 +91,8 @@ class DefaultDayTickEngine(
             }
         }
 
-        val usageIntensity = if (start.restaurant.capacity > 0) {
-            (arrivals.size.toDouble() / start.restaurant.capacity).coerceIn(0.0, 1.0)
+        val usageIntensity = if (start.restaurant.guestCapacity > 0) {
+            (arrivals.size.toDouble() / start.restaurant.guestCapacity).coerceIn(0.0, 1.0)
         } else {
             0.0
         }
@@ -155,6 +156,11 @@ class DefaultDayTickEngine(
         serviceResult.dishesSold.forEach { (dishId, count) -> updatedDishTotals.merge(dishId.value, count, Int::plus) }
 
         val nextDay = state.day + 1
+        // A young restaurant gets a new table each morning until the room is properly set up.
+        val tablesTomorrow = if (TableGrowth.growsFree(start.restaurant.tables)) start.restaurant.tables + 1 else start.restaurant.tables
+        if (tablesTomorrow > start.restaurant.tables) {
+            dayLog += SimulationLogEntry(state.day, "A new table arrived for tomorrow: you'll have $tablesTomorrow.", LogTone.GOOD)
+        }
         val applicants = if (nextDay % StaffingMarket.REFRESH_EVERY_DAYS == 0 || start.applicants.isEmpty()) {
             StaffingMarket.generateApplicants(rng, nextDay, cash = newCash)
         } else {
@@ -168,6 +174,7 @@ class DefaultDayTickEngine(
                 reputation = newReputation,
                 cleanliness = newCleanliness,
                 currentDay = nextDay,
+                tables = tablesTomorrow,
             ),
             employees = employeesAfterDay,
             customersPresent = emptyList(),

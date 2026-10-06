@@ -43,9 +43,7 @@ object SceneLayout {
     val counter = Rect(4f, KITCHEN_BOTTOM, 96f, 44f)
     val pickup = ServiceFloor.pass.toPoint()
 
-    // Dining room: the same six numbered tables the game logic plays service on (see ServiceFloor).
-    val tables: List<Point> = ServiceFloor.tables.map { it.toPoint() }
-    val seats: List<Point> = (0 until ServiceFloor.TABLE_COUNT).flatMap { t -> ServiceFloor.seats(t).map { it.toPoint() } }
+    // Dining room: the tables come from ServiceFloor.layout, since how many there are changes as the restaurant grows.
 
     /** A sidewalk-style menu board by the front door, out of everyone's way. */
     val menuBoard = Rect(18f, 140.5f, 34f, 149.5f)

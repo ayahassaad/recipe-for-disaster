@@ -99,6 +99,10 @@ fun NightScene(
         val unit = minOf(widthPx / SceneLayout.WIDTH, heightPx / SceneLayout.HEIGHT)
         val origin = Offset((widthPx - unit * SceneLayout.WIDTH) / 2f, (heightPx - unit * SceneLayout.HEIGHT) / 2f)
         val ownerColor = ownerColors(night)
+        // Tonight's tables, and how small they're drawn (full size up to six, smaller when packed).
+        val layout = night.layout
+        val tablePoints = layout.tables.map { it.toPoint() }
+        val scale = layout.scale
         val helperColor = remember(model.staff) { helperColors(model.staff) }
 
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -113,7 +117,7 @@ fun NightScene(
                     drawStove(cooking, clock)
                     drawSink()
                     drawPantry(model.pantryFullness, model.pantryJars)
-                    drawTables()
+                    drawTables(layout)
                     drawMenuBoard(text, labels.menu)
                     // The mop stays in the bucket unless someone's carrying it.
                     drawMopBucket(withMop = night.waiters.none { it.holdingMop })
@@ -131,7 +135,7 @@ fun NightScene(
                     drawDishStation(text, labels.dishSign, night, clock)
 
                     // Tables guests have left: dirty plates, crumbs and a crumpled napkin until someone clears them.
-                    night.dirtyTables.forEach { t -> drawDirtyTable(SceneLayout.tables[t]) }
+                    night.dirtyTables.forEach { t -> around(tablePoints[t], scale).drawDirtyTable(tablePoints[t]) }
 
                     // Spills on the floor, and a ring filling up while someone mops one.
                     night.messesOnFloor.forEach { mess -> drawSpill(mess.at.toPoint(), mess.id, clock, sinceAppeared = night.time - mess.appearsAt) }
@@ -143,7 +147,7 @@ fun NightScene(
                     }
 
                     // Table number cards, in the colour of whoever looks after the table.
-                    SceneLayout.tables.forEachIndexed { t, table -> drawTableNumber(text, table, t + 1, ownerColor[t] ?: PlayerColor) }
+                    tablePoints.forEachIndexed { t, table -> around(table, scale).drawTableNumber(text, table, t + 1, ownerColor[t] ?: PlayerColor) }
 
                     // Guests.
                     var queueIndex = 0
@@ -165,9 +169,10 @@ fun NightScene(
                                 val table = party.table ?: return@forEach
                                 val progress = 1f - (party.until - time) / (party.until - party.stageSince).coerceAtLeast(0.01f)
                                 party.guests.forEachIndexed { g, guest ->
-                                    val seat = ServiceFloor.seats(table)[g]
-                                    val route = ServiceFloor.route(ServiceFloor.door, ServiceFloor.stand(table)) + seat
-                                    drawGuest(ServiceFloor.along(route, progress).toPoint(), guest, 65, angry = false, walkPhase = time * 2.2f + g, g)
+                                    val seat = layout.seats(table)[g]
+                                    val route = ServiceFloor.route(ServiceFloor.door, layout.stand(table)) + seat
+                                    val at = ServiceFloor.along(route, progress).toPoint()
+                                    around(at, scale).drawGuest(at, guest, 65, angry = false, walkPhase = time * 2.2f + g, g)
                                 }
                             }
                             Stage.LEAVING_HAPPY, Stage.LEAVING_ANGRY -> {
@@ -175,24 +180,29 @@ fun NightScene(
                                 val progress = (time - party.stageSince) / (party.until - party.stageSince).coerceAtLeast(0.01f)
                                 val angry = party.stage == Stage.LEAVING_ANGRY
                                 party.guests.forEachIndexed { g, guest ->
-                                    val seat = ServiceFloor.seats(table)[g]
-                                    val route = listOf(seat) + ServiceFloor.route(ServiceFloor.stand(table), ServiceFloor.door) + FloorPoint(50f, 156f)
+                                    val seat = layout.seats(table)[g]
+                                    val route = listOf(seat) + ServiceFloor.route(layout.stand(table), ServiceFloor.door) + FloorPoint(50f, 156f)
                                     val mood = if (angry) 5 else night.results[guest]?.satisfaction ?: 70
-                                    drawGuest(ServiceFloor.along(route, progress).toPoint(), guest, mood, angry = angry, walkPhase = time * 2.6f + g, g)
+                                    val at = ServiceFloor.along(route, progress).toPoint()
+                                    around(at, scale).drawGuest(at, guest, mood, angry = angry, walkPhase = time * 2.6f + g, g)
                                 }
-                                if (!angry) drawCoins(text, SceneLayout.tables[table], ((time - party.stageSince) / 1.2f).coerceAtMost(1f), party.guests.sumOf { night.results[it]?.dish?.sellingPrice ?: 0 })
+                                if (!angry) drawCoins(text, tablePoints[table], ((time - party.stageSince) / 1.2f).coerceAtMost(1f), party.guests.sumOf { night.results[it]?.dish?.sellingPrice ?: 0 })
                             }
                             else -> {
                                 val table = party.table ?: return@forEach
                                 val waitedFraction = night.impatience(party)
-                                party.guests.forEachIndexed { g, guest ->
-                                    val seat = ServiceFloor.seats(table)[g]
-                                    val eating = party.stage == Stage.EATING
-                                    val mood = if (eating) 80 else (75 - waitedFraction * 70).toInt()
-                                    if (eating && party.orders.getOrNull(g) != null) drawPlate(Point((SceneLayout.tables[table].x + seat.x) / 2, seat.y))
-                                    drawGuest(seat.toPoint(), guest, mood, angry = waitedFraction > 0.75f, walkPhase = null, g, bob = if (eating) abs(sin(clock * 6f + guest)) * 0.4f else 0f)
+                                // Drawn at full size around the table's centre, then shrunk to fit if the room is packed.
+                                val c = tablePoints[table]
+                                with(around(c, scale)) {
+                                    party.guests.forEachIndexed { g, guest ->
+                                        val seat = Point(c.x + (if (g == 0) -12f else 12f), c.y)
+                                        val eating = party.stage == Stage.EATING
+                                        val mood = if (eating) 80 else (75 - waitedFraction * 70).toInt()
+                                        if (eating && party.orders.getOrNull(g) != null) drawPlate(Point((c.x + seat.x) / 2, seat.y))
+                                        drawGuest(seat, guest, mood, angry = waitedFraction > 0.75f, walkPhase = null, g, bob = if (eating) abs(sin(clock * 6f + guest)) * 0.4f else 0f)
+                                    }
+                                    drawTableBubble(text, c, party.stage, waitedFraction, clock)
                                 }
-                                drawTableBubble(text, table, party.stage, waitedFraction, clock)
                             }
                         }
                     }
@@ -200,7 +210,7 @@ fun NightScene(
                     // "Tap here": a pulsing ring around whatever the hint is talking about.
                     focus?.let { f ->
                         val (center, radius) = when (f) {
-                            is NightFocus.Table -> SceneLayout.tables[f.table] to 16f
+                            is NightFocus.Table -> tablePoints[f.table] to 16f * scale
                             NightFocus.Counter -> Point(ServiceFloor.pass.x, SceneLayout.counter.center.y) to 7f
                             NightFocus.DishStation -> Point(87f, SceneLayout.counter.top + 1f) to 9f
                             NightFocus.MopBucket -> SceneLayout.mopBucket.center to 9f
@@ -215,7 +225,7 @@ fun NightScene(
                     val me = night.player
                     (listOfNotNull(me.errand) + me.queue).forEachIndexed { k, errand ->
                         val spot = when (errand) {
-                            is ServiceNight.Errand.VisitTable -> ServiceFloor.stand(errand.table)
+                            is ServiceNight.Errand.VisitTable -> layout.stand(errand.table)
                             ServiceNight.Errand.VisitPass -> ServiceFloor.pass
                             ServiceNight.Errand.VisitDishStation -> ServiceFloor.dishStation
                             ServiceNight.Errand.VisitMopBucket -> ServiceFloor.mopBucket
@@ -281,7 +291,7 @@ fun NightScene(
         }
 
         // Tap areas: each table (with its chairs), and the counter / kitchen.
-        val tableRects = SceneLayout.tables.map { Rect(it.x - 17f, it.y - 10f, it.x + 17f, it.y + 12f) }
+        val tableRects = tablePoints.map { Rect(it.x - 17f * scale, it.y - 10f * scale, it.x + 17f * scale, it.y + 12f * scale) }
         tableRects.forEachIndexed { t, rect ->
             val party = night.partyAt(t)
             val state = when (party?.stage) {
@@ -340,9 +350,8 @@ private fun Pen.drawTableNumber(text: TextMeasurer, table: Point, number: Int, c
 }
 
 /** The speech bubble over a table: "?" to order, a plate while they wait for food, with a patience bar underneath. */
-private fun Pen.drawTableBubble(text: TextMeasurer, tableIndex: Int, stage: Stage, waited: Float, clock: Float) {
+private fun Pen.drawTableBubble(text: TextMeasurer, table: Point, stage: Stage, waited: Float, clock: Float) {
     if (stage == Stage.EATING) return
-    val table = SceneLayout.tables[tableIndex]
     val c = Point(table.x, table.y - 13.5f)
     val wobble = if (stage == Stage.READY_TO_ORDER) sin(clock * 5f) * 0.4f else 0f
     // Bubble with a little tail.

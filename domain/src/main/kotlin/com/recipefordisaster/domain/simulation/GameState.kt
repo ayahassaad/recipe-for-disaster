@@ -125,6 +125,8 @@ data class PlayerDecisions(
     /** Machines to replace with the next model up (see [com.recipefordisaster.domain.equipment.EquipmentCatalog]). */
     val upgrades: Set<EquipmentId> = emptySet(),
     val deepClean: Boolean = false,
+    /** Buy one more table (only possible once the free ones have all arrived). */
+    val buyTable: Boolean = false,
 )
 
 data class DayResult(

@@ -158,6 +158,20 @@ object DecisionApplier {
             note("Repaired the ${equipment.name}.", LogTone.GOOD)
         }
 
+        if (decisions.buyTable) {
+            val tables = current.restaurant.tables
+            val price = com.recipefordisaster.domain.restaurant.TableGrowth.nextTablePrice(tables)
+            when {
+                price == null -> {}
+                !canAfford(price) -> note("Couldn't afford another table.", LogTone.BAD)
+                else -> {
+                    spending = spending.copy(upgrades = spending.upgrades + price)
+                    current = current.copy(restaurant = current.restaurant.copy(tables = tables + 1))
+                    note("Bought table ${tables + 1}. More seats, more guests.", LogTone.GOOD)
+                }
+            }
+        }
+
         if (decisions.deepClean) {
             if (canAfford(DEEP_CLEAN_COST)) {
                 spending = spending.copy(cleaning = spending.cleaning + DEEP_CLEAN_COST)

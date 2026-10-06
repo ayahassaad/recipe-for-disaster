@@ -59,6 +59,8 @@ data class ServiceNight(
     val messes: List<Mess> = emptyList(),
     /** Whether a host is on the door tonight: guests wait longer, and one more party fits inside. */
     val hosted: Boolean = false,
+    /** How many tables the restaurant has tonight. */
+    val tableCount: Int = ServiceFloor.TABLE_COUNT,
     /** For guests who gave up: at which step (the door, waiting to order, or waiting for food). */
     val gaveUpAt: Map<Int, WaitedFor> = emptyMap(),
 ) {
@@ -206,6 +208,9 @@ data class ServiceNight(
 
     val finished: Boolean get() = parties.all { it.stage == Stage.DONE }
 
+    /** Where tonight's tables are. */
+    val layout: TableLayout get() = ServiceFloor.layout(tableCount)
+
     val player: Waiter get() = waiters.first { it.isPlayer }
 
     /** Coins taken so far tonight. */
@@ -217,7 +222,7 @@ data class ServiceNight(
     val waitingAtDoor: List<Party> get() = parties.filter { it.stage == Stage.QUEUEING }
 
     /** Whether there's a clean, empty table for the next party to sit at. */
-    val hasFreeTable: Boolean get() = (0 until ServiceFloor.TABLE_COUNT).any { t -> t !in dirtyTables && partyAt(t) == null }
+    val hasFreeTable: Boolean get() = (0 until tableCount).any { t -> t !in dirtyTables && partyAt(t) == null }
 
     /** How long this party will wait at each step before giving up (longer with a host on the door). */
     fun patienceOf(party: Party): Float = party.patience * (if (hosted) HOST_PATIENCE else 1f)
@@ -267,8 +272,8 @@ data class ServiceNight(
         val waiter = waiters.first { it.id == waiterId }
         val here = waiter.position(time)
         val destination = when (errand) {
-            is Errand.VisitTable -> ServiceFloor.stand(errand.table)
-            is Errand.Serve -> ServiceFloor.stand(errand.table)
+            is Errand.VisitTable -> layout.stand(errand.table)
+            is Errand.Serve -> layout.stand(errand.table)
             Errand.VisitPass -> ServiceFloor.pass
             Errand.VisitDishStation -> ServiceFloor.dishStation
             Errand.Wash, is Errand.Mopping -> here
@@ -342,10 +347,10 @@ data class ServiceNight(
         var night = this
         val queue = night.parties.filter { it.stage == Stage.QUEUEING }.sortedBy { it.arriveAt }
         for (party in queue) {
-            val free = (0 until ServiceFloor.TABLE_COUNT).firstOrNull { t ->
+            val free = (0 until night.tableCount).firstOrNull { t ->
                 t !in night.dirtyTables && night.parties.none { it.table == t && it.occupiesTable }
             } ?: break
-            val walk = ServiceFloor.length(ServiceFloor.route(ServiceFloor.door, ServiceFloor.stand(free))) / GUEST_SPEED
+            val walk = ServiceFloor.length(ServiceFloor.route(ServiceFloor.door, night.layout.stand(free))) / GUEST_SPEED
             night = night.updateParty(party.id) { it.copy(stage = Stage.WALKING_TO_TABLE, stageSince = time, table = free, until = time + walk) }
         }
         // Parties that have reached their table are ready to order.
@@ -695,7 +700,8 @@ data class ServiceNight(
             val customers = setup.arrivals
             val menu = state.menu.filter { it.available }
 
-            // Parties of one or two (mostly two), a new one roughly every seven or eight seconds.
+            // Parties of one or two (mostly two). They arrive roughly every seven or eight seconds in a
+            // six-table room; a smaller room gets them more slowly, a bigger one faster, so every table gets used.
             val groups = mutableListOf<List<Int>>()
             var i = 0
             while (i < customers.size) {
@@ -703,10 +709,12 @@ data class ServiceNight(
                 groups += (i until i + size).toList()
                 i += size
             }
+            val tableCount = state.restaurant.tables.coerceIn(1, ServiceFloor.MAX_TABLES)
+            val pace = kotlin.math.sqrt(ServiceFloor.TABLE_COUNT.toFloat() / tableCount)
             var nextArrival = 1.5f
             val parties = groups.mapIndexed { index, guests ->
                 val arriveAt = nextArrival
-                nextArrival += ARRIVAL_GAP + rng.nextFloat() * ARRIVAL_JITTER
+                nextArrival += (ARRIVAL_GAP + rng.nextFloat() * ARRIVAL_JITTER) * pace
                 Party(
                     id = index,
                     guests = guests,
@@ -731,7 +739,7 @@ data class ServiceNight(
             // Every table is the player's. Up to two hired servers help out as food runners.
             val servers = state.employees.filter { it.status == EmployeeStatus.ACTIVE && (it.role == Role.SERVER || it.role == Role.MANAGER) }
             val helpers = servers.take(2)
-            val allTables = (0 until ServiceFloor.TABLE_COUNT).toSet()
+            val allTables = (0 until tableCount).toSet()
             val waiters = listOf(
                 Waiter(PLAYER_ID, isPlayer = true, tables = allTables, speed = PLAYER_SPEED, restSpot = ServiceFloor.pass,
                     route = listOf(FloorPoint(ServiceFloor.pass.x, ServiceFloor.pass.y + 3f)), routeStart = 0f, routeEnd = 0f, errand = null),
@@ -769,6 +777,7 @@ data class ServiceNight(
                 staffingRatio = if (active == 0) (if (customers.isEmpty()) 0.0 else Double.MAX_VALUE) else customers.size.toDouble() / active,
                 arrivalOrder = customers,
                 messes = messes,
+                tableCount = tableCount,
                 hosted = state.employees.any { it.status == EmployeeStatus.ACTIVE && it.role == Role.HOST },
             )
         }

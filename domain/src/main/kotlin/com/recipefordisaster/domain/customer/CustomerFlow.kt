@@ -30,11 +30,11 @@ object CustomerFlow {
     internal fun calculateDemand(restaurant: Restaurant, rng: RandomSource, demandModifierPercent: Int = 0): Int {
         val reputationFactor = restaurant.reputation.coerceIn(0, 100) / 100.0
         val modifier = (100 + demandModifierPercent).coerceAtLeast(0) / 100.0
-        val baseline = (restaurant.capacity * reputationFactor * modifier).roundToInt()
+        val baseline = (restaurant.guestCapacity * reputationFactor * modifier).roundToInt()
         // +/- a small amount of day-to-day noise so demand isn't a pure
         // function of reputation alone — still seeded/reproducible via rng.
         val noise = rng.nextInt(5) - 2
-        return (baseline + noise).coerceIn(0, restaurant.capacity)
+        return (baseline + noise).coerceIn(0, restaurant.guestCapacity)
     }
 
     private val FIRST_NAMES = listOf(

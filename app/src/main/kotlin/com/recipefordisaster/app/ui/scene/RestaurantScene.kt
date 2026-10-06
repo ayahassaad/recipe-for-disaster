@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.recipefordisaster.app.ui.scene.SceneLayout.Point
 import com.recipefordisaster.app.ui.scene.SceneLayout.Rect
 import com.recipefordisaster.domain.employee.EmployeeId
+import com.recipefordisaster.domain.service.ServiceFloor
 import com.recipefordisaster.domain.employee.Role as StaffRole
 
 /** Something in the restaurant the player can tap. */
@@ -35,6 +36,8 @@ sealed interface SceneTarget {
     data object MenuBoard : SceneTarget
     data object Mop : SceneTarget
     data object HiringSign : SceneTarget
+    /** Any table: opens the "more tables" popup. */
+    data object Tables : SceneTarget
     data class Staff(val id: EmployeeId) : SceneTarget
 }
 
@@ -64,6 +67,8 @@ data class SceneModel(
     val ovenOnFire: Boolean = false,
     /** Which model of oven: 1 is the ancient one, higher is better (see EquipmentCatalog). */
     val ovenLevel: Int = 1,
+    /** How many tables are in the dining room. */
+    val tableCount: Int = 6,
 )
 
 data class SceneLabels(
@@ -74,6 +79,7 @@ data class SceneLabels(
     val mop: String,
     val hiringSign: String,
     val dishSign: String,
+    val tables: String = "",
     val staff: (StaffFigure) -> String,
 )
 
@@ -125,7 +131,7 @@ fun RestaurantScene(
                 drawSink()
                 drawDishStation(text, labels.dishSign)
                 drawPantry(model.pantryFullness, model.pantryJars)
-                drawTables()
+                drawTables(ServiceFloor.layout(model.tableCount))
                 drawMenuBoard(text, labels.menu)
                 drawMopBucket()
                 if (model.hiring) drawHiringSign(text, labels.hiring)
@@ -160,10 +166,17 @@ fun RestaurantScene(
                 SceneTarget.Pantry to labels.pantry,
                 SceneTarget.MenuBoard to labels.menu,
                 SceneTarget.Mop to labels.mop,
-            ) + (if (model.hiring) listOf(SceneTarget.HiringSign to labels.hiringSign) else emptyList()) +
+            ) +
+                // One tap area per table, all opening the same popup.
+                ServiceFloor.layout(model.tableCount).let { layout ->
+                    layout.tables.map { SceneTarget.Tables to labels.tables }
+                } + (if (model.hiring) listOf(SceneTarget.HiringSign to labels.hiringSign) else emptyList()) +
                 staffSpots.map { (figure, _) -> SceneTarget.Staff(figure.id) to labels.staff(figure) }
+            val tableRects = ServiceFloor.layout(model.tableCount).let { layout ->
+                layout.tables.map { Rect(it.x - 17f * layout.scale, it.y - 10f * layout.scale, it.x + 17f * layout.scale, it.y + 12f * layout.scale) }
+            }.iterator()
             targets.forEach { (target, label) ->
-                val rect = rectFor(target, staffSpots) ?: return@forEach
+                val rect = (if (target == SceneTarget.Tables) tableRects.next() else rectFor(target, staffSpots)) ?: return@forEach
                 val x = with(density) { (origin.x + rect.left * unit).toDp() }
                 val y = with(density) { (origin.y + rect.top * unit).toDp() }
                 val w = with(density) { (rect.width * unit).toDp() }
@@ -200,6 +213,7 @@ private fun rectFor(target: SceneTarget, staffSpots: List<Pair<StaffFigure, Poin
     SceneTarget.MenuBoard -> SceneLayout.menuBoard
     SceneTarget.Mop -> Rect(SceneLayout.mopBucket.left, SceneLayout.mopBucket.top - 6f, SceneLayout.mopBucket.right + 4f, SceneLayout.mopBucket.bottom)
     SceneTarget.HiringSign -> SceneLayout.hiringSign
+    SceneTarget.Tables -> null
     is SceneTarget.Staff -> staffSpots.firstOrNull { it.first.id == target.id }?.second?.let { Rect(it.x - 5f, it.y - 9f, it.x + 5f, it.y + 4f) }
 }
 

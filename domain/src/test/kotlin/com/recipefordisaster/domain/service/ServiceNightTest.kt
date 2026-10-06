@@ -16,7 +16,8 @@ import org.junit.Test
 class ServiceNightTest {
 
     private val engine = DefaultDayTickEngine(EventEngine(emptyList()))
-    private val start: GameState = NewGameFactory.create(seed = 11L)
+    /** A restaurant with the full six tables (a brand-new one starts with only two). */
+    private val start: GameState = NewGameFactory.create(seed = 11L).let { it.copy(restaurant = it.restaurant.copy(tables = 6)) }
 
     private fun open(state: GameState = start, seed: Long = 1L): ServiceNight =
         ServiceNight.open(engine.openService(state, PlayerDecisions(), SeededRandomSource(seed)), SeededRandomSource(seed + 1))
@@ -435,5 +436,25 @@ class ServiceNightTest {
         val gaveUp = n.result().outcomes.count { it.missedReason == MissedMealReason.TIRED_OF_WAITING }
         assertTrue(gaveUp > 0)
         assertEquals(gaveUp, n.gaveUpCounts().values.sum())
+    }
+
+    @Test
+    fun `guests only ever sit at the tables the restaurant has`() {
+        val small = start.copy(restaurant = start.restaurant.copy(tables = 2))
+        var n = open(small)
+        while (!n.finished) {
+            n = busyPlayer(n).advance(0.05f)
+            assertTrue(n.parties.all { it.table == null || it.table!! < 2 })
+        }
+        assertEquals(setOf(0, 1), n.player.tables)
+    }
+
+    @Test
+    fun `a packed room of twelve tables plays a full night`() {
+        val big = start.copy(restaurant = start.restaurant.copy(tables = 12, reputation = 80))
+        val n = play(open(big), ::busyPlayer)
+        assertTrue(n.finished)
+        assertTrue(n.parties.mapNotNull { it.table }.any { it >= 6 })
+        assertTrue(n.result().outcomes.count { it.dish != null } > 20)
     }
 }

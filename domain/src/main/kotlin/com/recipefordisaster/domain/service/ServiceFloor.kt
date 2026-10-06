@@ -25,20 +25,37 @@ data class FloorPoint(val x: Float, val y: Float) {
 object ServiceFloor {
     const val WIDTH = 100f
     const val HEIGHT = 150f
+
+    /** The standard room: six full-size tables in two columns. */
     const val TABLE_COUNT = 6
 
-    /** Table centres; table 1 is index 0 (top left), table 6 is index 5 (bottom right). */
+    /** The most tables the room can hold: twelve smaller ones in four columns. */
+    const val MAX_TABLES = 12
+
+    /** Table centres in a six-table room; table 1 is index 0 (top left), table 6 is index 5 (bottom right). */
     val tables: List<FloorPoint> = listOf(
         FloorPoint(27f, 64f), FloorPoint(73f, 64f),
         FloorPoint(27f, 92f), FloorPoint(73f, 92f),
         FloorPoint(27f, 120f), FloorPoint(73f, 120f),
     )
 
-    /** The two chairs at a table: left, then right. */
-    fun seats(table: Int): List<FloorPoint> = tables[table].let { listOf(FloorPoint(it.x - 12f, it.y), FloorPoint(it.x + 12f, it.y)) }
+    /** Table centres when the room is packed with more than six: four columns, smaller tables. */
+    private val packed: List<FloorPoint> = listOf(64f, 92f, 120f).flatMap { y -> listOf(13f, 37f, 63f, 87f).map { x -> FloorPoint(x, y) } }
 
-    /** Where a waiter stands to talk to (or serve) a table: in the aisle just below it. */
-    fun stand(table: Int): FloorPoint = tables[table].let { FloorPoint(it.x, it.y + 10f) }
+    /** How small tables (and the chairs and people at them) are drawn when the room is packed. */
+    const val PACKED_SCALE = 0.62f
+
+    /** The room laid out for [count] tables. Up to six fit at full size; more need the packed layout. */
+    fun layout(count: Int): TableLayout {
+        val n = count.coerceIn(1, MAX_TABLES)
+        return if (n <= TABLE_COUNT) TableLayout(tables.take(n), 1f) else TableLayout(packed.take(n), PACKED_SCALE)
+    }
+
+    /** The two chairs at a table in the six-table room: left, then right. */
+    fun seats(table: Int): List<FloorPoint> = layout(TABLE_COUNT).seats(table)
+
+    /** Where a waiter stands to talk to (or serve) a table in the six-table room. */
+    fun stand(table: Int): FloorPoint = layout(TABLE_COUNT).stand(table)
 
     /** Where tickets are handed in and plates picked up. */
     val pass = FloorPoint(50f, 49f)
@@ -74,4 +91,15 @@ object ServiceFloor {
         }
         return route.last()
     }
+}
+
+/** Where the tables are tonight, and how big they're drawn ([scale] 1 is full size). */
+data class TableLayout(val tables: List<FloorPoint>, val scale: Float) {
+    val count: Int get() = tables.size
+
+    /** The two chairs at a table: left, then right. */
+    fun seats(table: Int): List<FloorPoint> = tables[table].let { listOf(FloorPoint(it.x - 12f * scale, it.y), FloorPoint(it.x + 12f * scale, it.y)) }
+
+    /** Where a waiter stands to talk to (or serve) a table: just below it. */
+    fun stand(table: Int): FloorPoint = tables[table].let { FloorPoint(it.x, it.y + 10f * scale) }
 }

@@ -13,12 +13,18 @@ data class Restaurant(
     val cash: Long,
     val reputation: Int,
     val cleanliness: Int,
+    /** The most guests a night can bring when every table is out (scales with [tables]; see [guestCapacity]). */
     val capacity: Int,
     val level: Int,
     val operatingCosts: OperatingCosts,
     val currentDay: Int,
     val status: RestaurantStatus,
-)
+    /** Tables in the dining room. A new restaurant starts with a couple and grows (see TableGrowth). */
+    val tables: Int = 6,
+) {
+    /** The most guests tonight can bring: [capacity] is for a six-table room, and more tables mean more guests. */
+    val guestCapacity: Int get() = capacity * tables / 6
+}
 
 @Serializable
 data class OperatingCosts(

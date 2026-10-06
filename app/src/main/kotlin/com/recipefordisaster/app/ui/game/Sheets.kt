@@ -44,6 +44,7 @@ import com.recipefordisaster.domain.inventory.Ingredient
 import com.recipefordisaster.domain.menu.Dish
 import com.recipefordisaster.domain.menu.RecipeBook
 import com.recipefordisaster.domain.menu.violates
+import com.recipefordisaster.domain.restaurant.TableGrowth
 import com.recipefordisaster.domain.simulation.MorningAdvisor
 
 private const val BUY_STEP = 5.0
@@ -62,6 +63,7 @@ internal fun SheetContent(target: SceneTarget, uiState: GameUiState.Playing, act
             SceneTarget.Pantry -> PantrySheet(uiState, actions)
             SceneTarget.MenuBoard -> MenuSheet(uiState, actions)
             SceneTarget.Mop -> CleaningSheet(uiState, actions)
+            SceneTarget.Tables -> TablesSheet(uiState, actions)
             SceneTarget.HiringSign -> HiringSheet(uiState, actions)
             is SceneTarget.Staff -> {
                 val person = (uiState.state.employees + uiState.state.applicants).firstOrNull { it.id == target.id }
@@ -497,3 +499,24 @@ private fun BigAction(text: String, enabled: Boolean, onClick: () -> Unit) {
 }
 
 private enum class StaffAction { DAY_OFF, LET_GO }
+
+@Composable
+private fun TablesSheet(uiState: GameUiState.Playing, actions: GameActions) {
+    val have = uiState.state.restaurant.tables
+    val buying = uiState.plan.buyTable
+    SectionTitle(stringResource(R.string.tables_title))
+    Text(stringResource(R.string.tables_have, if (buying) have + 1 else have), style = MaterialTheme.typography.bodyLarge)
+    val price = TableGrowth.nextTablePrice(have)
+    when {
+        buying -> {
+            Text(stringResource(R.string.tables_bought, have + 1), style = MaterialTheme.typography.bodyLarge, color = LeafGreen)
+            OutlinedButton(onClick = actions.onToggleBuyTable) { Text(stringResource(R.string.undo)) }
+        }
+        TableGrowth.growsFree(have) -> Text(stringResource(R.string.tables_free_coming, TableGrowth.FREE_UP_TO), style = MaterialTheme.typography.bodyLarge)
+        price == null -> Text(stringResource(R.string.tables_full), style = MaterialTheme.typography.bodyLarge)
+        else -> {
+            Text(stringResource(R.string.tables_pitch), style = MaterialTheme.typography.bodyLarge)
+            BigAction(stringResource(R.string.tables_buy, have + 1, coins(price)), enabled = uiState.cashNow >= price, onClick = actions.onToggleBuyTable)
+        }
+    }
+}

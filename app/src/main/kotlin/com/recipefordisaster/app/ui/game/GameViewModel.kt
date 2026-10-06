@@ -246,6 +246,7 @@ class GameViewModel(
     fun toggleUpgrade(id: EquipmentId) = editPlan { it.copy(upgrades = it.upgrades.toggle(id)) }
 
     fun toggleDeepClean() = editPlan { it.copy(deepClean = !it.deepClean) }
+    fun toggleBuyTable() = editPlan { it.copy(buyTable = !it.buyTable) }
 
     private fun currentState(): GameState? = (_uiState.value as? GameUiState.Playing)?.state
 

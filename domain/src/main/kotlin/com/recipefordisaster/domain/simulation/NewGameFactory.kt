@@ -75,6 +75,7 @@ object NewGameFactory {
                 reputation = 50,
                 cleanliness = 80,
                 capacity = 40,
+                tables = com.recipefordisaster.domain.restaurant.TableGrowth.STARTING,
                 level = 1,
                 operatingCosts = OperatingCosts(
                     rentPerDay = 60,
