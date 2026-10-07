@@ -319,7 +319,7 @@ fun NightScene(
                             walkPhase = if (walking && waiter.errand != ServiceNight.Errand.Wash) time * 2.4f else null,
                             apron = if (waiter.isPlayer) PlayerColor else helperColor[waiter.id],
                             // While washing up, the arms are drawn holding the plate instead.
-                            armsBusy = waiter.errand == ServiceNight.Errand.Wash,
+                            armsBusy = waiter.errand == ServiceNight.Errand.Wash || waiter.errand == ServiceNight.Errand.HandleChaos,
                         )
                         // What's in each hand (left, then right), and a notepad for tickets not yet handed in.
                         waiter.hands.forEachIndexed { k, item ->
@@ -375,9 +375,11 @@ fun NightScene(
                             ChaosKind.RAT -> drawRat(spot, clock)
                             ChaosKind.DOG -> drawDog(spot, clock)
                             ChaosKind.PAN_FIRE -> {
-                                // Flames leaping up out of the pan on the front burner.
-                                drawFlames(Point(SceneLayout.stove.left + 5f, SceneLayout.stove.top + 6f), clock)
-                                drawSmoke(Point(SceneLayout.stove.center.x, SceneLayout.stove.top), clock)
+                                // Flames leaping out of the frying pan, kept on the stove, dying down as they're put out.
+                                val dousing = night.waiters.firstOrNull { it.errand == ServiceNight.Errand.HandleChaos }
+                                    ?.let { ((night.time - it.routeStart) / (it.routeEnd - it.routeStart).coerceAtLeast(0.01f)).coerceIn(0f, 1f) } ?: 0f
+                                drawFlames(FIRE_AT, clock, size = 0.62f * (1f - dousing))
+                                drawSmoke(Point(FIRE_AT.x + 1f, SceneLayout.stove.top + 1f), clock)
                             }
                             ChaosKind.POWER_CUT -> {}
                         }
@@ -394,6 +396,14 @@ fun NightScene(
                     night.catPose()?.let { pose -> drawCat(pose.at.toPoint(), pose.walking, pose.facingRight, clock) }
                     val sinceKnock = time - night.catKnockAt
                     if (sinceKnock in 0f..1.2f) drawFallingPlate(text, Point(78f, SceneLayout.counter.top + 2f), sinceKnock)
+
+                    // Anyone dealing with the chaos, doing the right thing for it.
+                    night.activeChaos?.let { c ->
+                        night.waiters.filter { it.errand == ServiceNight.Errand.HandleChaos }.forEach { w ->
+                            val progress = ((night.time - w.routeStart) / (w.routeEnd - w.routeStart).coerceAtLeast(0.01f)).coerceIn(0f, 1f)
+                            drawHandlingChaos(w.position(night.time).toPoint().let { Point(it.x, it.y - 2f) }, c.kind, night.chaosSpot()!!.toPoint(), progress, clock)
+                        }
+                    }
 
                     // Anyone fixing the fridge: banging away at it with a spanner.
                     night.waiters.filter { it.errand == ServiceNight.Errand.FixFridge }.forEach { w ->
@@ -1058,7 +1068,7 @@ private fun Pen.drawCat(at: Point, walking: Boolean, facingRight: Boolean, clock
     }
     // Dark rings along it.
     val tailStart = Point(at.x - dir * 2.6f, at.y)
-    for (k in 1..3) dot(tailStart.lerp(tailEnd, k / 4f), 0.45f, stripe)
+    for (k in 1..3) dot(tailStart.lerp(tailEnd, k / 4f), 0.32f, stripe)
     dot(tailEnd, 0.5f, stripe)
     if (walking) {
         // Four legs stepping, each ending in a white paw.
@@ -1138,4 +1148,86 @@ private fun Pen.drawFallingPlate(text: TextMeasurer, from: Point, t: Float) {
         }
         centeredText(text, "crash!", Point(from.x, from.y + 3f - spread), size = 2.4f, color = Palette.alert, bold = true)
     }
+}
+
+/** Where a pan fire burns: in the frying pan on the back-left burner, well inside the stove. */
+private val FIRE_AT = Point(SceneLayout.stove.left + 5f, SceneLayout.stove.top + 6.5f)
+
+/**
+ * Someone dealing with tonight's chaos: spraying the pan fire with an extinguisher, sweeping the rat
+ * out with a broom, leading the dog away on a lead, or reaching up to flip the fuse box. A ring beside
+ * them fills up to show how long is left.
+ */
+private fun Pen.drawHandlingChaos(at: Point, kind: ChaosKind, target: Point, progress: Float, clock: Float) {
+    val sleeve = Color(0xFF2B2B2B)
+    when (kind) {
+        ChaosKind.PAN_FIRE -> {
+            // A red extinguisher held up, with a jet of white foam arcing up to the pan.
+            val hand = Point(at.x - 3.2f, at.y - 2f)
+            line(at.x - 3f, at.y + 0.5f, hand.x, hand.y, sleeve, 1.3f)
+            box(hand.x - 1.1f, hand.y - 0.8f, 2.2f, 4.2f, Color(0xFFD7322B), radius = 0.8f)
+            box(hand.x - 0.5f, hand.y - 1.6f, 1f, 0.9f, Palette.steelDark, radius = 0.2f)
+            val nozzle = Point(hand.x, hand.y - 2f)
+            val fire = Point(FIRE_AT.x, FIRE_AT.y - 1.5f)
+            for (k in 0..9) {
+                val t = ((k / 10f) + clock * 2.2f) % 1f
+                val x = nozzle.x + (fire.x - nozzle.x) * t + sin(clock * 20f + k) * 0.4f
+                val y = nozzle.y + (fire.y - nozzle.y) * t - kotlin.math.sin(t * PI_F) * 4f
+                dot(x, y, 0.5f + t * 0.9f, Color.White.copy(alpha = 0.9f - t * 0.3f))
+            }
+            // Foam settling over the pan.
+            for (k in -2..2) dot(FIRE_AT.x + k * 1.1f, FIRE_AT.y - 0.5f, 0.9f * progress, Color.White)
+        }
+        ChaosKind.RAT -> {
+            // A broom swept back and forth towards the rat.
+            val swing = sin(clock * 9f)
+            val hand = Point(at.x + 3f, at.y + 0.5f)
+            line(at.x + 3.2f, at.y - 0.5f, hand.x, hand.y, sleeve, 1.3f)
+            val head = Point(hand.x + 4f + swing * 2f, hand.y + 3.5f)
+            line(hand.x, hand.y - 3f, head.x, head.y, Palette.woodLight, 0.6f)
+            box(head.x - 1.8f, head.y - 0.3f, 3.6f, 1.4f, Color(0xFFD9A821), radius = 0.3f)
+            for (k in -3..3) line(head.x + k * 0.5f, head.y + 1f, head.x + k * 0.6f, head.y + 2f, Color(0xFFB8860B), 0.2f)
+            // Motion lines.
+            for (k in 0..2) line(head.x - 3.6f, head.y - 1f + k, head.x - 2.4f, head.y - 1f + k, Color(0x66000000), 0.2f)
+        }
+        ChaosKind.DOG -> {
+            // A lead from your hand to the dog's collar, and a little wave of "this way".
+            val hand = Point(at.x + 3.6f, at.y + 1f)
+            line(at.x + 3.2f, at.y - 0.5f, hand.x, hand.y, sleeve, 1.3f)
+            dot(hand, 0.9f, Palette.face)
+            val collar = Point(target.x - 4.2f, target.y - 0.5f)
+            shape(Color(0xFFC0392B), stroke = 0.35f) {
+                moveTo(hand.x, hand.y)
+                quadTo((hand.x + collar.x) / 2, maxOf(hand.y, collar.y) + 2.5f, collar.x, collar.y)
+            }
+            dot(collar, 0.6f, Color(0xFFC0392B))
+            val wave = sin(clock * 8f) * 1.2f
+            line(at.x - 3.2f, at.y - 0.5f, at.x - 4.6f, at.y - 3.6f + wave, sleeve, 1.3f)
+            dot(at.x - 4.6f, at.y - 3.6f + wave, 0.9f, Palette.face)
+        }
+        ChaosKind.POWER_CUT -> {
+            // Reaching up to the fuse box and flipping the switch, with a torch glow.
+            val reach = Point(ServiceFloor.fuseBox.x - 3.8f, ServiceFloor.fuseBox.y - 6f)
+            line(at.x - 3f, at.y - 0.5f, reach.x, reach.y, sleeve, 1.3f)
+            dot(reach, 0.9f, Palette.face)
+            dot(reach.x, reach.y, 3.5f, Color(0x33FFE27A))
+            if (sin(clock * 12f) > 0.3f) for (k in 0..3) {
+                val a = k * 1.57f + 0.4f
+                line(reach.x + kotlin.math.cos(a) * 1.4f, reach.y + kotlin.math.sin(a) * 1.4f, reach.x + kotlin.math.cos(a) * 2.4f, reach.y + kotlin.math.sin(a) * 2.4f, Color(0xFFFFE27A), 0.25f)
+            }
+        }
+    }
+    // How long is left.
+    val ringAt = Point(at.x + 8f, at.y + 1f)
+    dot(ringAt, 2.8f, Color(0xEEFFFFFF))
+    ring(ringAt.x, ringAt.y, 2.2f, Color(0x33000000), 0.7f)
+    drawArc(
+        Color(0xFFE0A030),
+        startAngle = -90f,
+        sweepAngle = 360f * progress,
+        useCenter = false,
+        topLeft = p(ringAt.x - 2.2f, ringAt.y - 2.2f),
+        size = androidx.compose.ui.geometry.Size(u(4.4f), u(4.4f)),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(u(0.7f)),
+    )
 }

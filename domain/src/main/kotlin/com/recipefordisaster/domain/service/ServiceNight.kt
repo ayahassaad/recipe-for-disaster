@@ -940,7 +940,7 @@ data class ServiceNight(
         )
 
         /** Seconds to chase out the rat, put out the fire, lead the dog out or flip the fuses. */
-        private const val HANDLE_CHAOS = 1.6f
+        private const val HANDLE_CHAOS = 3f
 
         /** Chaos can happen from this day on, on about this share of nights. */
         private const val CHAOS_FROM_DAY = 4
