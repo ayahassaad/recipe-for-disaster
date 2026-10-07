@@ -669,12 +669,14 @@ internal fun Pen.drawPerson(
         Outfit.GUEST -> bodyColor
     }
     val shade = top.copy(red = top.red * 0.82f, green = top.green * 0.82f, blue = top.blue * 0.82f)
+    // Waiting staff have black sleeves to match the waistcoat; everyone else's match their top.
+    val sleeve = if (outfit == Outfit.SERVER) Color(0xFF2B2B2B) else shade
     // Arms and hands first, so the body overlaps the tops of the sleeves.
     val armSwing = step * 0.6f
     val hand = if (outfit == Outfit.WASHER) Color(0xFFF2C230) else Palette.face
     if (!armsBusy) {
-        box(at.x - 5.2f, y - 0.4f + armSwing, 1.8f, 4.4f, shade, radius = 0.9f)
-        box(at.x + 3.4f, y - 0.4f - armSwing, 1.8f, 4.4f, shade, radius = 0.9f)
+        box(at.x - 5.2f, y - 0.4f + armSwing, 1.8f, 4.4f, sleeve, radius = 0.9f)
+        box(at.x + 3.4f, y - 0.4f - armSwing, 1.8f, 4.4f, sleeve, radius = 0.9f)
         dot(at.x - 4.3f, y + 4.2f + armSwing, 0.9f, hand)
         dot(at.x + 4.3f, y + 4.2f - armSwing, 0.9f, hand)
     }
