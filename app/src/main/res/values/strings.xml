@@ -35,6 +35,8 @@
 
     <!-- The restaurant scene -->
     <string name="hint_no_food">The pantry is empty! Tap the pantry and buy food before you open.</string>
+    <string name="hint_collapsing">%1$s is about to collapse! Tap them and give them a day off.</string>
+    <string name="hint_collapsing_only_cook">%1$s is about to collapse, and they\'re your only cook! Hire a second cook, then give them a day off.</string>
     <string name="hint_tired">%1$s is worn out. Tap them and give them a day off.</string>
     <string name="hint_alerts">Tap anything with a red ! to sort it out</string>
     <string name="hint_ready">All ready. Open the doors!</string>

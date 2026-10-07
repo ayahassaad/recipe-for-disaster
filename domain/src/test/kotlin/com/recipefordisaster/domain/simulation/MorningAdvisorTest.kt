@@ -131,4 +131,13 @@ class MorningAdvisorTest {
         val tired = start.copy(employees = start.employees.map { if (it.id == cook.id) it.copy(stress = MorningAdvisor.TIRED_STRESS) else it.copy(stress = 10) })
         assertEquals(listOf(cook.id), MorningAdvisor.adviceFor(tired).filterIsInstance<Advice.StaffExhausted>().map { it.employee.id })
     }
+
+    @Test
+    fun `an only cook about to collapse puts the cook-needed sign up`() {
+        val quiet = start.copy(restaurant = start.restaurant.copy(reputation = 30))
+        assertEquals(null, MorningAdvisor.staffNeed(quiet))
+        val exhausted = quiet.copy(employees = quiet.employees.map { if (it.role == com.recipefordisaster.domain.employee.Role.COOK) it.copy(stress = 90) else it })
+        assertTrue(MorningAdvisor.onlyCookExhausted(exhausted))
+        assertEquals(MorningAdvisor.Need.COOK, MorningAdvisor.staffNeed(exhausted))
+    }
 }

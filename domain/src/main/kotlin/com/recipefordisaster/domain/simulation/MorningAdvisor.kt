@@ -121,12 +121,22 @@ object MorningAdvisor {
     /** Stress at which a worker is flagged as needing a day off. */
     const val TIRED_STRESS = 60
 
+    /** Stress at which someone is about to collapse: one more hard night and they'll go off sick. */
+    const val COLLAPSE_STRESS = 85
+
+    /** Whether the only cook on shift is about to collapse, so a second cook is needed before the kitchen stops. */
+    fun onlyCookExhausted(state: GameState): Boolean {
+        val cooks = state.employees.filter { it.status == EmployeeStatus.ACTIVE && it.role == Role.COOK }
+        return cooks.size == 1 && cooks.first().stress >= COLLAPSE_STRESS
+    }
+
     fun staffNeed(state: GameState): Need? {
         val working = state.employees.filter { it.status == EmployeeStatus.ACTIVE }
         val outlook = OutlookCalculator.forTonight(state)
         val floorStaff = working.count { it.role == Role.SERVER || it.role == Role.MANAGER }
         return when {
             outlook.kitchenTooSmall -> Need.COOK
+            onlyCookExhausted(state) -> Need.COOK
             // The player waits tables too, so a server is only needed once the room is too busy for them.
             outlook.expectedCustomers > (floorStaff + 1) * 12 -> Need.SERVER
             state.restaurant.cleanliness < 55 && working.none { it.role == Role.DISHWASHER } -> Need.DISHWASHER

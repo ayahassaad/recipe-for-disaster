@@ -217,16 +217,22 @@ private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, onMe
         }
         // Someone worn out gets named, so the player knows exactly who needs a day off.
         val tired = advice.filterIsInstance<Advice.StaffExhausted>().maxByOrNull { it.employee.stress }?.employee
+        // Close to collapse is more urgent than just tired: say so loudly.
+        val collapsing = tired?.takeIf { it.stress >= MorningAdvisor.COLLAPSE_STRESS }
+        val onlyCook = remember(morning) { MorningAdvisor.onlyCookExhausted(morning) }
+        val urgent = noFood || collapsing != null
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
             Text(
                 text = when {
                     noFood -> stringResource(R.string.hint_no_food)
+                    collapsing != null && onlyCook -> stringResource(R.string.hint_collapsing_only_cook, collapsing.name)
+                    collapsing != null -> stringResource(R.string.hint_collapsing, collapsing.name)
                     tired != null -> stringResource(R.string.hint_tired, tired.name)
                     model.alerts.isEmpty() -> stringResource(R.string.hint_ready)
                     else -> stringResource(R.string.hint_alerts)
                 },
-                color = if (noFood) DisasterRed else Color.Unspecified,
-                fontWeight = if (noFood) FontWeight.SemiBold else null,
+                color = if (urgent) DisasterRed else Color.Unspecified,
+                fontWeight = if (urgent) FontWeight.SemiBold else null,
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 // Always two lines tall, so a longer hint never pushes the restaurant up.
