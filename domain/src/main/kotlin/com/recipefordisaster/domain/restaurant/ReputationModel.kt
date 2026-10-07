@@ -9,7 +9,11 @@ package com.recipefordisaster.domain.restaurant
  */
 object ReputationModel {
 
-    fun dailyReputationDelta(averageSatisfaction: Int, cleanliness: Int): Int {
+    /** For this many days, a bad night costs at most [EARLY_WORST] stars-worth, while the player learns. */
+    const val EARLY_DAYS = 5
+    private const val EARLY_WORST = -2
+
+    fun dailyReputationDelta(averageSatisfaction: Int, cleanliness: Int, day: Int = EARLY_DAYS + 1): Int {
         // Centered on 55 "neutral" satisfaction: above it nudges reputation
         // up, below it nudges it down, capped so no single day can swing
         // reputation wildly on its own. (Phase 6: was (avg - 50) / 10,
@@ -23,6 +27,8 @@ object ReputationModel {
             else -> 0
         }
 
-        return satisfactionEffect + cleanlinessEffect
+        val delta = satisfactionEffect + cleanlinessEffect
+        // A gentler first week: good nights still count in full, bad ones only nudge.
+        return if (day <= EARLY_DAYS) delta.coerceAtLeast(EARLY_WORST) else delta
     }
 }

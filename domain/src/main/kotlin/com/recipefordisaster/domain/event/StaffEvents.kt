@@ -15,7 +15,7 @@ import com.recipefordisaster.domain.simulation.LogTone
 internal object StaffEvents {
 
     /** Below this morale, anyone who isn't [PersonalityTrait.LOYAL] may hand in their notice. */
-    private const val QUIT_MORALE = 35
+    private const val QUIT_MORALE = 40
 
     val staffSick = EventRule(
         id = "staff_sick",

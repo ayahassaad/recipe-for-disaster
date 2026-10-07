@@ -61,7 +61,9 @@ object CustomerFlow {
             // Same currency as menu prices (whole coins), 10-45. Was 500-3,500
             // before Phase 6 — a different unit from the menu prices, so
             // nobody was ever priced out and pricing decisions couldn't matter.
-            budget = (10 + rng.nextInt(36)).toLong(),
+            // Nobody is too poor for the cheapest dish on the starting menu (13 coins), so a guest only
+            // walks out over money if the player has put the prices up.
+            budget = (13 + rng.nextInt(33)).toLong(),
             preferences = emptySet(),
             dietaryRequirements = dietary,
             satisfaction = 70, // customers start neutral-to-positive; the visit moves this

@@ -67,8 +67,9 @@ class FridgeTest {
         var n = waitFor(breakingNight()) { it.fridgeBroken }
         val coldBefore = n.inventory.ingredients.values.filter { Fridge.isCold(it) }.sumOf { it.quantityOnHand }
         // Every dish on the starting menu needs something cold, so a waiting party can't order.
-        n = waitFor(n) { night -> night.parties.any { it.stage == Stage.READY_TO_ORDER } }
-        val party = n.parties.first { it.stage == Stage.READY_TO_ORDER }
+        // A party that has only just become ready, so it has plenty of patience left.
+        n = waitFor(n) { night -> night.parties.any { it.stage == Stage.READY_TO_ORDER && night.time - it.stageSince < 0.2f } }
+        val party = n.parties.first { it.stage == Stage.READY_TO_ORDER && n.time - it.stageSince < 0.2f }
         n = waitFor(n.tapTable(party.table!!)) { !it.player.walking }
         assertEquals(Stage.READY_TO_ORDER, n.parties.first { it.id == party.id }.stage)
         n = waitFor(n) { it.time > n.time + 12f }

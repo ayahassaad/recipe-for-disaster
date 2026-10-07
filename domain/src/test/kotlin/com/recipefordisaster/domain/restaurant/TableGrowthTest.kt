@@ -65,4 +65,19 @@ class TableGrowthTest {
         assertEquals(60L, start.restaurant.copy(tables = 6).costsToday.rentPerDay)
         assertEquals(120L, start.restaurant.copy(tables = 12).costsToday.rentPerDay)
     }
+
+    @Test
+    fun `a bad night costs only a little reputation in the first week, and in full after`() {
+        assertEquals(-2, ReputationModel.dailyReputationDelta(averageSatisfaction = 5, cleanliness = 80, day = 2))
+        assertTrue(ReputationModel.dailyReputationDelta(averageSatisfaction = 5, cleanliness = 80, day = 10) < -2)
+        // Good nights count in full from the start.
+        assertEquals(ReputationModel.dailyReputationDelta(95, 80, day = 10), ReputationModel.dailyReputationDelta(95, 80, day = 1))
+    }
+
+    @Test
+    fun `no guest is too poor for the cheapest dish on the starting menu`() {
+        val cheapest = start.menu.minOf { it.sellingPrice }
+        val rng = SeededRandomSource(9L)
+        repeat(500) { assertTrue(com.recipefordisaster.domain.customer.CustomerFlow.generateCustomer(rng, it).budget >= cheapest) }
+    }
 }
