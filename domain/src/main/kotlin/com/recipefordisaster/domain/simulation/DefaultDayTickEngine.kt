@@ -123,10 +123,13 @@ class DefaultDayTickEngine(
         // Neutral (50) satisfaction on a customer-free day, so a slow
         // Tuesday doesn't accidentally read as either a triumph or a
         // disaster for reputation purposes.
-        val averageSatisfaction = if (serviceResult.outcomes.isEmpty()) {
+        // Only guests who actually sat down count towards the reviews: someone who glanced at the menu
+        // and left at the door never ate here, so they don't write one.
+        val reviewers = serviceResult.outcomes.filter { it.missedReason != MissedMealReason.NOTHING_SUITABLE }
+        val averageSatisfaction = if (reviewers.isEmpty()) {
             50
         } else {
-            serviceResult.outcomes.map { it.satisfaction }.average().toInt()
+            reviewers.map { it.satisfaction }.average().toInt()
         }
         val reputationDelta = ReputationModel.dailyReputationDelta(averageSatisfaction, start.restaurant.cleanliness)
 
@@ -236,7 +239,8 @@ class DefaultDayTickEngine(
         }
 
         val prepared = eventEngine.prepare(stateBeforeEvent)
-        val eventOutcome = eventEngine.selectNext(prepared, rng)
+        // The first couple of nights are left in peace: nothing happens overnight while the player learns.
+        val eventOutcome = if (state.day <= QUIET_FIRST_NIGHTS) null else eventEngine.selectNext(prepared, rng)
         if (eventOutcome == null) {
             return DayResult(newState = prepared, log = dayLog, summary = summaryFor(prepared))
         }
@@ -278,3 +282,6 @@ data class ServiceSetup(
     val morning: com.recipefordisaster.domain.decision.AppliedDecisions,
     val arrivals: List<com.recipefordisaster.domain.customer.Customer>,
 )
+
+/** No overnight events after the first this-many nights. */
+private const val QUIET_FIRST_NIGHTS = 2

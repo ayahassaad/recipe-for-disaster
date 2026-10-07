@@ -164,4 +164,17 @@ class DefaultDayTickEngineTest {
             assertEquals(RestaurantStatus.BANKRUPT, result.newState.restaurant.status)
         }
     }
+
+    @Test
+    fun `nothing happens overnight on the first two nights, and walk-outs don't count as reviews`() {
+        val engine = DefaultDayTickEngine(com.recipefordisaster.domain.event.EventLibrary.engine())
+        (1L..30L).forEach { seed ->
+            var state = NewGameFactory.create(seed)
+            repeat(2) {
+                val result = engine.advanceDay(state, PlayerDecisions(), SeededRandomSource(seed * 100 + it))
+                assertEquals(null, result.event)
+                state = result.newState
+            }
+        }
+    }
 }
