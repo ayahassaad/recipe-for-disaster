@@ -609,4 +609,41 @@ class ServiceNightTest {
         val failed = engine.closeService(setup, result.copy(specialVisits = listOf(SpecialVisit(SpecialGuest.INSPECTOR, false))), SeededRandomSource(3L)).newState.restaurant.cash
         assertTrue(failed < passed)
     }
+
+    private fun withChaos(kind: ChaosKind, at: FloorPoint = FloorPoint(40f, 17f)) =
+        open(start.copy(day = 6)).copy(chaos = Chaos(kind, at, startsAt = 5f))
+
+    @Test
+    fun `chaos happens on some nights after the first few, never early on`() {
+        assertTrue((1L..40L).any { open(start.copy(day = 6), it).chaos != null })
+        assertTrue((1L..40L).none { open(start.copy(day = 2), it).chaos != null })
+    }
+
+    @Test
+    fun `a pan fire stops the kitchen until it's put out`() {
+        var n = waitFor(withChaos(ChaosKind.PAN_FIRE)) { it.activeChaos != null }
+        assertTrue(n.activeChaos!!.stopsKitchen)
+        n = n.tapChaos()
+        n = waitFor(n) { !it.player.walking }
+        assertEquals(null, n.activeChaos)
+    }
+
+    @Test
+    fun `cooking waits while the fire burns`() {
+        var n = waitFor(withChaos(ChaosKind.PAN_FIRE)) { night -> night.activeChaos != null }
+        n = waitFor(n) { night -> night.parties.any { it.stage == Stage.READY_TO_ORDER } }
+        val party = n.parties.first { it.stage == Stage.READY_TO_ORDER }
+        n = waitFor(n.tapTable(party.table!!)) { !it.player.walking }
+        n = waitFor(n.tapChef()) { !it.player.walking }
+        val later = waitFor(n) { it.time > n.time + 20f }
+        assertTrue(later.parties.first { it.id == party.id }.stage !in listOf(Stage.READY_AT_PASS, Stage.CARRIED, Stage.EATING))
+    }
+
+    @Test
+    fun `a power cut sorts itself out in the end, and tapping chaos with none going does nothing`() {
+        val n = withChaos(ChaosKind.POWER_CUT, ServiceFloor.fuseBox)
+        assertEquals(n, n.tapChaos())
+        val later = waitFor(n) { it.time > 30f }
+        assertEquals(null, later.activeChaos)
+    }
 }

@@ -488,6 +488,7 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
                 onTapMopBucket = { night = night.tapMopBucket() },
                 onTapMess = { id -> night = night.tapMess(id) },
                 onTapFridge = { night = night.tapFridge() },
+                onTapChaos = { night = night.tapChaos() },
                 modifier = Modifier.fillMaxSize(),
                 // For the first few nights, point at what the hint is talking about.
                 focus = if (session.setup.original.day <= GUIDED_DAYS) NightHint.of(night).focus(night) else null,
@@ -570,6 +571,15 @@ private fun nightHint(night: ServiceNight): String = when (val hint = NightHint.
     NightHint.FixFridge -> stringResource(R.string.hint_fix_fridge)
     NightHint.FixingFridge -> stringResource(R.string.hint_fixing_fridge)
     NightHint.FridgeStruggling -> stringResource(R.string.hint_fridge_struggling)
+    is NightHint.Chaos -> stringResource(
+        when (hint.kind) {
+            com.recipefordisaster.domain.service.ChaosKind.RAT -> R.string.hint_rat
+            com.recipefordisaster.domain.service.ChaosKind.PAN_FIRE -> R.string.hint_fire
+            com.recipefordisaster.domain.service.ChaosKind.DOG -> R.string.hint_dog
+            com.recipefordisaster.domain.service.ChaosKind.POWER_CUT -> R.string.hint_power
+        },
+    )
+    NightHint.HandlingChaos -> stringResource(R.string.hint_handling_chaos)
     is NightHint.SpecialArrived -> stringResource(
         when (hint.guest) {
             com.recipefordisaster.domain.service.SpecialGuest.CRITIC -> R.string.hint_critic
@@ -602,6 +612,7 @@ private fun nightLabels(): NightLabels {
         dishSign = stringResource(R.string.night_dish_sign),
         mopBucket = stringResource(R.string.night_mop_bucket),
         fridge = stringResource(R.string.night_fridge),
+        chaos = stringResource(R.string.night_chaos),
         spill = stringResource(R.string.night_spill),
         you = stringResource(R.string.night_you),
         menu = stringResource(R.string.scene_menu_sign),

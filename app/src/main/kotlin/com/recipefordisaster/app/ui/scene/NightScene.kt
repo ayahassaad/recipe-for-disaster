@@ -23,6 +23,7 @@ import com.recipefordisaster.app.ui.scene.SceneLayout.Point
 import com.recipefordisaster.app.ui.scene.SceneLayout.Rect
 import com.recipefordisaster.domain.employee.Role as StaffRole
 import com.recipefordisaster.domain.service.FloorPoint
+import com.recipefordisaster.domain.service.ChaosKind
 import com.recipefordisaster.domain.service.ServiceFloor
 import com.recipefordisaster.domain.service.ServiceNight
 import com.recipefordisaster.domain.service.ServiceNight.Stage
@@ -47,6 +48,7 @@ data class NightLabels(
     val dishSign: String,
     val mopBucket: String,
     val fridge: String = "",
+    val chaos: String = "",
     val spill: String,
     val you: String,
     val menu: String,
@@ -96,6 +98,7 @@ fun NightScene(
     onTapMopBucket: () -> Unit,
     onTapMess: (Int) -> Unit,
     onTapFridge: () -> Unit = {},
+    onTapChaos: () -> Unit = {},
     modifier: Modifier = Modifier,
     /** Something to point at with a pulsing ring, for players still learning what to tap. */
     focus: NightFocus? = null,
@@ -252,6 +255,13 @@ fun NightScene(
                         }
                     }
 
+                    // Lights out: everything goes dark except a little glow around the fuse box.
+                    if (night.activeChaos?.kind == ChaosKind.POWER_CUT) {
+                        drawRect(Color(0xCC0B0E1A), topLeft = p(0f, 0f), size = androidx.compose.ui.geometry.Size(u(SceneLayout.WIDTH), u(SceneLayout.HEIGHT)))
+                        dot(ServiceFloor.fuseBox.x - 4f, ServiceFloor.fuseBox.y - 4f, 9f, Color(0x33F2C230))
+                        drawFuseBox(true)
+                        drawAlert(text, Point(ServiceFloor.fuseBox.x - 1f, ServiceFloor.fuseBox.y - 12f), clock)
+                    }
                     // "Tap here": a pulsing ring around whatever the hint is talking about.
                     focus?.let { f ->
                         val (center, radius) = when (f) {
@@ -260,6 +270,7 @@ fun NightScene(
                             is NightFocus.Plate -> (readyPlates(night).indexOfFirst { it.id == f.partyId }.takeIf { it >= 0 }?.let { plateSpot(it) } ?: return@let) to 4.5f
                             NightFocus.DishStation -> Point(87f, SceneLayout.counter.top + 1f) to 9f
                             NightFocus.Fridge -> SceneLayout.fridge.center to 10f
+                            NightFocus.Chaos -> (if (night.activeChaos?.kind == ChaosKind.PAN_FIRE) SceneLayout.stove.center else night.chaosSpot()?.toPoint() ?: return@let) to 9f
                             NightFocus.MopBucket -> SceneLayout.mopBucket.center to 9f
                             is NightFocus.Spill -> (night.messes.firstOrNull { it.id == f.messId }?.at?.toPoint() ?: return@let) to 7f
                         }
@@ -356,6 +367,27 @@ fun NightScene(
                         }
                     }
 
+                    // Tonight's chaos: a rat, a pan fire, a begging dog, or the lights going out (dark overlay drawn last).
+                    night.activeChaos?.let { c ->
+                        val spot = night.chaosSpot()!!.toPoint()
+                        when (c.kind) {
+                            ChaosKind.RAT -> drawRat(spot, clock)
+                            ChaosKind.DOG -> drawDog(spot, clock)
+                            ChaosKind.PAN_FIRE -> {
+                                drawFlames(Point(SceneLayout.stove.center.x, SceneLayout.stove.top + 6f), clock)
+                                drawSmoke(Point(SceneLayout.stove.center.x, SceneLayout.stove.top), clock)
+                            }
+                            ChaosKind.POWER_CUT -> {}
+                        }
+                        val alertAt = when (c.kind) {
+                            ChaosKind.PAN_FIRE -> Point(SceneLayout.stove.right - 1f, SceneLayout.stove.top + 1f)
+                            ChaosKind.POWER_CUT -> Point(spot.x + 3f, spot.y - 6f)
+                            else -> Point(spot.x + 3f, spot.y - 5f)
+                        }
+                        if (!night.chaosBeingHandled) drawAlert(text, alertAt, clock)
+                    }
+                    drawFuseBox(night.activeChaos?.kind == ChaosKind.POWER_CUT)
+
                     // Anyone fixing the fridge: banging away at it with a spanner.
                     night.waiters.filter { it.errand == ServiceNight.Errand.FixFridge }.forEach { w ->
                         val progress = ((night.time - w.routeStart) / (w.routeEnd - w.routeStart).coerceAtLeast(0.01f)).coerceIn(0f, 1f)
@@ -393,6 +425,14 @@ fun NightScene(
         readyPlates(night).forEachIndexed { i, party ->
             val at = plateSpot(i)
             TapArea(Rect(at.x - 3.4f, at.y - 6f, at.x + 4f, at.y + 3f), unit, origin, labels.plate((party.table ?: 0) + 1)) { onTapPlate(party.id) }
+        }
+        // Tonight's chaos, wherever it is: tap it to deal with it.
+        night.activeChaos?.let { c ->
+            val rect = when (c.kind) {
+                ChaosKind.PAN_FIRE -> SceneLayout.stove
+                else -> night.chaosSpot()!!.let { Rect(it.x - 7f, it.y - 7f, it.x + 7f, it.y + 5f) }
+            }
+            TapArea(rect, unit, origin, labels.chaos, onTapChaos)
         }
         // The fridge, over the chef's end of the kitchen so it gets the tap.
         TapArea(SceneLayout.fridge, unit, origin, labels.fridge, onTapFridge)
@@ -678,6 +718,7 @@ sealed interface NightFocus {
     data class Plate(val partyId: Int) : NightFocus
     data object DishStation : NightFocus
     data object Fridge : NightFocus
+    data object Chaos : NightFocus
     data object MopBucket : NightFocus
     data class Spill(val messId: Int) : NightFocus
 }
@@ -961,4 +1002,30 @@ private fun Pen.drawSpecialLook(at: Point, special: com.recipefordisaster.domain
             clipboard(Color.White, Color(0xFF9A6A3A))
         }
     }
+}
+
+/** A scruffy little dog, tail wagging, looking up hopefully for scraps. */
+private fun Pen.drawDog(at: Point, clock: Float) {
+    val wag = sin(clock * 14f) * 1.4f
+    oval(at.x, at.y + 1.6f, 4.4f, 1.1f, Palette.shadow)
+    line(at.x + 3.6f, at.y - 0.4f, at.x + 5.6f, at.y - 2.4f + wag, Color(0xFFB07A45), 0.8f) // tail
+    oval(at.x, at.y, 4f, 2.2f, Color(0xFFC48A52)) // body
+    oval(at.x + 0.6f, at.y + 0.2f, 2f, 1.2f, Color(0xFFE0B482)) // patch
+    for (k in listOf(-2.6f, -1f, 1.4f, 2.8f)) box(at.x + k - 0.35f, at.y + 1f, 0.7f, 1.4f, Color(0xFFA8703F), radius = 0.3f) // legs
+    dot(at.x - 4.2f, at.y - 1.2f, 1.9f, Color(0xFFC48A52)) // head
+    oval(at.x - 4.6f, at.y - 2.8f, 0.7f, 1.2f, Color(0xFF8A5A2E)) // ear
+    oval(at.x - 3.2f, at.y - 2.8f, 0.7f, 1.2f, Color(0xFF8A5A2E))
+    dot(at.x - 4.8f, at.y - 1.4f, 0.3f, Palette.ink)
+    dot(at.x - 3.6f, at.y - 1.4f, 0.3f, Palette.ink)
+    dot(at.x - 4.2f, at.y - 0.5f, 0.45f, Color(0xFF2B2B2B)) // nose
+}
+
+/** The fuse box on the wall by the door; its little lever down (and a red light) when the power's out. */
+private fun Pen.drawFuseBox(out: Boolean) {
+    val c = ServiceFloor.fuseBox
+    box(c.x - 6f, c.y - 9f, 4.4f, 5.6f, Color(0xFF8D959C), radius = 0.4f)
+    box(c.x - 5.4f, c.y - 8.4f, 3.2f, 4.4f, Color(0xFF5E666C), radius = 0.3f)
+    val lever = if (out) c.y - 5.6f else c.y - 7.6f
+    box(c.x - 4.3f, lever, 1f, 1.6f, Color(0xFFE0E0E0), radius = 0.2f)
+    dot(c.x - 2.8f, c.y - 8f, 0.35f, if (out) Palette.alert else Color(0xFF4CAF50))
 }

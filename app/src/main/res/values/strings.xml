@@ -72,6 +72,12 @@
     <string name="special_celebrity_bad">The celebrity left unhappy, and told everyone.</string>
     <string name="special_inspector_good">You passed the health inspection!</string>
     <string name="special_inspector_bad">You failed the health inspection: a 60 coin fine.</string>
+    <string name="hint_rat">A rat! Tap it to chase it out before the guests notice.</string>
+    <string name="hint_fire">Pan fire! Nothing cooks until you put it out. Tap the stove.</string>
+    <string name="hint_dog">A dog sneaked in and is begging! Tap it to lead it out.</string>
+    <string name="hint_power">Power cut! The kitchen\'s stopped. Tap the fuse box by the door.</string>
+    <string name="hint_handling_chaos">Sorting it out…</string>
+    <string name="night_chaos">Trouble: tap to sort it out</string>
     <string name="hint_waiting">Waiting for guests to come in…</string>
     <string name="hint_cooking">The kitchen is cooking…</string>
     <string name="hint_cooking_for">The chef is cooking table %1$d\'s order…</string>

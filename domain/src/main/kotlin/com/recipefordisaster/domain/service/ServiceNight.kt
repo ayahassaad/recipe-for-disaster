@@ -64,6 +64,8 @@ data class ServiceNight(
     val tableCount: Int = ServiceFloor.TABLE_COUNT,
     /** For guests who gave up: at which step (the door, waiting to order, or waiting for food). */
     val gaveUpAt: Map<Int, WaitedFor> = emptyMap(),
+    /** Tonight's chaotic moment, if there is one (rolled when the doors open). */
+    val chaos: Chaos? = null,
     /** How tonight's special guests found it, as they leave. */
     val specialVisits: List<SpecialVisit> = emptyList(),
     /** When a worn fridge is going to give up tonight, if it is (rolled when the doors open). */
@@ -199,6 +201,14 @@ data class ServiceNight(
         @Serializable
         data object Rest : Errand
 
+        /** Go and deal with tonight's chaos (chase the rat, put out the fire, lead the dog out, flip the fuses). */
+        @Serializable
+        data object VisitChaos : Errand
+
+        /** Dealing with it; it's sorted when this ends. */
+        @Serializable
+        data object HandleChaos : Errand
+
         /** Go to the fridge to fix it. */
         @Serializable
         data object VisitFridge : Errand
@@ -308,6 +318,25 @@ data class ServiceNight(
     /** Go and mop up a spill (you need the mop in hand when you get there). */
     fun tapMess(messId: Int): ServiceNight = enqueue(Errand.CleanMess(messId))
 
+    /** Go and deal with whatever's going wrong right now. */
+    fun tapChaos(): ServiceNight = enqueue(Errand.VisitChaos)
+
+    /** The chaos happening right now, if any. */
+    val activeChaos: Chaos? get() = chaos?.takeIf { !it.resolved && time >= it.startsAt }
+
+    /** Where the chaos is right now (the rat and the dog move about). */
+    fun chaosSpot(): FloorPoint? = activeChaos?.let { c ->
+        val t = time - c.startsAt
+        when (c.kind) {
+            ChaosKind.RAT -> FloorPoint(c.at.x + kotlin.math.sin(t * 1.3f) * 14f, c.at.y + kotlin.math.sin(t * 2.1f) * 5f)
+            ChaosKind.DOG -> FloorPoint(c.at.x + kotlin.math.sin(t * 0.6f) * 6f, c.at.y)
+            else -> c.at
+        }
+    }
+
+    /** Someone is on their way to deal with the chaos, or dealing with it. */
+    val chaosBeingHandled: Boolean get() = waiters.any { w -> w.errand == Errand.VisitChaos || w.errand == Errand.HandleChaos || Errand.VisitChaos in w.queue }
+
     /** Go and fix the fridge (only does anything while it's broken). */
     fun tapFridge(): ServiceNight = enqueue(Errand.VisitFridge)
 
@@ -328,6 +357,7 @@ data class ServiceNight(
         if (errand is Errand.VisitTable && partyAt(errand.table) == null && errand.table !in dirtyTables) return this
         // A working fridge doesn't need fixing.
         if (errand == Errand.VisitFridge && !fridgeBroken) return this
+        if (errand == Errand.VisitChaos && activeChaos == null) return this
         if (me.errand == null) return send(me.id, errand)
         if (errand == me.errand || errand in me.queue || me.queue.size >= MAX_QUEUED) return this
         return copy(waiters = waiters.map { if (it.isPlayer) it.copy(queue = it.queue + errand) else it })
@@ -346,7 +376,14 @@ data class ServiceNight(
             Errand.HandIn -> ServiceFloor.chef
             is Errand.PickUp -> platesOnCounter.indexOfFirst { it.id == errand.partyId }.takeIf { it >= 0 }?.let { ServiceFloor.plateStand(it) } ?: ServiceFloor.pass
             Errand.VisitDishStation -> ServiceFloor.dishStation
-            Errand.Wash, is Errand.Mopping, Errand.FixFridge -> here
+            Errand.Wash, is Errand.Mopping, Errand.FixFridge, Errand.HandleChaos -> here
+            Errand.VisitChaos -> chaosSpot()?.let { spot ->
+                // Fire and fuses are dealt with from in front of the counter / by the wall; rat and dog where they are.
+                when (activeChaos?.kind) {
+                    ChaosKind.PAN_FIRE -> FloorPoint(40f, ServiceFloor.pass.y)
+                    else -> spot
+                }
+            } ?: here
             Errand.VisitFridge -> ServiceFloor.fridge
             Errand.VisitMopBucket -> ServiceFloor.mopBucket
             is Errand.CleanMess -> messes.firstOrNull { it.id == errand.messId }?.at ?: here
@@ -364,15 +401,23 @@ data class ServiceNight(
         if (finished) return this
         var night = copy(time = time + dt)
         night = night.fridgeStep()
+        night = night.chaosStep()
         night = night.arrivals()
         night = night.seatParties()
         night = night.checkPatience()
-        night = night.runKitchen()
+        night = night.runKitchen(dt)
         night = night.finishMeals()
         night = night.moveWaiters()
         night = night.directStaff()
         if (night.time > HARD_STOP) night = night.closeUp()
         return night
+    }
+
+    /** Chaos that sorts itself out after a while (the lights come back, the rat wanders off). */
+    private fun chaosStep(): ServiceNight {
+        val c = activeChaos ?: return this
+        val limit = c.lastsAtMost ?: return this
+        return if (time - c.startsAt >= limit) copy(chaos = c.copy(resolved = true)) else this
     }
 
     /** A worn fridge gives up at its time; while it's broken, the cold food slowly goes off. */
@@ -508,8 +553,12 @@ data class ServiceNight(
     /** Whether anything on the menu can still be cooked tonight (a broken fridge can be fixed, so it doesn't count). */
     val kitchenHasFood: Boolean get() = menu.any { canMake(it.id, inventory, fridgeMatters = false) }
 
-    private fun runKitchen(): ServiceNight {
+    private fun runKitchen(dt: Float): ServiceNight {
         var night = this
+        // A pan fire or a power cut stops the kitchen: whatever's cooking just waits.
+        if (night.activeChaos?.stopsKitchen == true) {
+            return night.copy(parties = night.parties.map { if (it.stage == Stage.COOKING) it.copy(until = it.until + dt) else it })
+        }
         // Finished cooking: plates go up on the pass.
         night.parties.filter { it.stage == Stage.COOKING && time >= it.until }.forEach { party ->
             night = night.updateParty(party.id) { it.copy(stage = Stage.READY_AT_PASS, stageSince = time) }
@@ -543,7 +592,9 @@ data class ServiceNight(
                         val dish = night.menu.first { it.id == dishId }
                         val customer = arrivalOrder[guest]
                         // A dirty floor puts people off, however good the food was.
-                    val mess = night.messesOnFloor.size.coerceAtMost(MAX_MESS_PENALTIES) * MESS_PENALTY
+                    // A rat or a dog about puts people off as much as a spill does.
+                    val bother = if (night.activeChaos?.botherGuests == true) 1 else 0
+                    val mess = (night.messesOnFloor.size + bother).coerceAtMost(MAX_MESS_PENALTIES) * MESS_PENALTY
                     val satisfaction = (ServiceSimulator.resolveSatisfaction(customer, dish, waitedMinutes, kitchenQualityBonus) - mess).coerceIn(0, 100)
                         results = results + (guest to CustomerServiceOutcome(customer, dish, satisfaction, waitedMinutes))
                     }
@@ -700,6 +751,12 @@ data class ServiceNight(
             }
             // Patched up: it works for the rest of the night (a proper repair is a morning job).
             Errand.FixFridge -> night = night.copy(fridgeBroken = false)
+            Errand.VisitChaos -> {
+                if (night.activeChaos != null && night.waiters.none { it.id != waiterId && it.errand == Errand.HandleChaos }) {
+                    updateWaiter { it.copy(route = listOf(it.position(time)), routeStart = time, routeEnd = time + HANDLE_CHAOS, errand = Errand.HandleChaos) }
+                }
+            }
+            Errand.HandleChaos -> night = night.copy(chaos = night.chaos?.copy(resolved = true))
             Errand.Wash, Errand.Rest, null -> {}
         }
         return night
@@ -821,6 +878,13 @@ data class ServiceNight(
 
         /** How long a plate sits on the pass before a runner takes it out instead of waiting for the player. */
         private const val RUNNER_DELAY = 3f
+
+        /** Seconds to chase out the rat, put out the fire, lead the dog out or flip the fuses. */
+        private const val HANDLE_CHAOS = 1.6f
+
+        /** Chaos can happen from this day on, on about this share of nights. */
+        private const val CHAOS_FROM_DAY = 4
+        private const val CHAOS_CHANCE = 0.45f
 
         /** A special guest counts as pleased at this satisfaction or more. */
         private const val SPECIAL_PLEASED = 65
@@ -978,6 +1042,21 @@ data class ServiceNight(
                 parties
             }
 
+            // Some nights, something goes wrong (rolled last, after everything else about the night).
+            val chaos = if (state.day >= CHAOS_FROM_DAY && rng.nextFloat() < CHAOS_CHANCE) {
+                val kind = ChaosKind.entries[rng.nextInt(ChaosKind.entries.size)]
+                val startsAt = 30f + rng.nextFloat() * 50f
+                val at = when (kind) {
+                    ChaosKind.RAT -> FloorPoint(50f, 106f)
+                    ChaosKind.DOG -> ServiceFloor.layout(tableCount).stand(rng.nextInt(tableCount)).let { FloorPoint(it.x, it.y - 2f) }
+                    ChaosKind.PAN_FIRE -> FloorPoint(40f, 17f)
+                    ChaosKind.POWER_CUT -> ServiceFloor.fuseBox
+                }
+                Chaos(kind, at, startsAt)
+            } else {
+                null
+            }
+
             return ServiceNight(
                 time = 0f,
                 parties = specialParties,
@@ -993,6 +1072,7 @@ data class ServiceNight(
                 messes = messes,
                 tableCount = tableCount,
                 fridgeBreaksAt = fridgeBreaksAt,
+                chaos = chaos,
                 fridgeBroken = fridgeBrokenAtOpen,
                 hosted = state.employees.any { it.status == EmployeeStatus.ACTIVE && it.role == Role.HOST },
             )
