@@ -61,6 +61,9 @@
     <string name="night_fridge">Fridge: fix it if it breaks</string>
     <string name="hint_waiting">Waiting for guests to come in…</string>
     <string name="hint_cooking">The kitchen is cooking…</string>
+    <string name="hint_cooking_for">The chef is cooking table %1$d\'s order…</string>
+    <string name="hint_eating">Your guests are eating. Enjoy the quiet!</string>
+    <string name="hint_deciding">Table %1$d is reading the menu…</string>
     <string name="night_table">Table %1$d: %2$s</string>
     <string name="night_plate">Food for table %1$d: pick it up</string>
     <string name="night_counter">Chef: hand in your orders</string>

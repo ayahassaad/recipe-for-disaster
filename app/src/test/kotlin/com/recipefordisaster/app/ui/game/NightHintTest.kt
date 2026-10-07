@@ -68,4 +68,10 @@ class NightHintTest {
         val struggling = night.copy(fridgeBreaksAt = night.time + 2f)
         assertEquals(NightHint.FridgeStruggling, NightHint.of(struggling))
     }
+
+    @Test
+    fun `while the food cooks, the hint says whose it is instead of waiting for guests`() {
+        assertEquals(NightHint.CookingFor(3), NightHint.of(withParty(Stage.COOKING, 3)))
+        assertEquals(NightHint.Deciding(1), NightHint.of(withParty(Stage.DECIDING, 1)))
+    }
 }

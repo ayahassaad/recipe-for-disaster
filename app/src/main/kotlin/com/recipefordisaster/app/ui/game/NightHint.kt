@@ -36,6 +36,12 @@ sealed interface NightHint {
     data object FixingFridge : NightHint
     data object FridgeStruggling : NightHint
     data object Cooking : NightHint
+    /** The chef is cooking a particular table's food. */
+    data class CookingFor(val table: Int) : NightHint
+    /** Guests are eating; nothing to do until they're done. */
+    data object Eating : NightHint
+    /** Someone has just sat down and is choosing. */
+    data class Deciding(val table: Int) : NightHint
 
     /** Where in the restaurant this hint means, for the "tap here" ring; null if it isn't about one place. */
     fun focus(night: ServiceNight): NightFocus? = when (this) {
@@ -49,7 +55,7 @@ sealed interface NightHint {
         GetMop, PutMopBack -> NightFocus.MopBucket
         MopSpill -> night.messesOnFloor.firstOrNull()?.let { NightFocus.Spill(it.id) }
         FixFridge, FridgeStruggling -> NightFocus.Fridge
-        Washing, Mopping, OutOfFood, Waiting, Cooking, TidyingUp, FixingFridge -> null
+        Washing, Mopping, OutOfFood, Waiting, Cooking, TidyingUp, FixingFridge, is CookingFor, Eating, is Deciding -> null
     }
 
     companion object {
@@ -86,8 +92,18 @@ sealed interface NightHint {
                 spill && !me.holdingMop && Errand.VisitMopBucket !in plans && me.freeHands > 0 -> GetMop
                 me.holdingMop && night.messesOnFloor.isEmpty() && Errand.VisitMopBucket !in plans -> PutMopBack
                 night.guestsGone -> TidyingUp
-                night.parties.any { it.stage == Stage.NOT_YET_ARRIVED || it.stage == Stage.QUEUEING } -> Waiting
-                else -> Cooking
+                // Nothing for you to do right now: say what's actually going on, the most useful first.
+                else -> {
+                    val cooking = night.parties.filter { it.stage == Stage.IN_KITCHEN || it.stage == Stage.COOKING }.minByOrNull { it.stageSince }
+                    val deciding = night.parties.firstOrNull { it.stage == Stage.DECIDING }
+                    when {
+                        cooking?.table != null -> CookingFor(cooking.table!!)
+                        deciding?.table != null -> Deciding(deciding.table!!)
+                        night.parties.any { it.stage == Stage.EATING } -> Eating
+                        night.parties.any { it.stage == Stage.NOT_YET_ARRIVED || it.stage == Stage.QUEUEING || it.stage == Stage.WALKING_TO_TABLE } -> Waiting
+                        else -> Cooking
+                    }
+                }
             }
         }
     }

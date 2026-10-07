@@ -480,6 +480,9 @@ private fun nightHint(night: ServiceNight): String = when (val hint = NightHint.
     NightHint.FixingFridge -> stringResource(R.string.hint_fixing_fridge)
     NightHint.FridgeStruggling -> stringResource(R.string.hint_fridge_struggling)
     NightHint.Cooking -> stringResource(R.string.hint_cooking)
+    is NightHint.CookingFor -> stringResource(R.string.hint_cooking_for, hint.table + 1)
+    NightHint.Eating -> stringResource(R.string.hint_eating)
+    is NightHint.Deciding -> stringResource(R.string.hint_deciding, hint.table + 1)
 }
 
 @Composable
