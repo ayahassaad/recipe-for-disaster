@@ -802,11 +802,11 @@ private fun Pen.drawPhone(seat: Point, clock: Float) {
 }
 
 /**
- * A tip jar on the counter, between the chef and the plates. When a table pays, a coin arcs over from their table and
+ * A tip jar on the counter, by the chef. When a table pays, a coin arcs over from their table and
  * drops in with a little jiggle, and the jar fills up as the night's takings grow.
  */
 private fun Pen.drawTipJar(text: TextMeasurer, night: ServiceNight, clock: Float) {
-    val jar = Point(45f, SceneLayout.counter.top + 0.6f)
+    val jar = Point(38f, SceneLayout.counter.top + 0.6f)
     // Coins in flight from tables that have just paid.
     var landed = 0f
     val layout = night.layout
