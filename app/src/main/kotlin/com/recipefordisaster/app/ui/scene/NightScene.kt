@@ -1038,45 +1038,90 @@ private fun Pen.drawFuseBox(out: Boolean) {
 }
 
 /**
- * The restaurant cat: a grey tabby with a curling tail and stripes. Walking, its legs move; sitting, it
- * tucks in and the tail swishes. [facingRight] is the way it's heading.
+ * The restaurant cat: a brown-grey tabby with dark stripes everywhere, a white chest and chin like a
+ * scarf, white paws like mittens and boots, yellow-green eyes and a pink nose. Walking, its legs move
+ * and the striped tail sways behind; sitting, it sits up tall with its white front showing.
+ * [facingRight] is the way it's heading.
  */
 private fun Pen.drawCat(at: Point, walking: Boolean, facingRight: Boolean, clock: Float) {
     val dir = if (facingRight) 1f else -1f
-    val fur = Color(0xFF8E8E96)
-    val dark = Color(0xFF5E5E66)
-    oval(at.x, at.y + 1.5f, 3.4f, 0.9f, Palette.shadow)
-    // Tail curling up behind.
+    val fur = Color(0xFF8B7B66)     // brown-grey tabby
+    val stripe = Color(0xFF3E342B)  // dark tabby stripes
+    val white = Color(0xFFF7F4EE)
+    oval(at.x, at.y + 1.6f, 3.6f, 0.9f, Palette.shadow)
+    // Long striped tail.
     val swish = sin(clock * (if (walking) 6f else 2.2f)) * 1.2f
-    shape(dark, stroke = 0.7f) {
+    val tailEnd = Point(at.x - dir * (4.4f + swish * 0.4f), at.y - 3.6f + swish * 0.3f)
+    shape(fur, stroke = 0.9f) {
         moveTo(at.x - dir * 2.6f, at.y)
-        quadTo(at.x - dir * 4.6f, at.y - 1f, at.x - dir * (4f + swish * 0.4f), at.y - 3.4f + swish * 0.3f)
+        quadTo(at.x - dir * 4.8f, at.y - 0.8f, tailEnd.x, tailEnd.y)
     }
+    // Dark rings along it.
+    val tailStart = Point(at.x - dir * 2.6f, at.y)
+    for (k in 1..3) dot(tailStart.lerp(tailEnd, k / 4f), 0.45f, stripe)
+    dot(tailEnd, 0.5f, stripe)
     if (walking) {
+        // Four legs stepping, each ending in a white paw.
         val step = sin(clock * 12f) * 0.6f
-        for ((k, x) in listOf(-1.8f, -0.8f, 0.9f, 1.9f).withIndex()) box(at.x + dir * x - 0.3f, at.y + 0.4f + (if (k % 2 == 0) step else -step), 0.6f, 1.2f, dark, radius = 0.3f)
-        oval(at.x, at.y - 0.2f, 3f, 1.3f, fur)
+        for ((k, x) in listOf(-1.8f, -0.8f, 0.9f, 1.9f).withIndex()) {
+            val lift = if (k % 2 == 0) step else -step
+            box(at.x + dir * x - 0.35f, at.y + 0.4f + lift, 0.7f, 1.2f, fur, radius = 0.3f)
+            dot(at.x + dir * x, at.y + 1.6f + lift, 0.42f, white)
+        }
+        oval(at.x, at.y - 0.2f, 3.1f, 1.4f, fur)
+        // Tabby stripes across the back.
+        for (k in -2..2) line(at.x + k * 0.95f, at.y - 1.5f, at.x + k * 0.95f + dir * 0.4f, at.y + 0.3f, stripe, 0.32f)
+        // White chest showing at the front.
+        oval(at.x + dir * 2.2f, at.y + 0.2f, 0.9f, 0.9f, white)
     } else {
-        // Sitting tall.
-        oval(at.x, at.y - 0.4f, 2.4f, 1.8f, fur)
+        // Sitting up tall: striped sides, a white bib down the front, and white front paws.
+        oval(at.x, at.y - 0.4f, 2.5f, 1.9f, fur)
+        for (k in -1..1) line(at.x + k * 1.6f - 0.3f, at.y - 1.8f, at.x + k * 1.6f, at.y + 0.6f, stripe, 0.3f)
+        shape(white) {
+            moveTo(at.x - 1.1f, at.y - 2f)
+            quadTo(at.x, at.y + 1.6f, at.x + 1.1f, at.y - 2f)
+            close()
+        }
+        for (side in listOf(-0.7f, 0.7f)) oval(at.x + side, at.y + 1.3f, 0.6f, 0.4f, white)
     }
-    for (k in -1..1) line(at.x + k * 0.9f, at.y - 1.3f, at.x + k * 0.9f + 0.3f, at.y + 0.6f, dark, 0.3f) // stripes
-    // Head with ears, eyes and whiskers.
-    val head = Point(at.x + dir * 2.6f, at.y - (if (walking) 1.2f else 2.4f))
-    dot(head, 1.5f, fur)
-    for (side in listOf(-1f, 1f)) shape(fur) {
-        moveTo(head.x + side * 1.4f, head.y - 0.6f)
-        lineTo(head.x + side * 0.9f, head.y - 2.4f)
-        lineTo(head.x + side * 0.2f, head.y - 1.2f)
-        close()
+    // Head: tabby with an "M" on the forehead, white chin and muzzle, big ears.
+    val head = Point(at.x + dir * (if (walking) 2.7f else 0f), at.y - (if (walking) 1.3f else 2.7f))
+    for (side in listOf(-1f, 1f)) {
+        shape(fur) {
+            moveTo(head.x + side * 1.5f, head.y - 0.5f)
+            lineTo(head.x + side * 1.05f, head.y - 2.6f)
+            lineTo(head.x + side * 0.2f, head.y - 1.2f)
+            close()
+        }
+        shape(Color(0xFFD9A79A)) { // pink inside the ears
+            moveTo(head.x + side * 1.2f, head.y - 0.9f)
+            lineTo(head.x + side * 1.0f, head.y - 2.0f)
+            lineTo(head.x + side * 0.5f, head.y - 1.2f)
+            close()
+        }
     }
+    dot(head, 1.6f, fur)
+    oval(head.x, head.y + 0.75f, 0.95f, 0.7f, white) // white muzzle and chin
+    // The tabby "M" and a couple of cheek stripes.
+    line(head.x - 0.7f, head.y - 1.3f, head.x - 0.35f, head.y - 0.7f, stripe, 0.22f)
+    line(head.x - 0.35f, head.y - 0.7f, head.x, head.y - 1.2f, stripe, 0.22f)
+    line(head.x, head.y - 1.2f, head.x + 0.35f, head.y - 0.7f, stripe, 0.22f)
+    line(head.x + 0.35f, head.y - 0.7f, head.x + 0.7f, head.y - 1.3f, stripe, 0.22f)
+    for (side in listOf(-1f, 1f)) line(head.x + side * 1.6f, head.y + 0.1f, head.x + side * 1.1f, head.y + 0.2f, stripe, 0.2f)
+    // Big yellow-green eyes (with the odd blink), pink nose, whiskers.
     val blink = (clock % 4f) > 3.85f
     for (side in listOf(-1f, 1f)) {
-        if (blink) line(head.x + side * 0.6f - 0.2f, head.y - 0.2f, head.x + side * 0.6f + 0.2f, head.y - 0.2f, Palette.ink, 0.2f)
-        else dot(head.x + side * 0.6f, head.y - 0.2f, 0.28f, Color(0xFF6DA34D))
-        line(head.x + side * 0.5f, head.y + 0.5f, head.x + side * 2.2f, head.y + 0.3f, Color(0x88FFFFFF), 0.12f)
+        val e = Point(head.x + side * 0.65f, head.y - 0.15f)
+        if (blink) line(e.x - 0.3f, e.y, e.x + 0.3f, e.y, stripe, 0.2f)
+        else {
+            dot(e, 0.42f, Color(0xFFB7B33A))
+            dot(e, 0.16f, Color(0xFF1E1A14))
+            dot(e.x - 0.12f, e.y - 0.14f, 0.08f, Color.White)
+        }
+        line(head.x + side * 0.4f, head.y + 0.7f, head.x + side * 2.3f, head.y + 0.4f, Color(0xBBFFFFFF), 0.1f)
+        line(head.x + side * 0.4f, head.y + 0.85f, head.x + side * 2.2f, head.y + 1.0f, Color(0xBBFFFFFF), 0.1f)
     }
-    dot(head.x, head.y + 0.4f, 0.22f, Color(0xFFE8A0A0))
+    dot(head.x, head.y + 0.45f, 0.22f, Color(0xFFD9867A))
 }
 
 /** A plate tumbling off the counter and smashing, with a "crash!". */
