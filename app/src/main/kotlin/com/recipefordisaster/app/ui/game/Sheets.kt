@@ -371,6 +371,8 @@ private fun ApplicantLine(person: Employee, recommended: Boolean, extra: @Compos
                 )
             }
         }
+        // What the job actually does, so it's clear who to hire.
+        Text(roleDescription(person.role), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f))
         Spacer(modifier = Modifier.height(4.dp))
         PersonLine(person, showRole = false) {
             Text(
@@ -523,3 +525,15 @@ private fun TablesSheet(uiState: GameUiState.Playing, actions: GameActions) {
         }
     }
 }
+
+@Composable
+private fun roleDescription(role: com.recipefordisaster.domain.employee.Role): String = stringResource(
+    when (role) {
+        com.recipefordisaster.domain.employee.Role.COOK -> R.string.job_cook
+        com.recipefordisaster.domain.employee.Role.SERVER -> R.string.job_server
+        com.recipefordisaster.domain.employee.Role.DISHWASHER -> R.string.job_dishwasher
+        com.recipefordisaster.domain.employee.Role.MANAGER -> R.string.job_manager
+        com.recipefordisaster.domain.employee.Role.HOST -> R.string.job_host
+        com.recipefordisaster.domain.employee.Role.BUSSER -> R.string.job_busser
+    },
+)

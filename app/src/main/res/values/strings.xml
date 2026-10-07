@@ -243,6 +243,13 @@
     <string name="game_back_to_start">Back to start</string>
     <string name="menu_button">Menu</string>
     <string name="pause_button">Pause</string>
+    <string name="hire_button">Hire</string>
+    <string name="job_cook">Cooks the food. More cooks means more dishes at once.</string>
+    <string name="job_server">Carries food out when it\'s been waiting, and clears tables when there\'s nothing to carry.</string>
+    <string name="job_dishwasher">Clears tables, washes up, mops spills and fixes the fridge.</string>
+    <string name="job_manager">Helps carry food out, like a server.</string>
+    <string name="job_host">Greets guests at the door: they wait longer, and one more party fits inside.</string>
+    <string name="job_busser">Clears tables and washes up, so you don\'t have to.</string>
     <string name="paused_title">Paused</string>
     <string name="paused_resume">Tap anywhere to carry on</string>
     <string name="leave_title">Leave the restaurant?</string>

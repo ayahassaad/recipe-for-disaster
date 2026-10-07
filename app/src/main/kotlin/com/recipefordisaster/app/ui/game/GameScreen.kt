@@ -208,7 +208,8 @@ private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, onMe
     var open by remember { mutableStateOf<SceneTarget?>(null) }
 
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding().navigationBarsPadding()) {
-        Hud(day = uiState.state.day, cash = uiState.cashNow, reputation = morning.restaurant.reputation, subtitle = stringResource(R.string.daily_costs, coins(costs.total)), onMenu = onMenu)
+        Hud(day = uiState.state.day, cash = uiState.cashNow, reputation = morning.restaurant.reputation, subtitle = stringResource(R.string.daily_costs, coins(costs.total)), onMenu = onMenu,
+            onHire = if (model.hiring) null else ({ open = SceneTarget.HiringSign }))
         RestaurantScene(model = model, labels = sceneLabels(staffNeed), onTap = { open = it }, modifier = Modifier.weight(1f))
         // Opening with nothing the kitchen can cook means every guest walks straight back out.
         val noFood = remember(morning) {
@@ -251,7 +252,7 @@ private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, onMe
 
 /** Day, money and stars along the top, under the awning. */
 @Composable
-private fun Hud(day: Int, cash: Long, reputation: Int, subtitle: String, onMenu: () -> Unit, onPause: (() -> Unit)? = null) {
+private fun Hud(day: Int, cash: Long, reputation: Int, subtitle: String, onMenu: () -> Unit, onPause: (() -> Unit)? = null, onHire: (() -> Unit)? = null) {
     Column {
         Row(modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 16.dp, top = 2.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             // Back to the start screen (asks first), and during service a pause button under it.
@@ -260,6 +261,12 @@ private fun Hud(day: Int, cash: Long, reputation: Int, subtitle: String, onMenu:
                 if (onPause != null) {
                     TextButton(onClick = onPause) {
                         Text(stringResource(R.string.pause_button), style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+                // In the morning, hiring is always a tap away, even when there's no help sign up.
+                if (onHire != null) {
+                    TextButton(onClick = onHire) {
+                        Text(stringResource(R.string.hire_button), style = MaterialTheme.typography.titleMedium)
                     }
                 }
             }
