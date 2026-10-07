@@ -562,4 +562,15 @@ class ServiceNightTest {
         n = waitFor(n) { night -> night.parties.first { it.id == party.id }.stage == Stage.READY_TO_ORDER }
         assertTrue(n.time - satAt >= 2.4f)
     }
+
+    @Test
+    fun `quick service earns tips, and they reach the day's takings`() {
+        val setup = engine.openService(start, PlayerDecisions(), SeededRandomSource(1L))
+        val fast = play(ServiceNight.open(setup, SeededRandomSource(2L)), ::busyPlayer)
+        assertTrue(fast.tips > 0)
+        val day = engine.closeService(setup, fast.result(), SeededRandomSource(3L))
+        assertEquals(fast.tips, day.newState.ledger.history.last().tips)
+        // Nobody served, nobody tips.
+        assertEquals(0L, play(ServiceNight.open(setup, SeededRandomSource(2L))).tips)
+    }
 }

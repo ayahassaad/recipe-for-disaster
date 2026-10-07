@@ -124,6 +124,8 @@ data class ServiceNight(
         val orders: List<DishId?> = emptyList(),
         /** Which waiter is holding the ticket or the plates, while they're being carried. */
         val heldBy: String? = null,
+        /** What they left as a tip when they paid. */
+        val tip: Long = 0,
     ) {
         val seated: Boolean get() = stage in Stage.DECIDING..Stage.LEAVING_ANGRY
         val occupiesTable: Boolean get() = table != null && stage in Stage.WALKING_TO_TABLE..Stage.LEAVING_ANGRY
@@ -255,7 +257,10 @@ data class ServiceNight(
     val player: Waiter get() = waiters.first { it.isPlayer }
 
     /** Coins taken so far tonight. */
-    val takings: Long get() = results.values.sumOf { it.dish?.sellingPrice ?: 0 }
+    val takings: Long get() = results.values.sumOf { it.dish?.sellingPrice ?: 0 } + tips
+
+    /** Tips left so far tonight. */
+    val tips: Long get() = parties.sumOf { it.tip }
 
     fun partyAt(table: Int): Party? = parties.firstOrNull { it.table == table && it.occupiesTable }
 
@@ -542,7 +547,7 @@ data class ServiceNight(
                         dirtyTables = night.dirtyTables + listOfNotNull(party.table),
                         dirtiedAt = night.dirtiedAt + listOfNotNull(party.table?.let { it to time }),
                     )
-                        .updateParty(party.id) { it.copy(stage = Stage.LEAVING_HAPPY, stageSince = time, until = time + LEAVE) }
+                        .updateParty(party.id) { it.copy(stage = Stage.LEAVING_HAPPY, stageSince = time, until = time + LEAVE, tip = tipFor(party, results)) }
                 }
                 (party.stage == Stage.LEAVING_HAPPY || party.stage == Stage.LEAVING_ANGRY) && time >= party.until ->
                     night = night.updateParty(party.id) { it.copy(stage = Stage.DONE, stageSince = time) }
@@ -746,6 +751,20 @@ data class ServiceNight(
         return night
     }
 
+    /**
+     * Quick service earns a tip: from sitting down to the food arriving, the faster the better,
+     * for each guest who enjoyed it. Nothing for a slow or a disappointing meal.
+     */
+    private fun tipFor(party: Party, results: Map<Int, CustomerServiceOutcome>): Long {
+        val served = time - EAT - party.seatedAt
+        val perGuest = when {
+            served <= TIP_FAST -> 3L
+            served <= TIP_OK -> 1L
+            else -> 0L
+        }
+        return party.guests.sumOf { guest -> if ((results[guest]?.satisfaction ?: 0) >= 55) perGuest else 0L }
+    }
+
     private fun missed(guest: Int, reason: MissedMealReason) =
         CustomerServiceOutcome(arrivalOrder[guest], dish = null, satisfaction = ServiceSimulator.missedMealSatisfaction(reason), waitMinutes = 0.0, missedReason = reason)
 
@@ -760,6 +779,7 @@ data class ServiceNight(
             inventoryAfter = inventory,
             fridgeBrokeTonight = fridgeBrokeTonight,
             fridgeLeftBroken = fridgeBroken,
+            tips = tips,
         )
     }
 
@@ -786,6 +806,10 @@ data class ServiceNight(
 
         /** How long a plate sits on the pass before a runner takes it out instead of waiting for the player. */
         private const val RUNNER_DELAY = 3f
+
+        /** Food on the table within this many seconds of sitting down earns the full tip; within [TIP_OK], a small one. */
+        private const val TIP_FAST = 24f
+        private const val TIP_OK = 34f
 
         /** How long guests read the menu after sitting down before they're ready to order. */
         private const val DECIDE_MIN = 2.5f

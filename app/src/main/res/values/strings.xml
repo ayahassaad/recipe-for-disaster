@@ -124,6 +124,7 @@
     <string name="bill_reputation">Reputation</string>
     <string name="bill_details_show">Show the full bill</string>
     <string name="bill_earned">Meals sold</string>
+    <string name="bill_tips">Tips</string>
     <string name="bill_wages">Wages</string>
     <string name="bill_premises">Rent and bills</string>
     <string name="bill_groceries">Groceries</string>

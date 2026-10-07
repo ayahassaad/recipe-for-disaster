@@ -205,7 +205,15 @@ fun NightScene(
                                     around(at, scale).drawGuest(Point(at.x, at.y - stomp), guest, mood, angry = angry, walkPhase = time * (if (angry) 4.2f else 2.6f) + g, g)
                                     if (angry && g == 0) drawGrumble(text, Point(at.x, at.y - 14f), clock)
                                 }
-                                if (!angry) drawCoins(text, tablePoints[table], ((time - party.stageSince) / 1.2f).coerceAtMost(1f), party.guests.sumOf { night.results[it]?.dish?.sellingPrice ?: 0 })
+                                if (!angry) {
+                                    val progress = ((time - party.stageSince) / 1.2f).coerceAtMost(1f)
+                                    drawCoins(text, tablePoints[table], progress, party.guests.sumOf { night.results[it]?.dish?.sellingPrice ?: 0 })
+                                    // A tip for quick service gets its own little pop, just under the bill.
+                                    if (party.tip > 0) {
+                                        val alpha = (1f - (progress - 0.6f) / 0.4f).coerceIn(0f, 1f)
+                                        centeredText(text, "+${party.tip} tip!", Point(tablePoints[table].x + 6f, tablePoints[table].y - 0.5f - progress * 8f), size = 2.6f, color = Color(0xFF3E8E41).copy(alpha = alpha), bold = true)
+                                    }
+                                }
                             }
                             else -> {
                                 val table = party.table ?: return@forEach

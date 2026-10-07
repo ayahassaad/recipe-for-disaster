@@ -60,6 +60,8 @@ object ServiceSimulator {
         val fridgeBrokeTonight: Boolean = false,
         /** ...and was still broken at closing time (nobody fixed it). */
         val fridgeLeftBroken: Boolean = false,
+        /** Tips left for quick service tonight. */
+        val tips: Long = 0,
     ) {
         fun missedCount(reason: MissedMealReason): Int = outcomes.count { it.missedReason == reason }
     }

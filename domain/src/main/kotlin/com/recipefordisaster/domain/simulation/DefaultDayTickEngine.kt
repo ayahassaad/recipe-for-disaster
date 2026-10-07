@@ -145,7 +145,7 @@ class DefaultDayTickEngine(
             equipment = equipmentAfterFailureChecks,
             miscellaneous = morning.spending.staffing + morning.spending.cleaning + morning.spending.menu,
             upgrades = morning.spending.repairs + morning.spending.upgrades,
-        )
+        ).let { it.copy(revenue = it.revenue + serviceResult.tips, tips = serviceResult.tips) }
 
         val newCash = start.restaurant.cash + financials.profitOrLoss
         val newReputation = (start.restaurant.reputation + reputationDelta).coerceIn(0, 100)
