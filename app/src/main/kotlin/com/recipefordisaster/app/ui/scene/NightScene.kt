@@ -320,8 +320,16 @@ fun NightScene(
                         }
                         if (waiter.isPlayer) {
                             // Standing at the chef, the marker would sit on the chef's face: put it beside you instead.
-                            val atChef = waiter.position(time).distanceTo(ServiceFloor.chef) < 4f
-                            drawYouMarker(text, labels.you, if (atChef) Point(at.x + 10f, at.y - 6f) else Point(at.x, at.y - 12f), clock)
+                            // Same at the dish station, where it would cover the DISHES sign: put it on the left.
+                            val here = waiter.position(time)
+                            val atChef = here.distanceTo(ServiceFloor.chef) < 4f
+                            val atDishes = here.distanceTo(ServiceFloor.dishStation) < 4f
+                            val marker = when {
+                                atChef -> Point(at.x + 10f, at.y - 6f)
+                                atDishes -> Point(at.x - 10f, at.y - 6f)
+                                else -> Point(at.x, at.y - 12f)
+                            }
+                            drawYouMarker(text, labels.you, marker, clock)
                         }
                         else {
                             helperColor[waiter.id]?.let { dot(at.x, at.y - 11.4f, 1.1f, it) }
@@ -565,8 +573,8 @@ private fun Pen.drawWashingUp(at: Point, progress: Float, clock: Float, sleeve: 
     // Clean plates piling up on the drying rack as the job gets done.
     val done = (progress * 4).toInt()
     for (k in 0 until done) oval(91f, SceneLayout.counter.top + 3.6f - k * 0.9f, 1.9f, 0.7f, Color.White)
-    // How long is left: a ring beside them, clear of the "YOU" marker.
-    val ringAt = Point(at.x - 9f, at.y - 3f)
+    // How long is left: a ring beside them, on the other side from the "YOU" marker.
+    val ringAt = Point(at.x + 8f, at.y + 1f)
     dot(ringAt, 2.8f, Color(0xEEFFFFFF))
     ring(ringAt.x, ringAt.y, 2.2f, Color(0x332F6188), 0.7f)
     drawArc(
