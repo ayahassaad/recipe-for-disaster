@@ -200,7 +200,10 @@ fun NightScene(
                                     // Up from their seats, then out together side by side.
                                     val apart = if (party.guests.size > 1) (progress / 0.2f).coerceIn(0f, 1f) else 0f
                                     val at = sideBySide(route, progress, if (g == 0) -1f else 1f, apart)
-                                    around(at, scale).drawGuest(at, guest, mood, angry = angry, walkPhase = time * 2.6f + g, g)
+                                    // Angry guests stomp out: a faster, bouncier walk, and a cloud of cross words overhead.
+                                    val stomp = if (angry) abs(sin(time * 9f + g)) * 0.9f else 0f
+                                    around(at, scale).drawGuest(Point(at.x, at.y - stomp), guest, mood, angry = angry, walkPhase = time * (if (angry) 4.2f else 2.6f) + g, g)
+                                    if (angry && g == 0) drawGrumble(text, Point(at.x, at.y - 14f), clock)
                                 }
                                 if (!angry) drawCoins(text, tablePoints[table], ((time - party.stageSince) / 1.2f).coerceAtMost(1f), party.guests.sumOf { night.results[it]?.dish?.sellingPrice ?: 0 })
                             }
@@ -300,10 +303,14 @@ fun NightScene(
                                 is ServiceNight.HandItem.DirtyDishes -> drawDirtyStack(hand)
                                 ServiceNight.HandItem.Mop -> drawMop(hand, if (k == 0) -1f else 1f, mopping = waiter.errand is ServiceNight.Errand.Mopping, clock = clock)
                                 is ServiceNight.HandItem.Plate -> {
-                                    drawPlate(hand)
-                                    drawSteam(hand, clock, item.partyId)
+                                    // A little hop as it's picked up.
+                                    val since = night.parties.firstOrNull { it.id == item.partyId }?.let { time - it.stageSince } ?: 1f
+                                    val hop = if (since < 0.35f) kotlin.math.sin(since / 0.35f * PI_F) * 2.2f else 0f
+                                    val plateAt = Point(hand.x, hand.y - hop)
+                                    drawPlate(plateAt)
+                                    drawSteam(plateAt, clock, item.partyId)
                                     // The table number travels with the plate, so you always know where it's going.
-                                    night.parties.firstOrNull { it.id == item.partyId }?.table?.let { table -> drawNumberFlag(text, hand, table + 1) }
+                                    night.parties.firstOrNull { it.id == item.partyId }?.table?.let { table -> drawNumberFlag(text, plateAt, table + 1) }
                                 }
                             }
                         }
@@ -880,4 +887,12 @@ private fun sideBySide(route: List<FloorPoint>, progress: Float, side: Float, ap
     // At right angles to that, so they're shoulder to shoulder.
     val offset = 4.4f * side * apart
     return SceneLayout.Point(here.x + -dy / length * offset, here.y + dx / length * offset)
+}
+
+/** A little storm cloud of cross words over a guest storming out. */
+private fun Pen.drawGrumble(text: TextMeasurer, at: Point, clock: Float) {
+    val shake = sin(clock * 30f) * 0.3f
+    val c = Point(at.x + shake, at.y)
+    for ((dx, r) in listOf(-2.2f to 2f, 0f to 2.6f, 2.2f to 2f)) dot(c.x + dx, c.y, r, Color(0xFF4A4A52))
+    centeredText(text, "#@!", Point(c.x, c.y), size = 2.3f, color = Color(0xFFF2C230), bold = true)
 }

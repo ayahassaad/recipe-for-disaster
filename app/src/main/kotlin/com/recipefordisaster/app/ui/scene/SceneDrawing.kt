@@ -855,12 +855,22 @@ internal fun Pen.drawPlate(at: Point) {
 }
 
 internal fun Pen.drawCoins(text: TextMeasurer, at: Point, progress: Float, amount: Long) {
-    val alpha = (1f - progress).coerceIn(0f, 1f)
+    val alpha = (1f - (progress - 0.6f) / 0.4f).coerceIn(0f, 1f) // stays solid, then fades at the end
     val y = at.y - 5f - progress * 8f
-    dot(Point(at.x, y), 2f, Color(0xFFB8860B).copy(alpha = alpha))
-    dot(Point(at.x, y), 1.6f, Palette.gold.copy(alpha = alpha))
-    dot(Point(at.x - 0.4f, y - 0.4f), 0.6f, Color(0xFFFFF0A8).copy(alpha = alpha))
-    centeredText(text, "+$amount", Point(at.x + 6f, y), size = 3.2f, color = Color(0xFF8A6A0A).copy(alpha = alpha), bold = true)
+    // Pops in big, then settles.
+    val pop = if (progress < 0.25f) 1f + 0.5f * kotlin.math.sin(progress / 0.25f * PI.toFloat()) else 1f
+    dot(Point(at.x, y), 2f * pop, Color(0xFFB8860B).copy(alpha = alpha))
+    dot(Point(at.x, y), 1.6f * pop, Palette.gold.copy(alpha = alpha))
+    dot(Point(at.x - 0.4f, y - 0.4f), 0.6f * pop, Color(0xFFFFF0A8).copy(alpha = alpha))
+    // Sparkles bursting off it.
+    if (progress < 0.5f) {
+        for (k in 0..5) {
+            val a = k * PI.toFloat() / 3f
+            val r = 2.5f + progress * 9f
+            dot(Point(at.x + kotlin.math.cos(a) * r, y + kotlin.math.sin(a) * r), 0.45f * (1f - progress * 2f), Color(0xFFFFE27A))
+        }
+    }
+    centeredText(text, "+$amount", Point(at.x + 6f, y), size = 3.2f * pop, color = Color(0xFF8A6A0A).copy(alpha = alpha), bold = true)
 }
 
 /** A red "!" that pulses — "this needs you". */

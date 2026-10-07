@@ -73,6 +73,8 @@ import com.recipefordisaster.domain.simulation.MorningAdvisor
 import androidx.compose.material3.AlertDialog
 import com.recipefordisaster.domain.simulation.PlayerDecisions
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.drawscope.rotate
 
 /**
  * Everything the player can do on the game screen, bundled so the screen
@@ -266,7 +268,23 @@ private fun Hud(day: Int, cash: Long, reputation: Int, subtitle: String, onMenu:
                 StarRating(reputation)
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text(coins(cash), style = MaterialTheme.typography.titleLarge)
+                // The total counts up (or down) to its new value, and flashes gold when money comes in.
+                val shown by androidx.compose.animation.core.animateIntAsState(cash.toInt(), androidx.compose.animation.core.tween(700), label = "cash")
+                var lastCash by remember { mutableStateOf(cash) }
+                val flash = remember { androidx.compose.animation.core.Animatable(0f) }
+                LaunchedEffect(cash) {
+                    if (cash > lastCash) {
+                        flash.snapTo(1f)
+                        flash.animateTo(0f, androidx.compose.animation.core.tween(900))
+                    }
+                    lastCash = cash
+                }
+                Text(
+                    coins(shown.toLong()),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = androidx.compose.ui.graphics.lerp(MaterialTheme.colorScheme.onBackground, Color(0xFFB8860B), flash.value),
+                    modifier = Modifier.graphicsLayer { val s = 1f + 0.15f * flash.value; scaleX = s; scaleY = s },
+                )
                 Text(subtitle, style = MaterialTheme.typography.bodyMedium)
             }
         }
@@ -438,6 +456,11 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
                 // For the first few nights, point at what the hint is talking about.
                 focus = if (session.setup.original.day <= GUIDED_DAYS) NightHint.of(night).focus(night) else null,
             )
+            // Everyone fed tonight: confetti!
+            if (night.finished) {
+                val r = night.result().outcomes
+                if (r.isNotEmpty() && r.all { it.dish != null }) Confetti(clock)
+            }
             if (paused) {
                 // Covers the restaurant, so taps while paused don't send you anywhere.
                 Box(
@@ -646,6 +669,25 @@ private fun EndOfNightPanel(visible: Boolean, report: DayReport, onShowBill: () 
             }
             TextButton(onClick = onShowBill, modifier = Modifier.align(Alignment.CenterHorizontally)) {
                 Text(stringResource(R.string.bill_details_show), color = ReceiptInk)
+            }
+        }
+    }
+}
+
+/** Confetti raining down over the restaurant, for a perfect night. */
+@Composable
+private fun Confetti(clock: Float) {
+    val colours = listOf(Color(0xFFC0392B), Color(0xFFF2C230), Color(0xFF3E8E41), Color(0xFF3B78A8), Color(0xFF9C6FB6), Color.White)
+    androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+        for (k in 0 until 70) {
+            val seed = k * 7919
+            val speed = 0.18f + (seed % 13) / 60f
+            val fall = ((clock * speed + (seed % 97) / 97f) % 1f)
+            val x = ((seed % 101) / 101f) * size.width + kotlin.math.sin(clock * 2f + k) * 18f
+            val y = fall * size.height
+            val w = 10f + (seed % 5) * 2f
+            rotate(degrees = clock * 180f * (if (k % 2 == 0) 1 else -1) + k * 30f, pivot = androidx.compose.ui.geometry.Offset(x, y)) {
+                drawRect(colours[k % colours.size], topLeft = androidx.compose.ui.geometry.Offset(x - w / 2, y - 4f), size = androidx.compose.ui.geometry.Size(w, 8f))
             }
         }
     }
