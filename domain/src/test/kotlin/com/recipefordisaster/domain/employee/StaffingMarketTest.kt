@@ -24,4 +24,12 @@ class StaffingMarketTest {
             assertEquals(1, pool.count { it.role in luxury })
         }
     }
+
+    @Test
+    fun `there's always a cook, a server and a dishwasher to hire`() {
+        (1L..30L).forEach { seed ->
+            val roles = StaffingMarket.generateApplicants(SeededRandomSource(seed), day = 3).map { it.role }.toSet()
+            assertTrue(roles.containsAll(setOf(Role.COOK, Role.SERVER, Role.DISHWASHER)))
+        }
+    }
 }

@@ -40,12 +40,23 @@ object StaffingMarket {
      */
     const val LUXURY_STAFF_CASH = 2_000L
 
-    fun generateApplicants(rng: RandomSource, day: Int, count: Int = POOL_SIZE, cash: Long = 0): List<Employee> =
-        (0 until count).map { index -> generateApplicant(rng, day, index, luxury = cash >= LUXURY_STAFF_CASH && index == count - 1) }
+    /**
+     * Who's applying: always one cook, one server and one dishwasher, so every kind of help can be
+     * hired whenever it's needed, plus (once the restaurant can afford them) a host or a busser.
+     */
+    fun generateApplicants(rng: RandomSource, day: Int, count: Int = POOL_SIZE, cash: Long = 0): List<Employee> {
+        val basics = BASIC_ROLES.take(count).mapIndexed { index, role -> generateApplicant(rng, day, index, role) }
+        val luxury = if (cash >= LUXURY_STAFF_CASH) listOf(generateApplicant(rng, day, basics.size, LUXURY_ROLES[rng.nextInt(LUXURY_ROLES.size)])) else emptyList()
+        return basics + luxury
+    }
 
-    internal fun generateApplicant(rng: RandomSource, day: Int, index: Int, luxury: Boolean = false): Employee {
-        val roles = if (luxury) LUXURY_ROLES else HIREABLE_ROLES
-        val role = roles[rng.nextInt(roles.size)]
+    /** Fills in any basic job (cook, server, dishwasher) missing from [current]'s pool, e.g. for an older save. */
+    fun withEveryBasicRole(current: List<Employee>, rng: RandomSource, day: Int): List<Employee> {
+        val missing = BASIC_ROLES.filter { role -> current.none { it.role == role } }
+        return current + missing.mapIndexed { k, role -> generateApplicant(rng, day, current.size + k, role) }
+    }
+
+    internal fun generateApplicant(rng: RandomSource, day: Int, index: Int, role: Role): Employee {
         val skill = 30 + rng.nextInt(51) // 30-80
         val speed = 30 + rng.nextInt(51)
         val reliability = 30 + rng.nextInt(61) // 30-90
@@ -82,6 +93,6 @@ object StaffingMarket {
     }
 
     // Managers exist in the model but have no distinct job yet, so they aren't offered.
-    private val HIREABLE_ROLES = listOf(Role.COOK, Role.COOK, Role.SERVER, Role.SERVER, Role.DISHWASHER)
+    private val BASIC_ROLES = listOf(Role.COOK, Role.SERVER, Role.DISHWASHER)
     private val LUXURY_ROLES = listOf(Role.HOST, Role.BUSSER)
 }
