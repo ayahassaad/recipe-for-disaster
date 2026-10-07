@@ -120,7 +120,7 @@ fun NightScene(
                 with(pen) {
                     val time = night.time
                     val cooking = night.parties.any { it.stage == Stage.COOKING }
-                    drawRoom(model.cleanliness, doorOpen = true, time = clock)
+                    drawRoom(model.cleanliness, doorOpen = doorOpenness(night), time = clock)
                     drawOven(model.ovenCondition, clock, onFire = false, level = model.ovenLevel)
                     drawStove(cooking, clock)
                     drawFridge(model.fridgeCondition, broken = night.fridgeBroken, struggling = night.fridgeStruggling, level = model.fridgeLevel, time = clock)
@@ -140,6 +140,7 @@ fun NightScene(
                             if (figure.role == StaffRole.COOK && cooking) drawChefAtWork(text, Point(spot.x, spot.y + bob), clock + figure.id.hashCode() % 7)
                         }
 
+                    drawTipJar(text, night, clock)
                     drawTickets(text, night)
                     drawReadyPlates(text, night, clock)
                     drawDishStation(text, labels.dishSign, night, clock)
@@ -213,6 +214,12 @@ fun NightScene(
                                         // A fresh plate steams for the first few seconds.
                                         if (eating && party.orders.getOrNull(g) != null && time - party.stageSince < 3.5f) drawSteam(eatingPlate, clock, guest)
                                         drawGuest(seat, guest, mood, angry = waitedFraction > 0.75f, walkPhase = null, g, bob = if (eating) abs(sin(clock * 6f + guest)) * 0.4f else 0f)
+                                        // Reading the menu while deciding; now and then someone checks their phone while the food comes.
+                                        when {
+                                            party.stage == Stage.READY_TO_ORDER -> drawMenuCard(seat, clock + guest)
+                                            party.stage in Stage.ORDER_TAKEN..Stage.CARRIED && waitedFraction < 0.6f &&
+                                                ((clock * 0.2f + guest * 0.37f) % 1f) < 0.4f -> drawPhone(seat, clock)
+                                        }
                                     }
                                     // Two at a table chat while they wait and eat (unless they're getting cross).
                                     if (party.guests.size == 2 && waitedFraction < 0.6f && party.stage in Stage.ORDER_TAKEN..Stage.EATING) {
@@ -749,3 +756,82 @@ private fun Pen.drawChefAtWork(text: TextMeasurer, chef: Point, clock: Float) {
 }
 
 private const val PI_F = 3.1415927f
+
+/** How far open the front doors are: they swing open as guests come in or go out, and close behind them. */
+private fun doorOpenness(night: ServiceNight): Float {
+    var open = 0f
+    for (party in night.parties) {
+        val span = (party.until - party.stageSince).coerceAtLeast(0.01f)
+        val progress = (night.time - party.stageSince) / span
+        val near = when (party.stage) {
+            Stage.WALKING_TO_TABLE -> 1f - progress / 0.3f // just through the door
+            Stage.LEAVING_HAPPY, Stage.LEAVING_ANGRY -> (progress - 0.6f) / 0.3f // nearly out
+            Stage.QUEUEING -> 1f - (night.time - party.stageSince) / 0.8f // just stepped in
+            else -> 0f
+        }
+        open = maxOf(open, near.coerceIn(0f, 1f))
+    }
+    return open
+}
+
+/** A menu card held open in front of a guest, tilting a little as they read. */
+private fun Pen.drawMenuCard(seat: Point, clock: Float) {
+    val tilt = sin(clock * 0.9f) * 0.3f
+    val c = Point(seat.x, seat.y + 3.2f + tilt)
+    box(c.x - 2.4f, c.y - 1.6f, 4.8f, 3.2f, Color(0xFF7A2E2A), radius = 0.4f)
+    line(c.x, c.y - 1.5f, c.x, c.y + 1.5f, Color(0xFF4F1C19), 0.25f) // the fold
+    for (k in 0..1) {
+        line(c.x - 1.9f, c.y - 0.6f + k * 1f, c.x - 0.5f, c.y - 0.6f + k * 1f, Palette.gold, 0.2f)
+        line(c.x + 0.5f, c.y - 0.6f + k * 1f, c.x + 1.9f, c.y - 0.6f + k * 1f, Palette.gold, 0.2f)
+    }
+    for (side in listOf(-1f, 1f)) dot(c.x + side * 2.5f, c.y + 0.6f, 0.75f, Palette.face)
+}
+
+/** A phone in a guest's hand, screen glowing, a thumb scrolling. */
+private fun Pen.drawPhone(seat: Point, clock: Float) {
+    val c = Point(seat.x + 1.4f, seat.y + 3f)
+    dot(c.x, c.y, 2.6f, Color(0x226FD3FF)) // glow
+    box(c.x - 0.9f, c.y - 1.5f, 1.8f, 3f, Color(0xFF1E1E22), radius = 0.35f)
+    box(c.x - 0.7f, c.y - 1.25f, 1.4f, 2.4f, Color(0xFF8FD3F4), radius = 0.2f)
+    val scroll = (clock * 0.8f) % 1f
+    for (k in 0..2) {
+        val y = c.y - 1f + ((k * 0.33f + scroll) % 1f) * 2f
+        line(c.x - 0.5f, y, c.x + 0.4f, y, Color(0xFF3B78A8), 0.18f)
+    }
+    dot(c.x + 0.4f, c.y + 1.2f, 0.65f, Palette.face) // thumb
+}
+
+/**
+ * A tip jar on the counter, between the chef and the plates. When a table pays, a coin arcs over from their table and
+ * drops in with a little jiggle, and the jar fills up as the night's takings grow.
+ */
+private fun Pen.drawTipJar(text: TextMeasurer, night: ServiceNight, clock: Float) {
+    val jar = Point(45f, SceneLayout.counter.top + 0.6f)
+    // Coins in flight from tables that have just paid.
+    var landed = 0f
+    val layout = night.layout
+    for (party in night.parties) {
+        if (party.stage != Stage.LEAVING_HAPPY) continue
+        val table = party.table ?: continue
+        val t = ((night.time - party.stageSince) / 1.1f).coerceIn(0f, 1f)
+        if (t >= 1f) continue
+        landed = maxOf(landed, if (t > 0.85f) 1f - (t - 0.85f) / 0.15f else 0f)
+        val from = layout.tables[table].toPoint().let { Point(it.x, it.y - 6f) }
+        val x = from.x + (jar.x - from.x) * t
+        val y = from.y + (jar.y - 3f - from.y) * t - kotlin.math.sin(t * PI_F) * 14f
+        dot(x, y, 1.3f, Color(0xFFB8860B))
+        dot(x, y, 0.95f, Palette.gold)
+        dot(x - 0.35f, y - 0.35f, 0.3f, Color(0xFFFFF3B0))
+    }
+    val jiggle = sin(clock * 30f) * 0.4f * landed
+    val j = Point(jar.x + jiggle, jar.y)
+    oval(j.x, j.y + 2.6f, 2.4f, 0.6f, Color(0x33000000))
+    // Coins inside, piling up with the takings (full at about 300).
+    val fill = (night.takings / 300f).coerceIn(0f, 1f)
+    if (fill > 0f) box(j.x - 1.8f, j.y + 2.4f - 4f * fill, 3.6f, 4f * fill, Palette.gold, radius = 0.6f)
+    // The glass: a rounded jar with a rim and a shine.
+    box(j.x - 2.2f, j.y - 2f, 4.4f, 4.6f, Color(0x55DDEEF7), radius = 1.2f)
+    box(j.x - 2.4f, j.y - 2.6f, 4.8f, 1f, Color(0xCCB0BEC5), radius = 0.4f)
+    line(j.x - 1.4f, j.y - 1f, j.x - 1.4f, j.y + 1.6f, Color(0x99FFFFFF), 0.3f)
+    centeredText(text, "TIPS", Point(j.x, j.y + 0.6f), size = 1.4f, color = Palette.ink, bold = true)
+}

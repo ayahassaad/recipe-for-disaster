@@ -142,7 +142,8 @@ internal fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSurround(origi
     if (bottom < size.height) drawRect(Palette.woodDark, topLeft = androidx.compose.ui.geometry.Offset(0f, bottom - 1f), size = Size(size.width, size.height - bottom + 1f))
 }
 
-internal fun Pen.drawRoom(cleanliness: Int, doorOpen: Boolean, time: Float) {
+/** The room. [doorOpen] is how far the front doors are open: 0 shut, 1 wide open. */
+internal fun Pen.drawRoom(cleanliness: Int, doorOpen: Float, time: Float) {
     drawRect(Palette.wall, topLeft = p(0f, 0f), size = Size(u(SceneLayout.WIDTH), u(SceneLayout.HEIGHT)))
 
     // Kitchen: square tiles with grout lines, and a tiled splashback along the back wall.
@@ -197,9 +198,9 @@ internal fun Pen.drawRoom(cleanliness: Int, doorOpen: Boolean, time: Float) {
     if (cleanliness < 45) drawRat(Point(88f, 132f), time)
 
     drawCounter()
-    drawPlant(Point(5f, 50f))
-    drawPlant(Point(95f, 50f))
-    drawPlant(Point(95f, 131f))
+    drawPlant(Point(5f, 50f), time)
+    drawPlant(Point(95f, 50f), time)
+    drawPlant(Point(95f, 131f), time)
 
     // Front wall, double door and doormat.
     drawRect(Palette.woodDark, topLeft = p(0f, 140f), size = Size(u(SceneLayout.WIDTH), u(10f)))
@@ -207,11 +208,18 @@ internal fun Pen.drawRoom(cleanliness: Int, doorOpen: Boolean, time: Float) {
     val door = SceneLayout.door
     box(door.left - 3f, door.top - 4.5f, door.width + 6f, 4f, Color(0xFF7D5A3B), radius = 0.6f)
     for (k in 0..5) line(door.left - 2f + k * 4.6f, door.top - 4f, door.left - 2f + k * 4.6f, door.top - 1f, Color(0x55000000), 0.25f)
-    if (doorOpen) {
+    if (doorOpen > 0.02f) {
         drawRect(Palette.plankC, topLeft = p(door.left, door.top), size = Size(u(door.width), u(door.height)))
-        // The two door leaves swung open against the wall.
-        box(door.left - 1.2f, door.top, 1.2f, door.height, Palette.woodLight, radius = 0.2f)
-        box(door.right, door.top, 1.2f, door.height, Palette.woodLight, radius = 0.2f)
+        // The two door leaves, hinged at the outside edges, swinging out: seen from above, each one
+        // gets narrower as it opens, until it lies flat against the wall.
+        val open = doorOpen.coerceIn(0f, 1f)
+        val leaf = (door.width / 2) * (1f - open) + 1.2f * open
+        box(door.left, door.top, leaf, door.height, Palette.woodLight, radius = 0.2f)
+        box(door.right - leaf, door.top, leaf, door.height, Palette.woodLight, radius = 0.2f)
+        if (open < 0.9f) {
+            line(door.left + leaf, door.top, door.left + leaf, door.bottom, Palette.woodDark, 0.3f)
+            line(door.right - leaf, door.top, door.right - leaf, door.bottom, Palette.woodDark, 0.3f)
+        }
     } else {
         box(door, Palette.woodLight, radius = 0.5f)
         line(door.center.x, door.top, door.center.x, door.bottom, Palette.woodDark, 0.4f)
@@ -256,12 +264,15 @@ internal fun Pen.drawDishStation(text: TextMeasurer, sign: String) {
     centeredText(text, sign, Point(x + 7f, c.top - 4.6f), size = 2.3f, color = Color.White, bold = true)
 }
 
-private fun Pen.drawPlant(at: Point) {
+/** A potted plant, its leaves swaying gently (each plant in its own rhythm). */
+private fun Pen.drawPlant(at: Point, time: Float = 0f) {
+    val sway = sin(time * 1.1f + at.x * 0.37f + at.y * 0.11f) * 0.09f
     oval(at.x, at.y + 3.4f, 3.6f, 1.2f, Palette.shadow)
     box(at.x - 2.8f, at.y + 0.5f, 5.6f, 4f, Palette.pot, radius = 0.8f)
     box(at.x - 3.2f, at.y, 6.4f, 1.2f, Color(0xFF9A4F30), radius = 0.4f)
     for (k in 0 until 7) {
-        val a = (k / 7f) * 2f * PI.toFloat()
+        // Tips move more than the base, so it bends rather than spins.
+        val a = (k / 7f) * 2f * PI.toFloat() + sway * (1f + (k % 3) * 0.4f)
         val tipX = at.x + cos(a) * 4.2f
         val tipY = at.y - 1.5f + sin(a) * 3.2f
         shape(if (k % 2 == 0) Palette.leaf else Palette.leafDark) {

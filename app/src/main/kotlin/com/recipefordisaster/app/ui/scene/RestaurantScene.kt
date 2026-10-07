@@ -129,7 +129,7 @@ fun RestaurantScene(
             val pen = Pen(this, unit, origin)
             val time = clock
             with(pen) {
-                drawRoom(model.cleanliness, doorOpen = false, time = time)
+                drawRoom(model.cleanliness, doorOpen = 0f, time = time)
                 drawOven(model.ovenCondition, time, model.ovenOnFire, model.ovenLevel)
                 drawStove(false, time)
                 drawFridge(model.fridgeCondition, broken = model.fridgeCondition <= 0, struggling = false, level = model.fridgeLevel, time = time)
