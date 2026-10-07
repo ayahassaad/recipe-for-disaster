@@ -137,10 +137,11 @@ fun NightScene(
                             val bob = if (figure.role == StaffRole.COOK && cooking) sin(clock * 12f) * 0.6f else sin(clock * 1.6f) * 0.2f
                             drawPerson(spot, outfitFor(figure.role), figure.morale, bob = bob, sweat = figure.stress >= 70, variant = figure.name.hashCode().mod(5), apron = helperColor[figure.id.value])
                             helperColor[figure.id.value]?.let { dot(spot.x, spot.y - 11.4f, 1.1f, it) }
+                            if (figure.role == StaffRole.COOK && cooking) drawChefAtWork(text, Point(spot.x, spot.y + bob), clock + figure.id.hashCode() % 7)
                         }
 
                     drawTickets(text, night)
-                    drawReadyPlates(text, night)
+                    drawReadyPlates(text, night, clock)
                     drawDishStation(text, labels.dishSign, night, clock)
 
                     // Tables guests have left: dirty plates, crumbs and a crumpled napkin until someone clears them.
@@ -208,7 +209,14 @@ fun NightScene(
                                         val eating = party.stage == Stage.EATING
                                         val mood = if (eating) 80 else (75 - waitedFraction * 70).toInt()
                                         if (eating && party.orders.getOrNull(g) != null) drawPlate(Point((c.x + seat.x) / 2, seat.y))
+                                        val eatingPlate = Point((c.x + seat.x) / 2, seat.y)
+                                        // A fresh plate steams for the first few seconds.
+                                        if (eating && party.orders.getOrNull(g) != null && time - party.stageSince < 3.5f) drawSteam(eatingPlate, clock, guest)
                                         drawGuest(seat, guest, mood, angry = waitedFraction > 0.75f, walkPhase = null, g, bob = if (eating) abs(sin(clock * 6f + guest)) * 0.4f else 0f)
+                                    }
+                                    // Two at a table chat while they wait and eat (unless they're getting cross).
+                                    if (party.guests.size == 2 && waitedFraction < 0.6f && party.stage in Stage.ORDER_TAKEN..Stage.EATING) {
+                                        drawChatter(text, c, party.id, clock)
                                     }
                                     drawTableBubble(text, c, party.stage, waitedFraction, clock)
                                 }
@@ -281,6 +289,7 @@ fun NightScene(
                                 ServiceNight.HandItem.Mop -> drawMop(hand, if (k == 0) -1f else 1f, mopping = waiter.errand is ServiceNight.Errand.Mopping, clock = clock)
                                 is ServiceNight.HandItem.Plate -> {
                                     drawPlate(hand)
+                                    drawSteam(hand, clock, item.partyId)
                                     // The table number travels with the plate, so you always know where it's going.
                                     night.parties.firstOrNull { it.id == item.partyId }?.table?.let { table -> drawNumberFlag(text, hand, table + 1) }
                                 }
@@ -450,10 +459,11 @@ private fun readyPlates(night: ServiceNight) = night.platesOnCounter
 /** Where the [i]th waiting plate sits on the counter (the same spot the player walks to). */
 private fun plateSpot(i: Int) = ServiceFloor.plate(i).toPoint()
 
-private fun Pen.drawReadyPlates(text: TextMeasurer, night: ServiceNight) {
+private fun Pen.drawReadyPlates(text: TextMeasurer, night: ServiceNight, clock: Float) {
     readyPlates(night).forEachIndexed { i, party ->
         val at = plateSpot(i)
         drawPlate(at)
+        drawSteam(at, clock, party.id)
         drawNumberFlag(text, at, (party.table ?: 0) + 1)
     }
 }
@@ -662,3 +672,80 @@ private fun Pen.drawFixingFridge(at: Point, progress: Float, clock: Float) {
         style = androidx.compose.ui.graphics.drawscope.Stroke(u(0.7f)),
     )
 }
+
+/** Hot food: three soft wisps of steam curling up off a plate and fading. [seed] keeps plates out of step. */
+private fun Pen.drawSteam(plate: Point, clock: Float, seed: Int) {
+    for (k in 0..2) {
+        val phase = (clock * 0.55f + k / 3f + (seed % 5) * 0.13f) % 1f
+        val alpha = 0.85f * sin(phase * PI_F) // fades in, then out
+        val x = plate.x - 1.3f + k * 1.3f + sin(clock * 2.2f + k * 2f + seed) * 0.8f * phase
+        val y = plate.y - 1.4f - phase * 7f
+        // A faint grey edge so the white steam shows up against the pale counter and tablecloths.
+        dot(x, y, 0.8f + phase * 0.8f, Color(0xFF8A8F96).copy(alpha = alpha * 0.25f))
+        dot(x, y, 0.65f + phase * 0.7f, Color.White.copy(alpha = alpha))
+    }
+}
+
+/**
+ * A pair chatting at their table: a little speech bubble that hops between the two of them, with
+ * "..." most of the time and the odd laugh. Each table keeps its own rhythm, and goes quiet now and then.
+ */
+private fun Pen.drawChatter(text: TextMeasurer, table: Point, partyId: Int, clock: Float) {
+    val t = clock + partyId * 1.7f
+    val turn = (t / 2.6f).toInt()
+    val inTurn = (t / 2.6f) % 1f
+    if (inTurn > 0.75f || turn % 4 == 3) return // a pause between turns, and a quiet spell every so often
+    val left = turn % 2 == 0
+    val at = Point(table.x + (if (left) -12f else 12f) + (if (left) -3.4f else 3.4f), table.y - 10.5f)
+    val pop = (inTurn / 0.12f).coerceAtMost(1f) // pops in
+    val w = 4.6f * pop
+    box(at.x - w / 2, at.y - 1.6f * pop, w, 3.2f * pop, Color(0xF2FFFFFF), radius = 1.4f * pop)
+    shape(Color(0xF2FFFFFF)) {
+        moveTo(at.x - 0.6f, at.y + 1.4f * pop)
+        lineTo(at.x + 0.6f, at.y + 1.4f * pop)
+        lineTo(at.x + (if (left) 1.6f else -1.6f), at.y + 2.6f * pop)
+        close()
+    }
+    if (pop < 1f) return
+    if ((turn + partyId) % 5 == 2) {
+        centeredText(text, "ha!", at, size = 2f, color = Palette.ink, bold = true)
+    } else {
+        // Dots that appear one by one, like someone mid-sentence.
+        val shown = 1 + ((inTurn * 6).toInt() % 3)
+        for (k in 0 until shown) dot(at.x - 1.2f + k * 1.2f, at.y, 0.38f, Palette.ink)
+    }
+}
+
+/**
+ * The chef while there's cooking: stirring a bowl with a wooden spoon, steam rising off it, and every
+ * few seconds a taste from the spoon with a pleased "mm!".
+ */
+private fun Pen.drawChefAtWork(text: TextMeasurer, chef: Point, clock: Float) {
+    val bowl = Point(chef.x + 5.6f, chef.y + 3.4f)
+    oval(bowl.x, bowl.y + 1f, 2.8f, 0.7f, Color(0x33000000))
+    shape(Color(0xFFB0573A)) {
+        moveTo(bowl.x - 2.8f, bowl.y - 0.6f)
+        quadTo(bowl.x, bowl.y + 3f, bowl.x + 2.8f, bowl.y - 0.6f)
+        close()
+    }
+    oval(bowl.x, bowl.y - 0.6f, 2.8f, 0.9f, Color(0xFFD27A4B))
+    oval(bowl.x, bowl.y - 0.5f, 2.2f, 0.6f, Color(0xFFE8B04F))
+    drawSteam(Point(bowl.x, bowl.y - 0.4f), clock, 3)
+    val cycle = clock % 5f
+    val tasting = cycle > 4f
+    val (handle, end) = if (tasting) {
+        // Spoon up to the mouth for a taste.
+        Point(chef.x + 2.6f, chef.y - 0.6f) to Point(chef.x + 0.6f, chef.y - 3.6f)
+    } else {
+        // Round and round in the bowl.
+        val a = clock * 7f
+        Point(bowl.x + kotlin.math.cos(a) * 1.2f, bowl.y - 0.6f + kotlin.math.sin(a) * 0.35f).let { tip -> Point(tip.x + 2.2f, tip.y - 3.4f) to tip }
+    }
+    line(chef.x + 3.6f, chef.y + 1.4f, handle.x, handle.y, Palette.chefWhite, 1.2f) // sleeve
+    dot(handle, 0.85f, Palette.face)
+    line(handle.x, handle.y, end.x, end.y, Color(0xFF9A6A3A), 0.5f)
+    oval(end.x, end.y, 0.7f, 0.45f, Color(0xFF9A6A3A))
+    if (tasting) centeredText(text, "mm!", Point(chef.x + 6f, chef.y - 8f), size = 2.2f, color = Palette.ink, bold = true)
+}
+
+private const val PI_F = 3.1415927f
