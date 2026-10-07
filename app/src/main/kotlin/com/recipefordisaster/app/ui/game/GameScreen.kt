@@ -86,7 +86,7 @@ data class GameActions(
     val onFinishService: (ServiceNight) -> Unit = {},
     val onNightProgress: (ServiceNight) -> Unit = {},
     val onNextMorning: () -> Unit = {},
-    val onDismissIntro: () -> Unit = {},
+    val onDismissIntro: (String) -> Unit = {},
     val onRestockAll: () -> Unit = {},
     val onAdjustPurchase: (IngredientId, Double) -> Unit = { _, _ -> },
     val onClearPurchases: () -> Unit = {},
@@ -256,16 +256,19 @@ private fun Hud(day: Int, cash: Long, reputation: Int, subtitle: String, onMenu:
     Column {
         Row(modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 16.dp, top = 2.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             // Back to the start screen (asks first), and during service a pause button under it.
+            // Small buttons stacked tight, so the bar stays short and the restaurant keeps its room.
+            val compact = Modifier.height(34.dp)
+            val padding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 0.dp)
             Column {
-                TextButton(onClick = onMenu) { Text(stringResource(R.string.menu_button), style = MaterialTheme.typography.titleMedium) }
+                TextButton(onClick = onMenu, modifier = compact, contentPadding = padding) { Text(stringResource(R.string.menu_button), style = MaterialTheme.typography.titleMedium) }
                 if (onPause != null) {
-                    TextButton(onClick = onPause) {
+                    TextButton(onClick = onPause, modifier = compact, contentPadding = padding) {
                         Text(stringResource(R.string.pause_button), style = MaterialTheme.typography.titleMedium)
                     }
                 }
                 // In the morning, hiring is always a tap away, even when there's no help sign up.
                 if (onHire != null) {
-                    TextButton(onClick = onHire) {
+                    TextButton(onClick = onHire, modifier = compact, contentPadding = padding) {
                         Text(stringResource(R.string.hire_button), style = MaterialTheme.typography.titleMedium)
                     }
                 }
@@ -329,6 +332,7 @@ internal fun sceneModelFor(state: GameState, advice: List<Advice>, hiringOpen: B
         fridgeCondition = com.recipefordisaster.domain.equipment.Fridge.of(state)?.condition ?: 100,
         fridgeLevel = com.recipefordisaster.domain.equipment.Fridge.of(state)?.upgradeLevel ?: 1,
         tableCount = state.restaurant.tables,
+        name = state.restaurant.displayName,
         pantryFullness = fullness,
         pantryJars = jars,
         cleanliness = state.restaurant.cleanliness,

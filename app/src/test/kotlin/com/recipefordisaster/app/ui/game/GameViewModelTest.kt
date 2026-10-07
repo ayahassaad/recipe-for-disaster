@@ -187,8 +187,10 @@ class GameViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
         assertTrue((viewModel.uiState.value as GameUiState.Playing).showIntro)
 
-        viewModel.dismissIntro()
-        assertTrue(!(viewModel.uiState.value as GameUiState.Playing).showIntro)
+        viewModel.dismissIntro("  Ayah's Bistro ")
+        val named = viewModel.uiState.value as GameUiState.Playing
+        assertTrue(!named.showIntro)
+        assertEquals("Ayah's Bistro", named.state.restaurant.name)
 
         val resumed = GameViewModel(FakeGameRepository(stored = NewGameFactory.create(1L)), dayTickEngine)
         resumed.continueGame()

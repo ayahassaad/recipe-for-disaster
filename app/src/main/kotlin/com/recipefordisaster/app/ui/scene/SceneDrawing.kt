@@ -163,7 +163,7 @@ internal fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSurround(origi
 }
 
 /** The room. [doorOpen] is how far the front doors are open: 0 shut, 1 wide open. */
-internal fun Pen.drawRoom(cleanliness: Int, doorOpen: Float, time: Float) {
+internal fun Pen.drawRoom(cleanliness: Int, doorOpen: Float, time: Float, name: String = "", text: TextMeasurer? = null) {
     drawRect(Palette.wall, topLeft = p(0f, 0f), size = Size(u(SceneLayout.WIDTH), u(SceneLayout.HEIGHT)))
 
     // Kitchen: square tiles with grout lines, and a tiled splashback along the back wall.
@@ -227,7 +227,15 @@ internal fun Pen.drawRoom(cleanliness: Int, doorOpen: Float, time: Float) {
     for (k in 0..9) line(k * 10f, 140f, k * 10f, 150f, Color(0x22000000), 0.2f)
     val door = SceneLayout.door
     box(door.left - 3f, door.top - 4.5f, door.width + 6f, 4f, Color(0xFF7D5A3B), radius = 0.6f)
-    for (k in 0..5) line(door.left - 2f + k * 4.6f, door.top - 4f, door.left - 2f + k * 4.6f, door.top - 1f, Color(0x55000000), 0.25f)
+    if (name.isNotBlank() && text != null) {
+        // The restaurant's name painted on a sign over the door.
+        val sign = Rect(door.left - 9f, door.top - 5.2f, door.right + 9f, door.top - 0.4f)
+        box(sign, Color(0xFF2F3B2F), radius = 0.8f)
+        outline(sign, Palette.gold, radius = 0.8f, width = 0.35f)
+        centeredText(text, name, sign.center, size = if (name.length > 14) 2.1f else 2.6f, color = Color(0xFFF2E9DC), bold = true)
+    } else {
+        for (k in 0..5) line(door.left - 2f + k * 4.6f, door.top - 4f, door.left - 2f + k * 4.6f, door.top - 1f, Color(0x55000000), 0.25f)
+    }
     if (doorOpen > 0.02f) {
         drawRect(Palette.plankC, topLeft = p(door.left, door.top), size = Size(u(door.width), u(door.height)))
         // The two door leaves, hinged at the outside edges, swinging out: seen from above, each one

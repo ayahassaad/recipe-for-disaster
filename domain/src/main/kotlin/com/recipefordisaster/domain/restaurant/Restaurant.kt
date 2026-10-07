@@ -21,7 +21,12 @@ data class Restaurant(
     val status: RestaurantStatus,
     /** Tables in the dining room. A new restaurant starts with a couple and grows (see TableGrowth). */
     val tables: Int = 6,
+    /** What the player called the place. Blank for saves from before it could be named. */
+    val name: String = "",
 ) {
+    /** The name to show: the player's, or a stand-in for older saves. */
+    val displayName: String get() = name.ifBlank { DEFAULT_NAME }
+
     /** The most guests tonight can bring: [capacity] is for a six-table room, and more tables mean more guests. */
     val guestCapacity: Int get() = capacity * tables / 6
 
@@ -47,3 +52,9 @@ enum class RestaurantStatus {
     BANKRUPT,
     CONDEMNED,
 }
+
+/** What a restaurant is called if the player never named it. */
+const val DEFAULT_NAME = "The Leaky Ladle"
+
+/** The longest name that fits on the sign over the door. */
+const val MAX_NAME_LENGTH = 20

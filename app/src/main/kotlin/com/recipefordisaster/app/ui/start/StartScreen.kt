@@ -134,7 +134,13 @@ fun StartScreen(
                     border = BorderStroke(2.dp, if (uiState.hasExistingSave) WoodBrown else WoodBrown.copy(alpha = 0.3f)),
                     modifier = Modifier.fillMaxWidth().height(60.dp),
                 ) {
-                    Text(stringResource(R.string.start_continue_game), style = MaterialTheme.typography.titleLarge)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(stringResource(R.string.start_continue_game), style = MaterialTheme.typography.titleLarge)
+                        // Which restaurant you'd be going back to.
+                        if (uiState.hasExistingSave && uiState.savedName != null && !uiState.savedGameIsOver) {
+                            Text(uiState.savedName, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
                 }
             }
         }

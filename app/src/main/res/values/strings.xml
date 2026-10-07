@@ -25,6 +25,7 @@
     <string name="intro_step3_title">The bill</string>
     <string name="intro_step3">See how you did, then on to the next day.</string>
     <string name="intro_goal">Keep your money above zero and your guests happy. How many days can you last?</string>
+    <string name="name_prompt">What\'s your restaurant called?</string>
     <string name="intro_start">Let\'s cook</string>
 
     <!-- Morning screen -->

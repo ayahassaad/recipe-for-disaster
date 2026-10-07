@@ -34,6 +34,14 @@ import com.recipefordisaster.app.ui.theme.WoodBrown
 import com.recipefordisaster.domain.restaurant.RestaurantStatus
 import com.recipefordisaster.domain.simulation.GameState
 import com.recipefordisaster.domain.service.ServiceNight
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.material3.OutlinedTextField
 
 private val receiptText = TextStyle(fontFamily = ReceiptFont, fontSize = 15.sp, lineHeight = 22.sp, color = ReceiptInk)
 
@@ -50,7 +58,7 @@ internal fun BillReceipt(report: DayReport, modifier: Modifier = Modifier) {
     val profit = books.profitOrLoss
     Receipt(modifier = modifier.padding(horizontal = 16.dp)) {
         Text(
-            text = stringResource(R.string.app_name).uppercase(),
+            text = report.startOfService.restaurant.displayName.uppercase(),
             style = receiptText.copy(fontWeight = FontWeight.Bold, letterSpacing = 2.sp),
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
@@ -128,12 +136,25 @@ internal fun FinalBillScreen(state: GameState, onBackToStart: () -> Unit, modifi
 
 /** "How to play", laid out like a restaurant menu: three courses and a house rule. */
 @Composable
-internal fun IntroScreen(onStart: () -> Unit, modifier: Modifier = Modifier) {
+internal fun IntroScreen(onStart: (String) -> Unit, modifier: Modifier = Modifier) {
+    var name by remember { mutableStateOf("") }
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding().navigationBarsPadding()) {
         Column(
             modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            // Naming the place: it goes on the sign over the door and on every bill.
+            Text(stringResource(R.string.name_prompt), style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it.take(com.recipefordisaster.domain.restaurant.MAX_NAME_LENGTH) },
+                singleLine = true,
+                placeholder = { Text(com.recipefordisaster.domain.restaurant.DEFAULT_NAME) },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Done),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(16.dp))
             Chalkboard {
                 Text(
                     text = stringResource(R.string.intro_title),
@@ -155,8 +176,9 @@ internal fun IntroScreen(onStart: () -> Unit, modifier: Modifier = Modifier) {
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
+
         }
-        SignButton(text = stringResource(R.string.intro_start), onClick = onStart, modifier = Modifier.padding(16.dp))
+        SignButton(text = stringResource(R.string.intro_start), onClick = { onStart(name) }, modifier = Modifier.padding(16.dp))
     }
 }
 

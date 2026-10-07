@@ -196,8 +196,13 @@ class GameViewModel(
         }
     }
 
-    fun dismissIntro() {
-        _uiState.update { current -> if (current is GameUiState.Playing) current.copy(showIntro = false) else current }
+    /** Leaves "How to play" with the name the player gave their restaurant, and saves it. */
+    fun dismissIntro(name: String) {
+        val current = _uiState.value as? GameUiState.Playing ?: return
+        val clean = name.trim().take(com.recipefordisaster.domain.restaurant.MAX_NAME_LENGTH)
+        val named = current.state.copy(restaurant = current.state.restaurant.copy(name = clean))
+        _uiState.value = current.copy(state = named, preview = DecisionApplier.apply(named, current.plan), showIntro = false)
+        viewModelScope.launch { gameRepository.save(named) }
     }
 
     /** Leaves the results screen for the next morning. */

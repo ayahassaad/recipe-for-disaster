@@ -22,6 +22,8 @@ data class StartUiState(
     val hasExistingSave: Boolean = false,
     /** The saved restaurant has already gone bust or been shut down, so starting over loses nothing. */
     val savedGameIsOver: Boolean = false,
+    /** The saved restaurant's name, shown on the start screen. */
+    val savedName: String? = null,
 )
 
 class StartViewModel(private val gameRepository: GameRepository) : ViewModel() {
@@ -37,10 +39,9 @@ class StartViewModel(private val gameRepository: GameRepository) : ViewModel() {
     fun refresh() {
         viewModelScope.launch {
             val hasSave = gameRepository.hasExistingSave()
-            val over = hasSave && (gameRepository.load() as? SaveLoadResult.Success)?.state?.restaurant?.status.let {
-                it == RestaurantStatus.BANKRUPT || it == RestaurantStatus.CONDEMNED
-            }
-            _uiState.update { it.copy(isLoading = false, hasExistingSave = hasSave, savedGameIsOver = over) }
+            val saved = if (hasSave) (gameRepository.load() as? SaveLoadResult.Success)?.state else null
+            val over = saved?.restaurant?.status.let { it == RestaurantStatus.BANKRUPT || it == RestaurantStatus.CONDEMNED }
+            _uiState.update { it.copy(isLoading = false, hasExistingSave = hasSave, savedGameIsOver = over, savedName = saved?.restaurant?.displayName) }
         }
     }
 }
