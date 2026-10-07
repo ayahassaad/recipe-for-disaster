@@ -182,7 +182,9 @@ fun NightScene(
                                 party.guests.forEachIndexed { g, guest ->
                                     val seat = layout.seats(table)[g]
                                     val route = ServiceFloor.route(ServiceFloor.door, layout.stand(table)) + seat
-                                    val at = ServiceFloor.along(route, progress).toPoint()
+                                    // Side by side all the way in, then each steps into their own seat.
+                                    val apart = if (party.guests.size > 1) (1f - ((progress - 0.8f) / 0.2f)).coerceIn(0f, 1f) else 0f
+                                    val at = sideBySide(route, progress, if (g == 0) -1f else 1f, apart)
                                     around(at, scale).drawGuest(at, guest, 65, angry = false, walkPhase = time * 2.2f + g, g)
                                 }
                             }
@@ -194,7 +196,9 @@ fun NightScene(
                                     val seat = layout.seats(table)[g]
                                     val route = listOf(seat) + ServiceFloor.route(layout.stand(table), ServiceFloor.door) + FloorPoint(50f, 156f)
                                     val mood = if (angry) 5 else night.results[guest]?.satisfaction ?: 70
-                                    val at = ServiceFloor.along(route, progress).toPoint()
+                                    // Up from their seats, then out together side by side.
+                                    val apart = if (party.guests.size > 1) (progress / 0.2f).coerceIn(0f, 1f) else 0f
+                                    val at = sideBySide(route, progress, if (g == 0) -1f else 1f, apart)
                                     around(at, scale).drawGuest(at, guest, mood, angry = angry, walkPhase = time * 2.6f + g, g)
                                 }
                                 if (!angry) drawCoins(text, tablePoints[table], ((time - party.stageSince) / 1.2f).coerceAtMost(1f), party.guests.sumOf { night.results[it]?.dish?.sellingPrice ?: 0 })
@@ -680,16 +684,29 @@ private fun Pen.drawFixingFridge(at: Point, progress: Float, clock: Float) {
     )
 }
 
-/** Hot food: three soft wisps of steam curling up off a plate and fading. [seed] keeps plates out of step. */
+/**
+ * Hot food: three wavy squiggles of steam rising off it, wiggling as they go and fading out at the
+ * top, the way steam is drawn in cartoons. [seed] keeps plates out of step with each other.
+ */
 private fun Pen.drawSteam(plate: Point, clock: Float, seed: Int) {
     for (k in 0..2) {
-        val phase = (clock * 0.55f + k / 3f + (seed % 5) * 0.13f) % 1f
-        val alpha = 0.85f * sin(phase * PI_F) // fades in, then out
-        val x = plate.x - 1.3f + k * 1.3f + sin(clock * 2.2f + k * 2f + seed) * 0.8f * phase
-        val y = plate.y - 1.4f - phase * 7f
-        // A faint grey edge so the white steam shows up against the pale counter and tablecloths.
-        dot(x, y, 0.8f + phase * 0.8f, Color(0xFF8A8F96).copy(alpha = alpha * 0.25f))
-        dot(x, y, 0.65f + phase * 0.7f, Color.White.copy(alpha = alpha))
+        val cycle = (clock * 0.45f + k * 0.33f + (seed % 5) * 0.17f) % 1f
+        val fade = sin(cycle * PI_F) // each squiggle drifts up, fading in then out
+        val baseX = plate.x - 1.4f + k * 1.4f
+        val baseY = plate.y - 1.2f - cycle * 2.5f
+        val height = 4.5f
+        val steps = 10
+        for (n in 0 until steps) {
+            val y0 = baseY - height * n / steps
+            val y1 = baseY - height * (n + 1) / steps
+            val x0 = baseX + sin(n * 0.9f + clock * 3.5f + k * 2f + seed) * 0.6f
+            val x1 = baseX + sin((n + 1) * 0.9f + clock * 3.5f + k * 2f + seed) * 0.6f
+            // Strongest in the middle, thinning out at both ends.
+            val along = (n + 0.5f) / steps
+            val alpha = (fade * sin(along * PI_F)).coerceIn(0f, 1f)
+            line(x0, y0, x1, y1, Color(0xFF7D838B).copy(alpha = alpha * 0.35f), 0.75f)
+            line(x0, y0, x1, y1, Color.White.copy(alpha = alpha * 0.95f), 0.45f)
+        }
     }
 }
 
@@ -834,4 +851,22 @@ private fun Pen.drawTipJar(text: TextMeasurer, night: ServiceNight, clock: Float
     box(j.x - 2.4f, j.y - 2.6f, 4.8f, 1f, Color(0xCCB0BEC5), radius = 0.4f)
     line(j.x - 1.4f, j.y - 1f, j.x - 1.4f, j.y + 1.6f, Color(0x99FFFFFF), 0.3f)
     centeredText(text, "TIPS", Point(j.x, j.y + 0.6f), size = 1.4f, color = Palette.ink, bold = true)
+}
+
+/**
+ * Where a guest is along [route] at [progress], stepped [side] (-1 left, +1 right) of the path by
+ * [apart] (0-1) of a shoulder's width, so a pair walks next to each other instead of on top of each other.
+ */
+private fun sideBySide(route: List<FloorPoint>, progress: Float, side: Float, apart: Float): SceneLayout.Point {
+    val here = ServiceFloor.along(route, progress)
+    if (apart <= 0f) return here.toPoint()
+    // The way they're heading, from a step ahead (or behind, right at the end).
+    val ahead = ServiceFloor.along(route, (progress + 0.02f).coerceAtMost(1f))
+    val behind = ServiceFloor.along(route, (progress - 0.02f).coerceAtLeast(0f))
+    val dx = ahead.x - behind.x
+    val dy = ahead.y - behind.y
+    val length = kotlin.math.hypot(dx, dy).coerceAtLeast(0.001f)
+    // At right angles to that, so they're shoulder to shoulder.
+    val offset = 4.4f * side * apart
+    return SceneLayout.Point(here.x + -dy / length * offset, here.y + dx / length * offset)
 }
