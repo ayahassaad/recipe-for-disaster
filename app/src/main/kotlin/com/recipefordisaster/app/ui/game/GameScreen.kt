@@ -75,6 +75,7 @@ import com.recipefordisaster.domain.simulation.PlayerDecisions
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.material3.HorizontalDivider
 
 /**
  * Everything the player can do on the game screen, bundled so the screen
@@ -206,10 +207,13 @@ private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, onMe
     val model = remember(morning, advice, staffNeed) { sceneModelFor(morning, advice, hiringOpen = staffNeed != null) }
     val costs = remember(morning) { DailyCosts.of(morning) }
     var open by remember { mutableStateOf<SceneTarget?>(null) }
+    var showCosts by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding().navigationBarsPadding()) {
         Hud(day = uiState.state.day, cash = uiState.cashNow, reputation = morning.restaurant.reputation, subtitle = stringResource(R.string.daily_costs, coins(costs.total)), onMenu = onMenu,
-            onHire = if (model.hiring) null else ({ open = SceneTarget.HiringSign }))
+            onHire = if (model.hiring) null else ({ open = SceneTarget.HiringSign }),
+            onSubtitle = { showCosts = true })
+        if (showCosts) CostsDialog(morning, onClose = { showCosts = false })
         RestaurantScene(model = model, labels = sceneLabels(staffNeed), onTap = { open = it }, modifier = Modifier.weight(1f))
         // Opening with nothing the kitchen can cook means every guest walks straight back out.
         val noFood = remember(morning) {
@@ -258,7 +262,7 @@ private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, onMe
 
 /** Day, money and stars along the top, under the awning. */
 @Composable
-private fun Hud(day: Int, cash: Long, reputation: Int, subtitle: String, onMenu: () -> Unit, onPause: (() -> Unit)? = null, onHire: (() -> Unit)? = null) {
+private fun Hud(day: Int, cash: Long, reputation: Int, subtitle: String, onMenu: () -> Unit, onPause: (() -> Unit)? = null, onHire: (() -> Unit)? = null, onSubtitle: (() -> Unit)? = null) {
     Column {
         Row(modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 16.dp, top = 2.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             // Back to the start screen (asks first), and during service a pause button under it.
@@ -301,7 +305,12 @@ private fun Hud(day: Int, cash: Long, reputation: Int, subtitle: String, onMenu:
                     color = androidx.compose.ui.graphics.lerp(MaterialTheme.colorScheme.onBackground, Color(0xFFB8860B), flash.value),
                     modifier = Modifier.graphicsLayer { val s = 1f + 0.15f * flash.value; scaleX = s; scaleY = s },
                 )
-                Text(subtitle, style = MaterialTheme.typography.bodyMedium)
+                // In the morning the daily costs can be tapped for a breakdown (underlined to show it).
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodyMedium.let { if (onSubtitle != null) it.copy(textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline) else it },
+                    modifier = if (onSubtitle != null) Modifier.clickable(onClick = onSubtitle) else Modifier,
+                )
             }
         }
     }
@@ -708,4 +717,38 @@ private fun Confetti(clock: Float) {
             }
         }
     }
+}
+
+/** Where the daily costs go: everyone's wage, then rent, bills, and the upkeep of each machine. */
+@Composable
+private fun CostsDialog(state: GameState, onClose: () -> Unit) {
+    val costs = state.restaurant.costsToday
+    val staff = state.employees.filter { it.status != EmployeeStatus.QUIT && it.status != EmployeeStatus.FIRED }
+    val lines = buildList {
+        staff.forEach { add(stringResource(R.string.costs_wage, it.name) to it.salaryPerDay) }
+        add(stringResource(R.string.costs_rent, state.restaurant.tables) to costs.rentPerDay)
+        add(stringResource(R.string.costs_bills) to costs.utilitiesPerDay + costs.miscPerDay)
+        state.equipment.forEach { add(stringResource(R.string.costs_upkeep, it.name) to it.maintenanceCostPerDay) }
+    }
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text(stringResource(R.string.costs_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                lines.forEach { (label, amount) ->
+                    Row {
+                        Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                        Text(coins(amount), style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+                HorizontalDivider()
+                Row {
+                    Text(stringResource(R.string.costs_total), modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+                    Text(coins(lines.sumOf { it.second }), style = MaterialTheme.typography.titleMedium)
+                }
+                Text(stringResource(R.string.costs_note), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+            }
+        },
+        confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.costs_close)) } },
+    )
 }

@@ -245,6 +245,14 @@
     <string name="final_best">Best seller</string>
     <string name="game_back_to_start">Back to start</string>
     <string name="menu_button">Menu</string>
+    <string name="costs_title">What it costs each day</string>
+    <string name="costs_wage">%1$s\'s wage</string>
+    <string name="costs_rent">Rent (%1$d tables)</string>
+    <string name="costs_bills">Bills and supplies</string>
+    <string name="costs_upkeep">%1$s upkeep</string>
+    <string name="costs_total">Every day</string>
+    <string name="costs_note">Paid whether or not anyone comes in. Food is extra, when you buy it.</string>
+    <string name="costs_close">Got it</string>
     <string name="pause_button">Pause</string>
     <string name="hire_button">Hire</string>
     <string name="job_cook">Cooks the food. More cooks means more dishes at once.</string>
