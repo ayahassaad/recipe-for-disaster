@@ -24,6 +24,8 @@ data class StartUiState(
     val savedGameIsOver: Boolean = false,
     /** The saved restaurant's name, shown on the start screen. */
     val savedName: String? = null,
+    /** The longest run so far, for the start screen. */
+    val best: com.recipefordisaster.domain.simulation.BestRun? = null,
 )
 
 class StartViewModel(private val gameRepository: GameRepository) : ViewModel() {
@@ -41,7 +43,7 @@ class StartViewModel(private val gameRepository: GameRepository) : ViewModel() {
             val hasSave = gameRepository.hasExistingSave()
             val saved = if (hasSave) (gameRepository.load() as? SaveLoadResult.Success)?.state else null
             val over = saved?.restaurant?.status.let { it == RestaurantStatus.BANKRUPT || it == RestaurantStatus.CONDEMNED }
-            _uiState.update { it.copy(isLoading = false, hasExistingSave = hasSave, savedGameIsOver = over, savedName = saved?.restaurant?.displayName) }
+            _uiState.update { it.copy(isLoading = false, hasExistingSave = hasSave, savedGameIsOver = over, savedName = saved?.restaurant?.displayName, best = gameRepository.bestRun()) }
         }
     }
 }

@@ -74,4 +74,14 @@ class StartViewModelTest {
         advanceUntilIdle()
         assertEquals(false, running.uiState.value.savedGameIsOver)
     }
+
+    @Test
+    fun `the best run is shown, and only a longer run replaces it`() = runTest(dispatcher) {
+        val repository = FakeGameRepository(NewGameFactory.create(seed = 1L))
+        repository.recordRun(com.recipefordisaster.domain.simulation.BestRun(12, "The Leaky Ladle"))
+        repository.recordRun(com.recipefordisaster.domain.simulation.BestRun(5, "Shorter"))
+        val viewModel = StartViewModel(repository)
+        advanceUntilIdle()
+        assertEquals(com.recipefordisaster.domain.simulation.BestRun(12, "The Leaky Ladle"), viewModel.uiState.value.best)
+    }
 }

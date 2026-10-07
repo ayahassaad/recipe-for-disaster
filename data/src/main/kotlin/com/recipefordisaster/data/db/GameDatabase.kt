@@ -48,6 +48,10 @@ interface SaveDao {
 
     @Query("DELETE FROM saves WHERE id = 1")
     suspend fun clearNight()
+
+    // Row 2 holds the best run so far; it outlives any one game, so starting over never clears it.
+    @Query("SELECT * FROM saves WHERE id = 2")
+    suspend fun getBest(): SaveEntity?
 }
 
 @Database(

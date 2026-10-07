@@ -43,6 +43,14 @@ class FakeGameRepository(private var stored: GameState? = null) : GameRepository
 
     override suspend fun loadNight(): NightInProgress? = night
 
+    var best: com.recipefordisaster.domain.simulation.BestRun? = null
+
+    override suspend fun bestRun() = best
+
+    override suspend fun recordRun(run: com.recipefordisaster.domain.simulation.BestRun) {
+        if ((best?.days ?: 0) < run.days) best = run
+    }
+
     override suspend fun clearNight() {
         night = null
     }

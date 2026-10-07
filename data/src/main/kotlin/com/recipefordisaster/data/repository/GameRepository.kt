@@ -3,6 +3,7 @@ package com.recipefordisaster.data.repository
 import com.recipefordisaster.data.db.GameDatabase
 import com.recipefordisaster.data.db.SaveEntity
 import com.recipefordisaster.domain.service.NightInProgress
+import com.recipefordisaster.domain.simulation.BestRun
 import com.recipefordisaster.domain.simulation.GameState
 import com.recipefordisaster.domain.simulation.GameStateJson
 import com.recipefordisaster.domain.simulation.GameStateValidator
@@ -26,6 +27,12 @@ interface GameRepository {
     /** The night that was being played when the app closed, or null (also if it can't be read). */
     suspend fun loadNight(): NightInProgress?
     suspend fun clearNight()
+
+    /** The longest run so far, kept across games; null if nobody has finished a day yet. */
+    suspend fun bestRun(): BestRun?
+
+    /** Remembers [run] if it beats the best so far. */
+    suspend fun recordRun(run: BestRun)
 }
 
 /**
@@ -118,5 +125,28 @@ class RoomGameRepository(
 
     override suspend fun clearNight() {
         database.saveDao().clearNight()
+    }
+
+    override suspend fun bestRun(): BestRun? {
+        val entity = database.saveDao().getBest() ?: return null
+        return try {
+            GameStateJson.instance.decodeFromString(BestRun.serializer(), entity.stateJson)
+        } catch (e: SerializationException) {
+            null
+        } catch (e: IllegalArgumentException) {
+            null
+        }
+    }
+
+    override suspend fun recordRun(run: BestRun) {
+        if ((bestRun()?.days ?: 0) >= run.days) return
+        database.saveDao().upsert(
+            SaveEntity(
+                id = 2,
+                schemaVersion = GameDatabase.CURRENT_SAVE_SCHEMA_VERSION,
+                stateJson = GameStateJson.instance.encodeToString(BestRun.serializer(), run),
+                savedAtEpochMillis = System.currentTimeMillis(),
+            ),
+        )
     }
 }

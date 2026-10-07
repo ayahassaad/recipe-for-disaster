@@ -119,6 +119,16 @@ fun StartScreen(
                     },
                 )
             }
+            // The record to beat.
+            uiState.best?.let { best ->
+                Text(
+                    stringResource(R.string.best_run, best.days, best.name),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = WoodBrown,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                )
+            }
             if (uiState.isLoading) {
                 CircularProgressIndicator()
             } else {

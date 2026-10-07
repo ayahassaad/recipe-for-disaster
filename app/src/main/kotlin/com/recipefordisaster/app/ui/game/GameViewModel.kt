@@ -189,6 +189,8 @@ class GameViewModel(
             val newState = com.recipefordisaster.domain.equipment.Fridge.ensure(result.newState)
             gameRepository.save(newState)
             gameRepository.clearNight()
+            // Days this restaurant has made it through so far, towards the best run.
+            gameRepository.recordRun(com.recipefordisaster.domain.simulation.BestRun(days = newState.day - 1, name = newState.restaurant.displayName))
             val report = result.summary?.let { summary ->
                 result.newState.ledger.history.lastOrNull()?.let { books -> DayReport(summary, books, result.event, session.morningSpending, session.setup.morning.state, finalNight.gaveUpCounts()) }
             }

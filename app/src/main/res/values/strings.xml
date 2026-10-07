@@ -4,6 +4,7 @@
     <!-- Start screen -->
     <string name="start_tagline">Run a restaurant. Try not to burn it down.</string>
     <string name="start_new_game">New game</string>
+    <string name="best_run">Best run: %1$d days, %2$s</string>
     <string name="start_over_title">Start over?</string>
     <string name="start_over_body">Your restaurant and everything in it will be gone for good.</string>
     <string name="start_over_confirm">Start over</string>
