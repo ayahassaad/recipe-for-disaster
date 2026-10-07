@@ -396,7 +396,7 @@ internal fun Pen.drawOven(condition: Int, time: Float, onFire: Boolean, level: I
     }
     if (condition in 1..34) dot(window.center, 2.6f, Palette.flame.copy(alpha = 0.45f))
     if (condition <= 0 || onFire) drawSmoke(Point(o.center.x, o.top), time)
-    if (onFire) drawFlames(Point(o.center.x, o.top + 4f), time)
+    if (onFire) drawFlames(Point(o.center.x, o.top + 8f), time)
 }
 
 internal fun Pen.drawSmoke(from: Point, time: Float) {
@@ -407,11 +407,33 @@ internal fun Pen.drawSmoke(from: Point, time: Float) {
     }
 }
 
+/**
+ * Fire: a row of pointed, flickering tongues of flame, red at the edge, orange in the middle and
+ * yellow at the heart, licking upwards from [at] (the base of the fire), with sparks drifting up.
+ */
 internal fun Pen.drawFlames(at: Point, time: Float) {
-    for (i in -1..1) {
-        val flicker = sin(time * 14f + i * 2f) * 0.8f
-        dot(Point(at.x + i * 3f, at.y - 1f + flicker), 2.4f, Palette.flame)
-        dot(Point(at.x + i * 3f, at.y - 1.6f + flicker), 1.2f, Color(0xFFFFD44D))
+    // One tongue of flame: a teardrop with a wavering, leaning tip.
+    fun tongue(x: Float, height: Float, width: Float, sway: Float, colour: Color) = shape(colour) {
+        moveTo(x - width, at.y)
+        quadTo(x - width * 1.1f, at.y - height * 0.45f, x - width * 0.35f + sway * 0.5f, at.y - height * 0.75f)
+        quadTo(x + sway * 0.2f, at.y - height * 0.95f, x + sway, at.y - height)
+        quadTo(x + width * 0.4f + sway * 0.6f, at.y - height * 0.6f, x + width * 1.1f, at.y - height * 0.3f)
+        quadTo(x + width, at.y + 0.3f, x - width, at.y)
+        close()
+    }
+    for (i in -2..2) {
+        val x = at.x + i * 2.4f
+        val phase = time * 11f + i * 1.7f
+        val h = 5.5f + 2.2f * sin(phase) + (2 - kotlin.math.abs(i)) * 1.5f
+        val sway = sin(phase * 0.7f + i) * 1.1f
+        tongue(x, h, 1.9f, sway, Color(0xFFD7322B))
+        tongue(x, h * 0.72f, 1.35f, sway * 0.8f, Color(0xFFF28C28))
+        tongue(x, h * 0.42f, 0.8f, sway * 0.5f, Color(0xFFFFE27A))
+    }
+    // Sparks floating up off the top.
+    for (k in 0..3) {
+        val phase = (time * 0.9f + k * 0.27f) % 1f
+        dot(at.x - 3f + k * 2f + sin(time * 4f + k) * 1.2f, at.y - 7f - phase * 7f, 0.35f * (1f - phase), Color(0xFFFFC94D))
     }
 }
 

@@ -375,7 +375,8 @@ fun NightScene(
                             ChaosKind.RAT -> drawRat(spot, clock)
                             ChaosKind.DOG -> drawDog(spot, clock)
                             ChaosKind.PAN_FIRE -> {
-                                drawFlames(Point(SceneLayout.stove.center.x, SceneLayout.stove.top + 6f), clock)
+                                // Flames leaping up out of the pan on the front burner.
+                                drawFlames(Point(SceneLayout.stove.left + 5f, SceneLayout.stove.top + 6f), clock)
                                 drawSmoke(Point(SceneLayout.stove.center.x, SceneLayout.stove.top), clock)
                             }
                             ChaosKind.POWER_CUT -> {}
