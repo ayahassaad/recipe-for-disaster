@@ -72,6 +72,7 @@ import com.recipefordisaster.domain.simulation.GameState
 import com.recipefordisaster.domain.simulation.MorningAdvisor
 import androidx.compose.material3.AlertDialog
 import com.recipefordisaster.domain.simulation.PlayerDecisions
+import androidx.compose.foundation.clickable
 
 /**
  * Everything the player can do on the game screen, bundled so the screen
@@ -248,11 +249,18 @@ private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, onMe
 
 /** Day, money and stars along the top, under the awning. */
 @Composable
-private fun Hud(day: Int, cash: Long, reputation: Int, subtitle: String, onMenu: () -> Unit) {
+private fun Hud(day: Int, cash: Long, reputation: Int, subtitle: String, onMenu: () -> Unit, onPause: (() -> Unit)? = null) {
     Column {
         Row(modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 16.dp, top = 2.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            // Back to the start screen (asks first).
-            TextButton(onClick = onMenu) { Text(stringResource(R.string.menu_button), style = MaterialTheme.typography.titleMedium) }
+            // Back to the start screen (asks first), and during service a pause button under it.
+            Column {
+                TextButton(onClick = onMenu) { Text(stringResource(R.string.menu_button), style = MaterialTheme.typography.titleMedium) }
+                if (onPause != null) {
+                    TextButton(onClick = onPause) {
+                        Text(stringResource(R.string.pause_button), style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+            }
             Column(modifier = Modifier.weight(1f)) {
                 Text(stringResource(R.string.day, day), style = MaterialTheme.typography.headlineMedium)
                 StarRating(reputation)
@@ -348,6 +356,8 @@ private fun sceneLabels(need: MorningAdvisor.Need? = null): SceneLabels {
 private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit, onProgress: (ServiceNight) -> Unit, onMenu: () -> Unit, modifier: Modifier = Modifier) {
     var night by remember(session) { mutableStateOf(session.opening) }
     var clock by remember { mutableFloatStateOf(0f) }
+    // Paused: time stands still, nothing can be tapped, and a sign says how to carry on.
+    var paused by remember(session) { mutableStateOf(false) }
     val model = remember(session) { sceneModelFor(session.setup.morning.state, emptyList(), hiringOpen = false) }
     val currentOnFinished by rememberUpdatedState(onFinished)
     val currentOnProgress by rememberUpdatedState(onProgress)
@@ -363,7 +373,11 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
-            if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP) currentOnProgress(night)
+            // Leaving the app pauses the night, so coming back doesn't drop you into a rush.
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP) {
+                paused = true
+                currentOnProgress(night)
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
@@ -381,6 +395,7 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
             val now = withFrameNanos { it }
             val dt = ((now - last) / 1_000_000_000f).coerceAtMost(0.1f)
             last = now
+            if (paused) continue
             clock += dt
             if (!night.finished) {
                 night = night.advance(dt)
@@ -402,7 +417,9 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
             cash = session.setup.original.restaurant.cash - session.morningSpending.total + night.takings,
             reputation = session.setup.morning.state.restaurant.reputation,
             subtitle = stringResource(R.string.tonight_takings, signedCoins(night.takings)),
-            onMenu = onMenu,
+            // The menu pauses the night too while you decide whether to leave.
+            onMenu = { paused = true; onMenu() },
+            onPause = if (night.finished) null else ({ paused = true }),
         )
         Box(modifier = Modifier.weight(1f)) {
             NightScene(
@@ -421,6 +438,21 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
                 // For the first few nights, point at what the hint is talking about.
                 focus = if (session.setup.original.day <= GUIDED_DAYS) NightHint.of(night).focus(night) else null,
             )
+            if (paused) {
+                // Covers the restaurant, so taps while paused don't send you anywhere.
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0x99000000))
+                        .clickable(onClickLabel = stringResource(R.string.paused_resume)) { paused = false },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Chalkboard(modifier = Modifier.padding(horizontal = 40.dp)) {
+                        Text(stringResource(R.string.paused_title), style = MaterialTheme.typography.headlineMedium, color = ChalkWhite, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                        Text(stringResource(R.string.paused_resume), style = MaterialTheme.typography.bodyLarge, color = ChalkWhite.copy(alpha = 0.85f), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
+                    }
+                }
+            }
             androidx.compose.animation.AnimatedVisibility(
                 visible = night.finished,
                 enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.scaleIn(initialScale = 0.8f),

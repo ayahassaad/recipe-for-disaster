@@ -242,6 +242,9 @@
     <string name="final_best">Best seller</string>
     <string name="game_back_to_start">Back to start</string>
     <string name="menu_button">Menu</string>
+    <string name="pause_button">Pause</string>
+    <string name="paused_title">Paused</string>
+    <string name="paused_resume">Tap anywhere to carry on</string>
     <string name="leave_title">Leave the restaurant?</string>
     <string name="leave_body">Your game is saved. Tap Continue on the start screen to carry on.</string>
     <string name="leave_body_night">Tonight is saved right where you are. Tap Continue on the start screen to carry on.</string>
