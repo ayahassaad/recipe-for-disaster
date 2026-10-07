@@ -38,6 +38,7 @@ data class NightLabels(
     val plate: (table: Int) -> String = { "" },
     val wantsToOrder: String,
     val waitingForFood: String,
+    val deciding: String = "",
     val foodReady: String,
     val eating: String,
     val empty: String,
@@ -220,7 +221,7 @@ fun NightScene(
                                         drawGuest(seat, guest, mood, angry = waitedFraction > 0.75f, walkPhase = null, g, bob = if (eating) abs(sin(clock * 6f + guest)) * 0.4f else 0f)
                                         // Reading the menu while deciding; now and then someone checks their phone while the food comes.
                                         when {
-                                            party.stage == Stage.READY_TO_ORDER -> drawMenuCard(seat, clock + guest)
+                                            party.stage == Stage.DECIDING || party.stage == Stage.READY_TO_ORDER -> drawMenuCard(seat, clock + guest)
                                             party.stage in Stage.ORDER_TAKEN..Stage.CARRIED && waitedFraction < 0.6f &&
                                                 ((clock * 0.2f + guest * 0.37f) % 1f) < 0.4f -> drawPhone(seat, clock)
                                         }
@@ -353,6 +354,7 @@ fun NightScene(
                 Stage.ORDER_TAKEN, Stage.IN_KITCHEN, Stage.COOKING, Stage.CARRIED -> labels.waitingForFood
                 Stage.READY_AT_PASS -> labels.foodReady
                 Stage.EATING -> labels.eating
+                Stage.DECIDING -> labels.deciding
                 else -> if (t in night.dirtyTables) labels.needsClearing else labels.empty
             }
             TapArea(rect, unit, origin, labels.table(t + 1, state)) { onTapTable(t) }
@@ -412,7 +414,8 @@ private fun Pen.drawTableNumber(text: TextMeasurer, table: Point, number: Int, c
 
 /** The speech bubble over a table: "?" to order, a plate while they wait for food, with a patience bar underneath. */
 private fun Pen.drawTableBubble(text: TextMeasurer, table: Point, stage: Stage, waited: Float, clock: Float) {
-    if (stage == Stage.EATING) return
+    // No bubble while they eat, or while they're still reading the menu.
+    if (stage == Stage.EATING || stage == Stage.DECIDING) return
     val c = Point(table.x, table.y - 13.5f)
     val wobble = if (stage == Stage.READY_TO_ORDER) sin(clock * 5f) * 0.4f else 0f
     // Bubble with a little tail.

@@ -491,6 +491,7 @@ private fun nightLabels(): NightLabels {
         counter = stringResource(R.string.night_counter),
         plate = { number -> String.format(plateLabel, number) },
         wantsToOrder = stringResource(R.string.night_wants_to_order),
+        deciding = stringResource(R.string.night_deciding),
         waitingForFood = stringResource(R.string.night_waiting_food),
         foodReady = stringResource(R.string.night_food_ready),
         eating = stringResource(R.string.night_eating),

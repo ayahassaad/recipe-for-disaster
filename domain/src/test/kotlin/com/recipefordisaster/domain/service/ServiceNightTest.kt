@@ -552,4 +552,14 @@ class ServiceNightTest {
         val n = play(open(noHelpers))
         assertTrue(n.finished)
     }
+
+    @Test
+    fun `guests read the menu for a few seconds after sitting down before they're ready to order`() {
+        var n = open()
+        n = waitFor(n) { night -> night.parties.any { it.stage == Stage.DECIDING } }
+        val party = n.parties.first { it.stage == Stage.DECIDING }
+        val satAt = n.time
+        n = waitFor(n) { night -> night.parties.first { it.id == party.id }.stage == Stage.READY_TO_ORDER }
+        assertTrue(n.time - satAt >= 2.4f)
+    }
 }

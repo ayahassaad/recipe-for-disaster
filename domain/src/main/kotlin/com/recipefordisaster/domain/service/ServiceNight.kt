@@ -89,6 +89,8 @@ data class ServiceNight(
         NOT_YET_ARRIVED,
         QUEUEING,
         WALKING_TO_TABLE,
+        /** Sat down and reading the menu; ready to order in a few seconds. */
+        DECIDING,
         READY_TO_ORDER,
         ORDER_TAKEN,
         IN_KITCHEN,
@@ -123,7 +125,7 @@ data class ServiceNight(
         /** Which waiter is holding the ticket or the plates, while they're being carried. */
         val heldBy: String? = null,
     ) {
-        val seated: Boolean get() = stage in Stage.READY_TO_ORDER..Stage.LEAVING_ANGRY
+        val seated: Boolean get() = stage in Stage.DECIDING..Stage.LEAVING_ANGRY
         val occupiesTable: Boolean get() = table != null && stage in Stage.WALKING_TO_TABLE..Stage.LEAVING_ANGRY
     }
 
@@ -431,8 +433,14 @@ data class ServiceNight(
             night = night.updateParty(party.id) { it.copy(stage = Stage.WALKING_TO_TABLE, stageSince = time, table = free, until = time + walk) }
         }
         // Parties that have reached their table are ready to order.
+        // Parties that have reached their table read the menu for a few seconds first...
         night.parties.filter { it.stage == Stage.WALKING_TO_TABLE && time >= it.until }.forEach { party ->
-            night = night.updateParty(party.id) { it.copy(stage = Stage.READY_TO_ORDER, stageSince = time, seatedAt = time) }
+            val reading = DECIDE_MIN + (party.id * 0.618f % 1f) * (DECIDE_MAX - DECIDE_MIN)
+            night = night.updateParty(party.id) { it.copy(stage = Stage.DECIDING, stageSince = time, seatedAt = time, until = time + reading) }
+        }
+        // ...and then they're ready to order.
+        night.parties.filter { it.stage == Stage.DECIDING && time >= it.until }.forEach { party ->
+            night = night.updateParty(party.id) { it.copy(stage = Stage.READY_TO_ORDER, stageSince = time) }
         }
         return night
     }
@@ -569,8 +577,8 @@ data class ServiceNight(
         when (val errand = waiter.errand) {
             is Errand.VisitTable -> {
                 val party = night.partyAt(errand.table)
-                if (party != null && party.stage == Stage.WALKING_TO_TABLE && waiter.kind != Kind.DISHWASHER && waiter.kind != Kind.BUSSER) {
-                    // They're still sitting down: wait at the table and take their order as soon as they're ready.
+                if (party != null && (party.stage == Stage.WALKING_TO_TABLE || party.stage == Stage.DECIDING) && waiter.kind != Kind.DISHWASHER && waiter.kind != Kind.BUSSER) {
+                    // They're still sitting down or deciding: wait at the table and take their order as soon as they're ready.
                     updateWaiter { it.copy(route = listOf(it.position(time)), routeStart = time, routeEnd = party.until + 0.01f, errand = errand) }
                 } else if (party != null && party.id in waiter.plates) {
                     night = night.updateParty(party.id) { it.copy(stage = Stage.EATING, stageSince = time, until = time + EAT, heldBy = null) }
@@ -778,6 +786,10 @@ data class ServiceNight(
 
         /** How long a plate sits on the pass before a runner takes it out instead of waiting for the player. */
         private const val RUNNER_DELAY = 3f
+
+        /** How long guests read the menu after sitting down before they're ready to order. */
+        private const val DECIDE_MIN = 2.5f
+        private const val DECIDE_MAX = 4.5f
 
         /** Guests' patience on the very first night, while the player learns. */
         private const val FIRST_NIGHT_PATIENCE = 1.3f
