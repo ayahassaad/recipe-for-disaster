@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.recipefordisaster.data.repository.GameRepository
+import com.recipefordisaster.data.repository.SaveLoadResult
+import com.recipefordisaster.domain.restaurant.RestaurantStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,6 +20,8 @@ import kotlinx.coroutines.launch
 data class StartUiState(
     val isLoading: Boolean = true,
     val hasExistingSave: Boolean = false,
+    /** The saved restaurant has already gone bust or been shut down, so starting over loses nothing. */
+    val savedGameIsOver: Boolean = false,
 )
 
 class StartViewModel(private val gameRepository: GameRepository) : ViewModel() {
@@ -33,7 +37,10 @@ class StartViewModel(private val gameRepository: GameRepository) : ViewModel() {
     fun refresh() {
         viewModelScope.launch {
             val hasSave = gameRepository.hasExistingSave()
-            _uiState.update { it.copy(isLoading = false, hasExistingSave = hasSave) }
+            val over = hasSave && (gameRepository.load() as? SaveLoadResult.Success)?.state?.restaurant?.status.let {
+                it == RestaurantStatus.BANKRUPT || it == RestaurantStatus.CONDEMNED
+            }
+            _uiState.update { it.copy(isLoading = false, hasExistingSave = hasSave, savedGameIsOver = over) }
         }
     }
 }

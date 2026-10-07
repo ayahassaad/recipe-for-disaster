@@ -122,7 +122,10 @@ fun StartScreen(
             if (uiState.isLoading) {
                 CircularProgressIndicator()
             } else {
-                SignButton(text = stringResource(R.string.start_new_game), onClick = { if (uiState.hasExistingSave) confirmNewGame = true else onNewGame() })
+                SignButton(text = stringResource(R.string.start_new_game), onClick = {
+                    // Only ask when there's a restaurant still going to lose; one that's already closed down is just replaced.
+                    if (uiState.hasExistingSave && !uiState.savedGameIsOver) confirmNewGame = true else onNewGame()
+                })
                 Spacer(modifier = Modifier.height(14.dp))
                 OutlinedButton(
                     onClick = onContinueGame,

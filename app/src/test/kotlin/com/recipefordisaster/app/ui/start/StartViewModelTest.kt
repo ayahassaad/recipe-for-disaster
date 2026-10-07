@@ -4,6 +4,7 @@ import com.recipefordisaster.app.testing.FakeGameRepository
 import com.recipefordisaster.domain.simulation.NewGameFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -59,5 +60,18 @@ class StartViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(true, viewModel.uiState.value.hasExistingSave)
+    }
+
+    @Test
+    fun `a saved restaurant that has already closed down counts as over, so starting again doesn't ask`() = runTest(dispatcher) {
+        val start = NewGameFactory.create(seed = 1L)
+        val bust = start.copy(restaurant = start.restaurant.copy(status = com.recipefordisaster.domain.restaurant.RestaurantStatus.BANKRUPT))
+        val viewModel = StartViewModel(FakeGameRepository(bust))
+        advanceUntilIdle()
+        assertEquals(true, viewModel.uiState.value.savedGameIsOver)
+
+        val running = StartViewModel(FakeGameRepository(start))
+        advanceUntilIdle()
+        assertEquals(false, running.uiState.value.savedGameIsOver)
     }
 }
