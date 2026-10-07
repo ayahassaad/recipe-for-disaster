@@ -231,8 +231,9 @@ fun NightScene(
                                         val seat = Point(c.x + (if (g == 0) -12f else 12f), c.y)
                                         val eating = party.stage == Stage.EATING
                                         val mood = if (eating) 80 else (75 - waitedFraction * 70).toInt()
-                                        if (eating && party.orders.getOrNull(g) != null) drawPlate(Point((c.x + seat.x) / 2, seat.y))
-                                        val eatingPlate = Point((c.x + seat.x) / 2, seat.y)
+                                        // The food goes on the plate already laid at their place, not on a second plate.
+                                        if (eating && party.orders.getOrNull(g) != null) drawFood(Point(c.x + (if (g == 0) -4.2f else 4.2f), c.y))
+                                        val eatingPlate = Point(c.x + (if (g == 0) -4.2f else 4.2f), c.y)
                                         // A fresh plate steams for the first few seconds.
                                         if (eating && party.orders.getOrNull(g) != null && time - party.stageSince < 3.5f) drawSteam(eatingPlate, clock, guest)
                                         val guestBob = if (eating) abs(sin(clock * 6f + guest)) * 0.4f else 0f

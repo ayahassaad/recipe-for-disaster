@@ -907,6 +907,11 @@ internal fun Pen.drawPlate(at: Point) {
     dot(at, 2.3f, Color.White)
     ring(at.x, at.y, 2.3f, Color(0x33000000), 0.2f)
     ring(at.x, at.y, 1.6f, Color(0x22000000), 0.15f)
+    drawFood(at)
+}
+
+/** Just the food, for putting on a plate that's already there (like the place settings on a table). */
+internal fun Pen.drawFood(at: Point) {
     oval(at.x - 0.3f, at.y, 1.3f, 0.9f, Color(0xFFC8762F))
     oval(at.x - 0.3f, at.y - 0.3f, 1.1f, 0.4f, Color(0xFFE09A4F))
     dot(at.x + 0.9f, at.y + 0.5f, 0.5f, Color(0xFF6DA34D))
