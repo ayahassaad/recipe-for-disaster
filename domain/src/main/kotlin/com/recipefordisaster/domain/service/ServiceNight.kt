@@ -64,8 +64,6 @@ data class ServiceNight(
     val tableCount: Int = ServiceFloor.TABLE_COUNT,
     /** For guests who gave up: at which step (the door, waiting to order, or waiting for food). */
     val gaveUpAt: Map<Int, WaitedFor> = emptyMap(),
-    /** How much happier guests leave tonight, thanks to the decor. */
-    val decorJoy: Int = 0,
     /** Whether the restaurant cat is about tonight. */
     val cat: Boolean = false,
     /** Tables the cat has sat by tonight: guests there enjoy it. */
@@ -642,9 +640,7 @@ data class ServiceNight(
                     val bother = if (night.activeChaos?.botherGuests == true) 1 else 0
                     val mess = (night.messesOnFloor.size + bother).coerceAtMost(MAX_MESS_PENALTIES) * MESS_PENALTY -
                         // ...while a visit from the cat makes their evening.
-                        (if (party.table in night.catVisited) CAT_JOY else 0) -
-                        // ...and so does a nicely done-up room.
-                        night.decorJoy
+                        (if (party.table in night.catVisited) CAT_JOY else 0)
                     val satisfaction = (ServiceSimulator.resolveSatisfaction(customer, dish, waitedMinutes, kitchenQualityBonus) - mess).coerceIn(0, 100)
                         results = results + (guest to CustomerServiceOutcome(customer, dish, satisfaction, waitedMinutes))
                     }
@@ -1042,8 +1038,7 @@ data class ServiceNight(
                     preferences = guests.map { g -> rankDishes(customers[g], menu, rng) },
                     arriveAt = arriveAt,
                     // The very first night is gentler: guests are a bit more forgiving while you learn the ropes.
-                    patience = (guests.map { customers[it].patience }.average().toFloat() / MINUTES_PER_SECOND + 12f) * (if (state.day <= 1) FIRST_NIGHT_PATIENCE else 1f) *
-                        com.recipefordisaster.domain.restaurant.Decor.patienceFactor(state.restaurant.decor),
+                    patience = (guests.map { customers[it].patience }.average().toFloat() / MINUTES_PER_SECOND + 12f) * (if (state.day <= 1) FIRST_NIGHT_PATIENCE else 1f),
                 )
             }
 
@@ -1139,7 +1134,6 @@ data class ServiceNight(
                 fridgeBreaksAt = fridgeBreaksAt,
                 chaos = chaos,
                 cat = state.day >= CAT_FROM_DAY,
-                decorJoy = com.recipefordisaster.domain.restaurant.Decor.satisfactionBonus(state.restaurant.decor),
                 fridgeBroken = fridgeBrokenAtOpen,
                 hosted = state.employees.any { it.status == EmployeeStatus.ACTIVE && it.role == Role.HOST },
             )

@@ -23,14 +23,12 @@ data class Restaurant(
     val tables: Int = 6,
     /** What the player called the place. Blank for saves from before it could be named. */
     val name: String = "",
-    /** Decorations bought so far. */
-    val decor: Set<Decor> = emptySet(),
 ) {
     /** The name to show: the player's, or a stand-in for older saves. */
     val displayName: String get() = name.ifBlank { DEFAULT_NAME }
 
     /** The most guests tonight can bring: [capacity] is for a six-table room, and more tables mean more guests. */
-    val guestCapacity: Int get() = capacity * tables / 6 * (if (Decor.FISH_TANK in decor) 11 else 10) / 10
+    val guestCapacity: Int get() = capacity * tables / 6
 
     /**
      * What the restaurant pays each day. Rent in [operatingCosts] is for a full six-table room; a

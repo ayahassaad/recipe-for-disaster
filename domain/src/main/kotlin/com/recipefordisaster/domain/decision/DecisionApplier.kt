@@ -158,17 +158,6 @@ object DecisionApplier {
             note("Repaired the ${equipment.name}.", LogTone.GOOD)
         }
 
-        for (item in decisions.buyDecor) {
-            if (item in current.restaurant.decor) continue
-            if (!canAfford(item.price)) {
-                note("Couldn't afford the ${item.name.lowercase().replace('_', ' ')}.", LogTone.BAD)
-                continue
-            }
-            spending = spending.copy(upgrades = spending.upgrades + item.price)
-            current = current.copy(restaurant = current.restaurant.copy(decor = current.restaurant.decor + item))
-            note("Bought ${item.name.lowercase().replace('_', ' ')} for the restaurant.", LogTone.GOOD)
-        }
-
         if (decisions.buyTable) {
             val tables = current.restaurant.tables
             val price = com.recipefordisaster.domain.restaurant.TableGrowth.nextTablePrice(tables)

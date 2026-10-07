@@ -265,7 +265,6 @@ class GameViewModel(
 
     fun toggleDeepClean() = editPlan { it.copy(deepClean = !it.deepClean) }
     fun toggleBuyTable() = editPlan { it.copy(buyTable = !it.buyTable) }
-    fun toggleDecor(item: com.recipefordisaster.domain.restaurant.Decor) = editPlan { it.copy(buyDecor = it.buyDecor.toggle(item)) }
 
     private fun currentState(): GameState? = (_uiState.value as? GameUiState.Playing)?.state
 

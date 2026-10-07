@@ -65,7 +65,6 @@ internal fun SheetContent(target: SceneTarget, uiState: GameUiState.Playing, act
             SceneTarget.MenuBoard -> MenuSheet(uiState, actions)
             SceneTarget.Mop -> CleaningSheet(uiState, actions)
             SceneTarget.Tables -> TablesSheet(uiState, actions)
-            is SceneTarget.Decorate -> DecorSheet(uiState, actions)
             SceneTarget.HiringSign -> HiringSheet(uiState, actions)
             is SceneTarget.Staff -> {
                 val person = (uiState.state.employees + uiState.state.applicants).firstOrNull { it.id == target.id }
@@ -538,32 +537,3 @@ private fun roleDescription(role: com.recipefordisaster.domain.employee.Role): S
         com.recipefordisaster.domain.employee.Role.BUSSER -> R.string.job_busser
     },
 )
-
-@Composable
-private fun DecorSheet(uiState: GameUiState.Playing, actions: GameActions) {
-    SectionTitle(stringResource(R.string.decor_title))
-    Text(stringResource(R.string.decor_intro), style = MaterialTheme.typography.bodyLarge)
-    com.recipefordisaster.domain.restaurant.Decor.entries.forEach { item ->
-        val owned = item in uiState.state.restaurant.decor
-        val buying = item in uiState.plan.buyDecor
-        val (name, effect) = when (item) {
-            com.recipefordisaster.domain.restaurant.Decor.PLANTS -> R.string.decor_plants to R.string.decor_plants_effect
-            com.recipefordisaster.domain.restaurant.Decor.TABLECLOTHS -> R.string.decor_tablecloths to R.string.decor_tablecloths_effect
-            com.recipefordisaster.domain.restaurant.Decor.FISH_TANK -> R.string.decor_fish_tank to R.string.decor_fish_tank_effect
-            com.recipefordisaster.domain.restaurant.Decor.PAINTING -> R.string.decor_painting to R.string.decor_painting_effect
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(name), style = MaterialTheme.typography.titleMedium)
-                Text(stringResource(effect), style = MaterialTheme.typography.bodyMedium)
-            }
-            when {
-                owned -> Text(stringResource(R.string.decor_owned), style = MaterialTheme.typography.bodyMedium, color = LeafGreen)
-                buying -> OutlinedButton(onClick = { actions.onToggleDecor(item) }) { Text(stringResource(R.string.undo)) }
-                else -> FilledTonalButton(onClick = { actions.onToggleDecor(item) }, enabled = uiState.cashNow >= item.price) {
-                    Text(coins(item.price))
-                }
-            }
-        }
-    }
-}

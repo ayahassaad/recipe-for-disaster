@@ -163,7 +163,7 @@ internal fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSurround(origi
 }
 
 /** The room. [doorOpen] is how far the front doors are open: 0 shut, 1 wide open. */
-internal fun Pen.drawRoom(cleanliness: Int, doorOpen: Float, time: Float, name: String = "", text: TextMeasurer? = null, decor: Set<com.recipefordisaster.domain.restaurant.Decor> = emptySet()) {
+internal fun Pen.drawRoom(cleanliness: Int, doorOpen: Float, time: Float, name: String = "", text: TextMeasurer? = null) {
     drawRect(Palette.wall, topLeft = p(0f, 0f), size = Size(u(SceneLayout.WIDTH), u(SceneLayout.HEIGHT)))
 
     // Kitchen: square tiles with grout lines, and a tiled splashback along the back wall.
@@ -221,14 +221,6 @@ internal fun Pen.drawRoom(cleanliness: Int, doorOpen: Float, time: Float, name: 
     drawPlant(Point(5f, 50f), time)
     drawPlant(Point(95f, 50f), time)
     drawPlant(Point(95f, 131f), time)
-    // Decorations the player has bought.
-    if (com.recipefordisaster.domain.restaurant.Decor.PLANTS in decor) {
-        drawPlant(Point(5f, 106f), time)
-        drawPlant(Point(95f, 106f), time)
-        drawPlant(Point(5f, 78f), time)
-    }
-    if (com.recipefordisaster.domain.restaurant.Decor.FISH_TANK in decor) drawFishTank(Point(6f, 92f), time)
-
 
     // Front wall, double door and doormat.
     drawRect(Palette.woodDark, topLeft = p(0f, 140f), size = Size(u(SceneLayout.WIDTH), u(10f)))
@@ -264,8 +256,6 @@ internal fun Pen.drawRoom(cleanliness: Int, doorOpen: Float, time: Float, name: 
         dot(door.center.x - 1.4f, door.center.y, 0.6f, Palette.gold)
         dot(door.center.x + 1.4f, door.center.y, 0.6f, Palette.gold)
     }
-    // The painting hangs on the front wall, so it goes on after the wall is drawn.
-    if (com.recipefordisaster.domain.restaurant.Decor.PAINTING in decor) drawPainting(Point(95.4f, 145f))
 }
 
 private val STAIN_SPOTS = listOf(
@@ -565,42 +555,15 @@ internal fun Pen.drawPantry(fullness: Float, jars: List<Float> = emptyList()) {
 
 // ---------------------------------------------------------------- the dining room
 
-internal fun Pen.drawTables(layout: TableLayout = ServiceFloor.layout(ServiceFloor.TABLE_COUNT), fancy: Boolean = false) {
+internal fun Pen.drawTables(layout: TableLayout = ServiceFloor.layout(ServiceFloor.TABLE_COUNT)) {
     layout.tables.forEach { at ->
         val table = at.toPoint()
         with(around(table, layout.scale)) {
             drawChair(Point(table.x - 12f, table.y), facingRight = true)
             drawChair(Point(table.x + 12f, table.y), facingRight = false)
-            drawTable(table, fancy)
+            drawTable(table)
         }
     }
-}
-
-/** A little fish tank on a stand, with two fish swimming back and forth and bubbles rising. */
-private fun Pen.drawFishTank(at: Point, time: Float) {
-    box(at.x - 4.6f, at.y + 2.6f, 9.2f, 2f, Palette.woodDark, radius = 0.4f) // stand
-    box(at.x - 4.6f, at.y - 4f, 9.2f, 6.8f, Color(0xFF9BD3EE), radius = 0.6f)
-    box(at.x - 4.6f, at.y + 1.6f, 9.2f, 1.2f, Color(0xFFD9C27E), radius = 0.3f) // sand
-    line(at.x - 2.6f, at.y + 1.6f, at.x - 2.9f, at.y - 1.6f, Color(0xFF3E8E41), 0.5f) // weed
-    line(at.x + 3f, at.y + 1.6f, at.x + 3.4f, at.y - 0.8f, Color(0xFF3E8E41), 0.5f)
-    for (k in 0..1) {
-        val x = at.x + sin(time * (0.7f + k * 0.4f) + k * 2f) * 3f
-        val y = at.y - 1.6f + k * 1.6f
-        val dir = if (kotlin.math.cos(time * (0.7f + k * 0.4f) + k * 2f) > 0) 1f else -1f
-        oval(x, y, 1.1f, 0.6f, if (k == 0) Color(0xFFF28C28) else Color(0xFFE85D75))
-        shape(if (k == 0) Color(0xFFF28C28) else Color(0xFFE85D75)) { moveTo(x - dir * 1f, y); lineTo(x - dir * 1.8f, y - 0.6f); lineTo(x - dir * 1.8f, y + 0.6f); close() }
-    }
-    val b = (time * 0.8f) % 1f
-    dot(at.x + 1f, at.y + 1f - b * 5f, 0.3f, Color(0xCCFFFFFF))
-    outline(Rect(at.x - 4.6f, at.y - 4f, at.x + 4.6f, at.y + 2.8f), Color(0x66FFFFFF), radius = 0.6f, width = 0.3f)
-}
-
-/** A small framed painting on the front wall: a sunset over hills. */
-private fun Pen.drawPainting(at: Point) {
-    box(at.x - 3.6f, at.y - 3f, 7.2f, 5.4f, Palette.gold, radius = 0.3f)
-    box(at.x - 3f, at.y - 2.4f, 6f, 4.2f, Color(0xFFF2B05E), radius = 0.2f)
-    dot(at.x + 1f, at.y - 0.6f, 1f, Color(0xFFFFE27A))
-    box(at.x - 3f, at.y + 0.4f, 6f, 1.4f, Color(0xFF6DA34D), radius = 0.2f)
 }
 
 /** A wooden chair from above: seat, curved backrest on the far side, spindles, and a cushion. */
@@ -622,16 +585,7 @@ private fun Pen.drawChair(at: Point, facingRight: Boolean) {
 }
 
 /** A round table with a gingham cloth, two place settings and a small vase. */
-private fun Pen.drawTable(table: Point, fancy: Boolean = false) {
-    if (fancy) {
-        // Crisp white linen with a gold trim, instead of the gingham.
-        oval(table.x, table.y + 1.6f, 8.4f, 7.6f, Palette.shadow)
-        dot(table, 7.8f, Palette.gold)
-        dot(table, 7.3f, Color(0xFFFDFBF5))
-        ring(table.x, table.y, 6.2f, Color(0x33B8860B), 0.25f)
-        drawPlaceSettings(table)
-        return
-    }
+private fun Pen.drawTable(table: Point) {
     oval(table.x, table.y + 1.6f, 8.4f, 7.6f, Palette.shadow)
     dot(table, 7.8f, Color(0xFFE9E3D6))
     // Scalloped hem.
@@ -647,11 +601,6 @@ private fun Pen.drawTable(table: Point, fancy: Boolean = false) {
         line(table.x + off, table.y - half, table.x + off, table.y + half, Palette.clothCheck.copy(alpha = 0.25f), 1.1f)
         line(table.x - half, table.y + off, table.x + half, table.y + off, Palette.clothCheck.copy(alpha = 0.25f), 1.1f)
     }
-    drawPlaceSettings(table)
-}
-
-/** Plate, fork and knife at each side, and a little vase with a flower in the middle. */
-private fun Pen.drawPlaceSettings(table: Point) {
     // Place settings on the chair sides: plate, fork, knife.
     for (side in listOf(-1f, 1f)) {
         val px = table.x + side * 4.2f

@@ -124,13 +124,13 @@ fun NightScene(
                 with(pen) {
                     val time = night.time
                     val cooking = night.parties.any { it.stage == Stage.COOKING }
-                    drawRoom(model.cleanliness, doorOpen = doorOpenness(night), time = clock, name = model.name, text = text, decor = model.decor)
+                    drawRoom(model.cleanliness, doorOpen = doorOpenness(night), time = clock, name = model.name, text = text)
                     drawOven(model.ovenCondition, clock, onFire = false, level = model.ovenLevel)
                     drawStove(cooking, clock)
                     drawFridge(model.fridgeCondition, broken = night.fridgeBroken, struggling = night.fridgeStruggling, level = model.fridgeLevel, time = clock)
                     if (night.fridgeBroken) drawAlert(text, Point(SceneLayout.fridge.right - 1f, SceneLayout.fridge.top + 1f), clock)
                     drawPantry(model.pantryFullness, model.pantryJars)
-                    drawTables(layout, fancy = com.recipefordisaster.domain.restaurant.Decor.TABLECLOTHS in model.decor)
+                    drawTables(layout)
                     drawMenuBoard(text, labels.menu)
                     // The mop stays in the bucket unless someone's carrying it.
                     drawMopBucket(withMop = night.waiters.none { it.holdingMop })
