@@ -248,8 +248,10 @@ private fun Pen.drawCounter() {
         close()
     }
     dot(70f, c.top - 1.1f, 0.35f, Palette.gold)
-    // The ticket rail above the pass; real orders hang on it during service.
-    line(10f, c.top - 0.6f, 40f, c.top - 0.6f, Palette.steelDark, 0.3f)
+    // The ticket rail runs along the top of the kitchen wall, above the oven and stove, so the
+    // orders hanging on it during service never cover the chef.
+    line(6f, TICKET_RAIL_Y, 46f, TICKET_RAIL_Y, Palette.steelDark, 0.4f)
+    for (x in listOf(6f, 46f)) dot(x, TICKET_RAIL_Y, 0.5f, Palette.steelDark)
 }
 
 /** The dish station at the right end of the counter: a deep basin with suds, a drying rack, and a sign. */
@@ -265,6 +267,9 @@ internal fun Pen.drawDishStation(text: TextMeasurer, sign: String) {
 }
 
 /** A potted plant, its leaves swaying gently (each plant in its own rhythm). */
+/** Where the order tickets hang: high on the kitchen wall. */
+internal const val TICKET_RAIL_Y = 1.2f
+
 private fun Pen.drawPlant(at: Point, time: Float = 0f) {
     val sway = sin(time * 1.1f + at.x * 0.37f + at.y * 0.11f) * 0.09f
     oval(at.x, at.y + 3.4f, 3.6f, 1.2f, Palette.shadow)

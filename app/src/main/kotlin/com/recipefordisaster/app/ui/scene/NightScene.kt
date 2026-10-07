@@ -452,7 +452,7 @@ private fun Pen.drawTableBubble(text: TextMeasurer, table: Point, stage: Stage, 
 /** Tickets clipped to the rail above the pass: table number, and a progress strip while it cooks. */
 private fun Pen.drawTickets(text: TextMeasurer, night: ServiceNight) {
     val inKitchen = night.parties.filter { it.stage == Stage.IN_KITCHEN || it.stage == Stage.COOKING }.sortedBy { it.stageSince }
-    val top = SceneLayout.counter.top - 7f
+    val top = TICKET_RAIL_Y + 0.2f
     inKitchen.take(6).forEachIndexed { i, party ->
         val x = 8f + i * 6.2f
         box(x, top, 5.2f, 6.4f, Color(0xFFFFFCF2), radius = 0.3f)
