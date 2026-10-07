@@ -173,6 +173,7 @@ fun NightScene(
                                     val spot = ServiceFloor.queueSpot(queueIndex++).toPoint()
                                     val mood = (70 - waited * 60).toInt()
                                     drawGuest(spot, guest, mood, angry = mood < 25, walkPhase = null, g)
+                                    if (g == 0) party.special?.let { drawSpecialLook(spot, it, clock) }
                                 }
                                 // A "we need a table" bubble with their patience, so a crowd at the door is hard to miss.
                                 drawDoorBubble(first, waited, clock)
@@ -187,6 +188,7 @@ fun NightScene(
                                     val apart = if (party.guests.size > 1) (1f - ((progress - 0.8f) / 0.2f)).coerceIn(0f, 1f) else 0f
                                     val at = sideBySide(route, progress, if (g == 0) -1f else 1f, apart)
                                     around(at, scale).drawGuest(at, guest, 65, angry = false, walkPhase = time * 2.2f + g, g)
+                                    if (g == 0) party.special?.let { around(at, scale).drawSpecialLook(at, it, clock) }
                                 }
                             }
                             Stage.LEAVING_HAPPY, Stage.LEAVING_ANGRY -> {
@@ -203,6 +205,7 @@ fun NightScene(
                                     // Angry guests stomp out: a faster, bouncier walk, and a cloud of cross words overhead.
                                     val stomp = if (angry) abs(sin(time * 9f + g)) * 0.9f else 0f
                                     around(at, scale).drawGuest(Point(at.x, at.y - stomp), guest, mood, angry = angry, walkPhase = time * (if (angry) 4.2f else 2.6f) + g, g)
+                                    if (g == 0) party.special?.let { around(at, scale).drawSpecialLook(Point(at.x, at.y - stomp), it, clock) }
                                     if (angry && g == 0) drawGrumble(text, Point(at.x, at.y - 14f), clock)
                                 }
                                 if (!angry) {
@@ -229,7 +232,9 @@ fun NightScene(
                                         val eatingPlate = Point((c.x + seat.x) / 2, seat.y)
                                         // A fresh plate steams for the first few seconds.
                                         if (eating && party.orders.getOrNull(g) != null && time - party.stageSince < 3.5f) drawSteam(eatingPlate, clock, guest)
-                                        drawGuest(seat, guest, mood, angry = waitedFraction > 0.75f, walkPhase = null, g, bob = if (eating) abs(sin(clock * 6f + guest)) * 0.4f else 0f)
+                                        val guestBob = if (eating) abs(sin(clock * 6f + guest)) * 0.4f else 0f
+                                        drawGuest(seat, guest, mood, angry = waitedFraction > 0.75f, walkPhase = null, g, bob = guestBob)
+                                        if (g == 0) party.special?.let { drawSpecialLook(seat, it, clock, guestBob) }
                                         // Reading the menu while deciding; now and then someone checks their phone while the food comes.
                                         when {
                                             party.stage == Stage.DECIDING || party.stage == Stage.READY_TO_ORDER -> drawMenuCard(seat, clock + guest)
@@ -903,4 +908,57 @@ private fun Pen.drawGrumble(text: TextMeasurer, at: Point, clock: Float) {
     val c = Point(at.x + shake, at.y)
     for ((dx, r) in listOf(-2.2f to 2f, 0f to 2.6f, 2.2f to 2f)) dot(c.x + dx, c.y, r, Color(0xFF4A4A52))
     centeredText(text, "#@!", Point(c.x, c.y), size = 2.3f, color = Color(0xFFF2C230), bold = true)
+}
+
+/**
+ * What makes a special guest stand out: the critic's dark glasses and notepad, the celebrity's shades and
+ * a twinkling gold star overhead, the inspector's brown hat and clipboard. Drawn over the guest at [at].
+ */
+private fun Pen.drawSpecialLook(at: Point, special: com.recipefordisaster.domain.service.SpecialGuest, clock: Float, bob: Float = 0f) {
+    val hy = at.y - bob - 4f
+    fun glasses(frame: Color, lens: Color) {
+        for (side in listOf(-1f, 1f)) oval(at.x + side * 1.3f, hy + 0.2f, 1.05f, 0.75f, lens)
+        line(at.x - 0.4f, hy + 0.1f, at.x + 0.4f, hy + 0.1f, frame, 0.3f)
+        for (side in listOf(-1f, 1f)) line(at.x + side * 2.3f, hy, at.x + side * 3.2f, hy - 0.4f, frame, 0.25f)
+    }
+    fun clipboard(paper: Color, board: Color) {
+        val c = Point(at.x + 4.4f, at.y + 2.2f)
+        box(c.x - 1.4f, c.y - 1.8f, 2.8f, 3.6f, board, radius = 0.3f)
+        box(c.x - 1.1f, c.y - 1.3f, 2.2f, 2.8f, paper, radius = 0.2f)
+        for (k in 0..2) line(c.x - 0.8f, c.y - 0.7f + k * 0.8f, c.x + 0.8f, c.y - 0.7f + k * 0.8f, Color(0x88000000), 0.15f)
+        box(c.x - 0.5f, c.y - 2.1f, 1f, 0.6f, Palette.steelDark, radius = 0.2f)
+    }
+    when (special) {
+        com.recipefordisaster.domain.service.SpecialGuest.CRITIC -> {
+            glasses(Color(0xFF111111), Color(0xFF1E1E22))
+            clipboard(Color.White, Color(0xFF7A2E2A))
+            // A beret, for that critic look.
+            oval(at.x - 0.4f, hy - 3f, 3f, 1.2f, Color(0xFF2B2B2B))
+            dot(at.x - 0.2f, hy - 4f, 0.35f, Color(0xFF2B2B2B))
+        }
+        com.recipefordisaster.domain.service.SpecialGuest.CELEBRITY -> {
+            glasses(Color(0xFFE5B85C), Color(0xFF6A3E8C))
+            // A gold star twinkling over their head.
+            val twinkle = 1f + 0.15f * sin(clock * 5f)
+            val c = Point(at.x, hy - 7f)
+            shape(Palette.gold) {
+                for (k in 0 until 10) {
+                    val r = (if (k % 2 == 0) 2f else 0.85f) * twinkle
+                    val a = -PI_F / 2 + k * PI_F / 5
+                    val x = c.x + kotlin.math.cos(a) * r
+                    val y = c.y + kotlin.math.sin(a) * r
+                    if (k == 0) moveTo(x, y) else lineTo(x, y)
+                }
+                close()
+            }
+            if (sin(clock * 3f) > 0.6f) dot(c.x + 2.4f, c.y - 1.2f, 0.35f, Color.White)
+        }
+        com.recipefordisaster.domain.service.SpecialGuest.INSPECTOR -> {
+            // Brown hat with a band, and a clipboard for the checklist.
+            oval(at.x, hy - 2.6f, 4.3f, 1f, Color(0xFF6B4A2E))
+            box(at.x - 2.5f, hy - 5.4f, 5f, 2.9f, Color(0xFF7D5A3B), radius = 1f)
+            box(at.x - 2.5f, hy - 3.4f, 5f, 0.7f, Color(0xFF3A2A1A), radius = 0.2f)
+            clipboard(Color.White, Color(0xFF9A6A3A))
+        }
+    }
 }

@@ -63,6 +63,15 @@
     <string name="hint_fixing_fridge">Fixing the fridge…</string>
     <string name="hint_fridge_struggling">The fridge is struggling! It\'s about to give up.</string>
     <string name="night_fridge">Fridge: fix it if it breaks</string>
+    <string name="hint_critic">A food critic just walked in! Serve them quickly and well.</string>
+    <string name="hint_celebrity">A celebrity just walked in! Keep them happy and tomorrow will be busy.</string>
+    <string name="hint_inspector">A health inspector just walked in! Keep the floor and tables clean.</string>
+    <string name="special_critic_good">The food critic loved it! Your stars went up.</string>
+    <string name="special_critic_bad">The food critic was not impressed. Your stars went down.</string>
+    <string name="special_celebrity_good">The celebrity had a great time. Expect a crowd tomorrow!</string>
+    <string name="special_celebrity_bad">The celebrity left unhappy, and told everyone.</string>
+    <string name="special_inspector_good">You passed the health inspection!</string>
+    <string name="special_inspector_bad">You failed the health inspection: a 60 coin fine.</string>
     <string name="hint_waiting">Waiting for guests to come in…</string>
     <string name="hint_cooking">The kitchen is cooking…</string>
     <string name="hint_cooking_for">The chef is cooking table %1$d\'s order…</string>

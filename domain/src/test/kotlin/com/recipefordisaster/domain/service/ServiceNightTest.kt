@@ -573,4 +573,40 @@ class ServiceNightTest {
         // Nobody served, nobody tips.
         assertEquals(0L, play(ServiceNight.open(setup, SeededRandomSource(2L))).tips)
     }
+
+    private fun withSpecial(guest: SpecialGuest): ServiceNight {
+        val n = open(start.copy(day = 5))
+        return n.copy(parties = n.parties.mapIndexed { k, p -> if (k == 0) p.copy(special = guest) else p })
+    }
+
+    @Test
+    fun `special guests turn up on some nights after the first few`() {
+        val nights = (1L..40L).map { open(start.copy(day = 5), it) }
+        assertTrue(nights.any { n -> n.parties.any { it.special != null } })
+        assertTrue((1L..40L).none { seed -> open(start.copy(day = 1), seed).parties.any { it.special != null } })
+    }
+
+    @Test
+    fun `a critic who is served well is pleased, and moves the stars up`() {
+        val setup = engine.openService(start.copy(day = 5), PlayerDecisions(), SeededRandomSource(1L))
+        val night = withSpecial(SpecialGuest.CRITIC)
+        val played = play(night, ::busyPlayer)
+        assertEquals(1, played.specialVisits.size)
+        val ignored = play(night)
+        assertEquals(listOf(SpecialVisit(SpecialGuest.CRITIC, pleased = false)), ignored.specialVisits)
+        val good = engine.closeService(setup, played.result().copy(specialVisits = listOf(SpecialVisit(SpecialGuest.CRITIC, true))), SeededRandomSource(3L)).newState.restaurant.reputation
+        val bad = engine.closeService(setup, played.result().copy(specialVisits = listOf(SpecialVisit(SpecialGuest.CRITIC, false))), SeededRandomSource(3L)).newState.restaurant.reputation
+        assertEquals(10, good - bad)
+    }
+
+    @Test
+    fun `a happy celebrity brings more guests tomorrow, and a failed inspection costs a fine`() {
+        val setup = engine.openService(start.copy(day = 5), PlayerDecisions(), SeededRandomSource(1L))
+        val result = play(open(start.copy(day = 5)), ::busyPlayer).result()
+        val celeb = engine.closeService(setup, result.copy(specialVisits = listOf(SpecialVisit(SpecialGuest.CELEBRITY, true))), SeededRandomSource(3L)).newState
+        assertTrue(celeb.pendingDemandModifierPercent > 0)
+        val passed = engine.closeService(setup, result.copy(specialVisits = listOf(SpecialVisit(SpecialGuest.INSPECTOR, true))), SeededRandomSource(3L)).newState.restaurant.cash
+        val failed = engine.closeService(setup, result.copy(specialVisits = listOf(SpecialVisit(SpecialGuest.INSPECTOR, false))), SeededRandomSource(3L)).newState.restaurant.cash
+        assertTrue(failed < passed)
+    }
 }

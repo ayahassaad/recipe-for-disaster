@@ -99,6 +99,8 @@ data class DayReport(
     val startOfService: GameState,
     /** Of the guests who gave up waiting, how many were waiting for a table, to order, or for food. */
     val gaveUp: Map<ServiceNight.WaitedFor, Int> = emptyMap(),
+    /** How tonight's special guests found it. */
+    val specials: List<com.recipefordisaster.domain.service.SpecialVisit> = emptyList(),
 )
 
 /**
@@ -192,7 +194,7 @@ class GameViewModel(
             // Days this restaurant has made it through so far, towards the best run.
             gameRepository.recordRun(com.recipefordisaster.domain.simulation.BestRun(days = newState.day - 1, name = newState.restaurant.displayName))
             val report = result.summary?.let { summary ->
-                result.newState.ledger.history.lastOrNull()?.let { books -> DayReport(summary, books, result.event, session.morningSpending, session.setup.morning.state, finalNight.gaveUpCounts()) }
+                result.newState.ledger.history.lastOrNull()?.let { books -> DayReport(summary, books, result.event, session.morningSpending, session.setup.morning.state, finalNight.gaveUpCounts(), finalNight.specialVisits) }
             }
             _uiState.value = GameUiState.Playing(newState, dayLog = result.log, lastEvent = result.event, report = report)
         }

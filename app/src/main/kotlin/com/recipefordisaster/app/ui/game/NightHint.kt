@@ -35,6 +35,8 @@ sealed interface NightHint {
     data object FixFridge : NightHint
     data object FixingFridge : NightHint
     data object FridgeStruggling : NightHint
+    /** A special guest has just come in. */
+    data class SpecialArrived(val guest: com.recipefordisaster.domain.service.SpecialGuest, val table: Int?) : NightHint
     data object Cooking : NightHint
     /** The chef is cooking a particular table's food. */
     data class CookingFor(val table: Int) : NightHint
@@ -55,6 +57,7 @@ sealed interface NightHint {
         GetMop, PutMopBack -> NightFocus.MopBucket
         MopSpill -> night.messesOnFloor.firstOrNull()?.let { NightFocus.Spill(it.id) }
         FixFridge, FridgeStruggling -> NightFocus.Fridge
+        is SpecialArrived -> table?.let { NightFocus.Table(it) }
         Washing, Mopping, OutOfFood, Waiting, Cooking, TidyingUp, FixingFridge, is CookingFor, Eating, is Deciding -> null
     }
 
@@ -68,6 +71,7 @@ sealed interface NightHint {
             val noWasher = night.waiters.none { it.kind == Kind.DISHWASHER }
             val nobodyClears = noWasher && night.waiters.none { it.kind == Kind.BUSSER }
             val spill = night.messesOnFloor.isNotEmpty() && noWasher
+            val newcomer = night.parties.firstOrNull { it.special != null && it.stage in Stage.QUEUEING..Stage.DECIDING }
             val handingIn = Errand.HandIn in plans || Errand.VisitPass in plans
             val collecting = plans.filterIsInstance<Errand.PickUp>().map { it.partyId }.toSet()
             val toCollect = night.parties.filter { it.stage == Stage.READY_AT_PASS && it.id !in collecting }.minByOrNull { it.stageSince }
@@ -81,6 +85,8 @@ sealed interface NightHint {
                 night.fridgeStruggling -> FridgeStruggling
                 me.tickets.isNotEmpty() && !handingIn -> HandIn
                 toCollect?.table != null && me.freeHands - collecting.size > 0 -> PickUp(toCollect.table!!, toCollect.id)
+                // A special guest has just walked in: worth knowing before anything routine.
+                newcomer != null -> SpecialArrived(newcomer.special!!, newcomer.table)
                 // Guests at the door with nowhere to sit, because a table needs clearing: they'll walk out soon.
                 night.waitingAtDoor.isNotEmpty() && !night.hasFreeTable && dirty != null && nobodyClears && me.freeHands > 0 -> DoorWaiting(dirty)
                 ordering?.table != null && Errand.VisitTable(ordering.table!!) !in plans -> TakeOrder(ordering.table!!)

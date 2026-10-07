@@ -64,6 +64,8 @@ data class ServiceNight(
     val tableCount: Int = ServiceFloor.TABLE_COUNT,
     /** For guests who gave up: at which step (the door, waiting to order, or waiting for food). */
     val gaveUpAt: Map<Int, WaitedFor> = emptyMap(),
+    /** How tonight's special guests found it, as they leave. */
+    val specialVisits: List<SpecialVisit> = emptyList(),
     /** When a worn fridge is going to give up tonight, if it is (rolled when the doors open). */
     val fridgeBreaksAt: Float? = null,
     /** The fridge isn't working: dishes needing cold ingredients can't be made until it's fixed. */
@@ -126,6 +128,8 @@ data class ServiceNight(
         val heldBy: String? = null,
         /** What they left as a tip when they paid. */
         val tip: Long = 0,
+        /** A critic, celebrity or inspector in the party, if any. */
+        val special: SpecialGuest? = null,
     ) {
         val seated: Boolean get() = stage in Stage.DECIDING..Stage.LEAVING_ANGRY
         val occupiesTable: Boolean get() = table != null && stage in Stage.WALKING_TO_TABLE..Stage.LEAVING_ANGRY
@@ -476,9 +480,11 @@ data class ServiceNight(
     private fun stormOut(partyId: Int, reason: MissedMealReason): ServiceNight {
         val party = parties.first { it.id == partyId }
         var results = results
+        val specialVisits = specialVisits + listOfNotNull(party.special?.let { SpecialVisit(it, pleased = false) })
         party.guests.forEach { guest -> if (guest !in results) results = results + (guest to missed(guest, reason)) }
         val inLine = party.stage == Stage.QUEUEING
         return copy(
+            specialVisits = specialVisits,
             results = results,
             waiters = waiters.map { it.copy(tickets = it.tickets - partyId, hands = it.hands - HandItem.Plate(partyId)) },
         ).updateParty(partyId) {
@@ -548,6 +554,14 @@ data class ServiceNight(
                         dirtiedAt = night.dirtiedAt + listOfNotNull(party.table?.let { it to time }),
                     )
                         .updateParty(party.id) { it.copy(stage = Stage.LEAVING_HAPPY, stageSince = time, until = time + LEAVE, tip = tipFor(party, results)) }
+                    party.special?.let { special ->
+                        // The inspector judges the room, not the meal: any spill or other dirty table counts against you.
+                        val pleased = when (special) {
+                            SpecialGuest.INSPECTOR -> night.messesOnFloor.isEmpty() && night.dirtyTables.none { it != party.table }
+                            else -> party.guests.all { (results[it]?.satisfaction ?: 0) >= SPECIAL_PLEASED }
+                        }
+                        night = night.copy(specialVisits = night.specialVisits + SpecialVisit(special, pleased))
+                    }
                 }
                 (party.stage == Stage.LEAVING_HAPPY || party.stage == Stage.LEAVING_ANGRY) && time >= party.until ->
                     night = night.updateParty(party.id) { it.copy(stage = Stage.DONE, stageSince = time) }
@@ -773,6 +787,7 @@ data class ServiceNight(
         val outcomes = arrivalOrder.indices.map { results[it] ?: missed(it, MissedMealReason.TIRED_OF_WAITING) }
         val sold = outcomes.mapNotNull { it.dish?.id }.groupingBy { it }.eachCount()
         return ServiceSimulator.ServiceResult(
+            specialVisits = specialVisits,
             outcomes = outcomes,
             dishesSold = sold,
             staffingRatio = staffingRatio,
@@ -806,6 +821,13 @@ data class ServiceNight(
 
         /** How long a plate sits on the pass before a runner takes it out instead of waiting for the player. */
         private const val RUNNER_DELAY = 3f
+
+        /** A special guest counts as pleased at this satisfaction or more. */
+        private const val SPECIAL_PLEASED = 65
+
+        /** Special guests start turning up from this day, on about this share of nights. */
+        private const val SPECIALS_FROM_DAY = 3
+        private const val SPECIAL_CHANCE = 0.4f
 
         /** Food on the table within this many seconds of sitting down earns the full tip; within [TIP_OK], a small one. */
         private const val TIP_FAST = 24f
@@ -947,9 +969,18 @@ data class ServiceNight(
                 null
             }
 
+            // Now and then a special guest comes in (rolled last, so it doesn't change anything else about the night).
+            val specialParties = if (state.day >= SPECIALS_FROM_DAY && parties.size > 3 && rng.nextFloat() < SPECIAL_CHANCE) {
+                val who = SpecialGuest.entries[rng.nextInt(SpecialGuest.entries.size)]
+                val index = 2 + rng.nextInt(parties.size - 2)
+                parties.mapIndexed { k, p -> if (k == index) p.copy(special = who) else p }
+            } else {
+                parties
+            }
+
             return ServiceNight(
                 time = 0f,
-                parties = parties,
+                parties = specialParties,
                 waiters = waiters,
                 inventory = state.inventory,
                 kitchenSlots = slots,

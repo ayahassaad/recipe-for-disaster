@@ -15,6 +15,7 @@ import com.recipefordisaster.domain.restaurant.CleanlinessModel
 import com.recipefordisaster.domain.restaurant.ReputationModel
 import com.recipefordisaster.domain.restaurant.RestaurantStatus
 import com.recipefordisaster.domain.restaurant.TableGrowth
+import com.recipefordisaster.domain.service.SpecialGuest
 import com.recipefordisaster.domain.simulation.ServiceSimulator.MissedMealReason
 import kotlinx.serialization.Serializable
 
@@ -145,10 +146,27 @@ class DefaultDayTickEngine(
             equipment = equipmentAfterFailureChecks,
             miscellaneous = morning.spending.staffing + morning.spending.cleaning + morning.spending.menu,
             upgrades = morning.spending.repairs + morning.spending.upgrades,
-        ).let { it.copy(revenue = it.revenue + serviceResult.tips, tips = serviceResult.tips) }
+        ).let {
+            // A failed inspection comes with a fine.
+            val fine = if (serviceResult.specialVisits.any { v -> v.guest == SpecialGuest.INSPECTOR && !v.pleased }) INSPECTION_FINE else 0L
+            it.copy(revenue = it.revenue + serviceResult.tips, tips = serviceResult.tips, miscellaneous = it.miscellaneous + fine)
+        }
 
         val newCash = start.restaurant.cash + financials.profitOrLoss
-        val newReputation = (start.restaurant.reputation + reputationDelta).coerceIn(0, 100)
+        // Special guests: the critic's review and the inspector's report move the stars on their own.
+        val specialDelta = serviceResult.specialVisits.sumOf { visit ->
+            when (visit.guest) {
+                SpecialGuest.CRITIC -> if (visit.pleased) 5 else -5
+                SpecialGuest.INSPECTOR -> if (visit.pleased) 3 else -3
+                SpecialGuest.CELEBRITY -> if (visit.pleased) 0 else -2
+            }
+        }
+        serviceResult.specialVisits.forEach { visit ->
+            dayLog += SimulationLogEntry(state.day, "A ${visit.guest.name.lowercase()} came in and was ${if (visit.pleased) "impressed" else "not impressed"}.", if (visit.pleased) LogTone.GOOD else LogTone.BAD)
+        }
+        // A celebrity who enjoyed themselves brings a crowd tomorrow.
+        val celebrityBuzz = if (serviceResult.specialVisits.any { it.guest == SpecialGuest.CELEBRITY && it.pleased }) CELEBRITY_BUZZ else 0
+        val newReputation = (start.restaurant.reputation + reputationDelta + specialDelta).coerceIn(0, 100)
 
         dayLog += SimulationLogEntry(
             day = state.day,
@@ -201,7 +219,7 @@ class DefaultDayTickEngine(
             dishSalesTotals = updatedDishTotals,
             applicants = applicants,
             recentSatisfaction = averageSatisfaction,
-            pendingDemandModifierPercent = 0,
+            pendingDemandModifierPercent = celebrityBuzz,
         ).withStatusChecked()
 
         fun summaryFor(end: GameState) = DaySummary(
@@ -285,3 +303,9 @@ data class ServiceSetup(
 
 /** No overnight events after the first this-many nights. */
 private const val QUIET_FIRST_NIGHTS = 2
+
+/** Extra guests (percent) the day after a happy celebrity visit. */
+private const val CELEBRITY_BUZZ = 40
+
+/** What a failed health inspection costs. */
+private const val INSPECTION_FINE = 60L

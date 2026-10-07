@@ -570,6 +570,13 @@ private fun nightHint(night: ServiceNight): String = when (val hint = NightHint.
     NightHint.FixFridge -> stringResource(R.string.hint_fix_fridge)
     NightHint.FixingFridge -> stringResource(R.string.hint_fixing_fridge)
     NightHint.FridgeStruggling -> stringResource(R.string.hint_fridge_struggling)
+    is NightHint.SpecialArrived -> stringResource(
+        when (hint.guest) {
+            com.recipefordisaster.domain.service.SpecialGuest.CRITIC -> R.string.hint_critic
+            com.recipefordisaster.domain.service.SpecialGuest.CELEBRITY -> R.string.hint_celebrity
+            com.recipefordisaster.domain.service.SpecialGuest.INSPECTOR -> R.string.hint_inspector
+        },
+    )
     NightHint.Cooking -> stringResource(R.string.hint_cooking)
     is NightHint.CookingFor -> stringResource(R.string.hint_cooking_for, hint.table + 1)
     NightHint.Eating -> stringResource(R.string.hint_eating)
@@ -691,6 +698,15 @@ private fun EndOfNightPanel(visible: Boolean, report: DayReport, onShowBill: () 
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )
+            // How the special guests found it.
+            report.specials.forEach { visit ->
+                val line = when (visit.guest) {
+                    com.recipefordisaster.domain.service.SpecialGuest.CRITIC -> if (visit.pleased) R.string.special_critic_good else R.string.special_critic_bad
+                    com.recipefordisaster.domain.service.SpecialGuest.CELEBRITY -> if (visit.pleased) R.string.special_celebrity_good else R.string.special_celebrity_bad
+                    com.recipefordisaster.domain.service.SpecialGuest.INSPECTOR -> if (visit.pleased) R.string.special_inspector_good else R.string.special_inspector_bad
+                }
+                Text(stringResource(line), style = MaterialTheme.typography.titleMedium, color = if (visit.pleased) LeafGreen else DisasterRed, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
+            }
             if (newTable) {
                 Text(stringResource(R.string.new_table_tomorrow), style = MaterialTheme.typography.titleMedium, color = LeafGreen, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
             }
