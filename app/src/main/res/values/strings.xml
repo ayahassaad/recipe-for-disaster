@@ -78,6 +78,7 @@
     <string name="hint_power">Power cut! The kitchen\'s stopped. Tap the fuse box by the door.</string>
     <string name="hint_handling_chaos">Sorting it out…</string>
     <string name="night_chaos">Trouble: tap to sort it out</string>
+    <string name="hint_cat_knocked">The cat knocked table %1$d\'s food off the counter! The chef is making it again.</string>
     <string name="hint_waiting">Waiting for guests to come in…</string>
     <string name="hint_cooking">The kitchen is cooking…</string>
     <string name="hint_cooking_for">The chef is cooking table %1$d\'s order…</string>

@@ -39,6 +39,8 @@ sealed interface NightHint {
     data class Chaos(val kind: com.recipefordisaster.domain.service.ChaosKind) : NightHint
     /** Dealing with it right now. */
     data object HandlingChaos : NightHint
+    /** The cat just knocked a table's food off the counter. */
+    data class CatKnocked(val table: Int) : NightHint
     /** A special guest has just come in. */
     data class SpecialArrived(val guest: com.recipefordisaster.domain.service.SpecialGuest, val table: Int?) : NightHint
     data object Cooking : NightHint
@@ -62,7 +64,7 @@ sealed interface NightHint {
         MopSpill -> night.messesOnFloor.firstOrNull()?.let { NightFocus.Spill(it.id) }
         FixFridge, FridgeStruggling -> NightFocus.Fridge
         is Chaos -> NightFocus.Chaos
-        HandlingChaos -> null
+        HandlingChaos, is CatKnocked -> null
         is SpecialArrived -> table?.let { NightFocus.Table(it) }
         Washing, Mopping, OutOfFood, Waiting, Cooking, TidyingUp, FixingFridge, is CookingFor, Eating, is Deciding -> null
     }
@@ -90,6 +92,7 @@ sealed interface NightHint {
                 // A broken fridge stops orders, so fixing it comes before almost anything else.
                 night.fridgeBroken && !night.fridgeBeingFixed -> FixFridge
                 night.activeChaos != null && !night.chaosBeingHandled -> Chaos(night.activeChaos!!.kind)
+                night.time - night.catKnockAt < 4f && night.catKnockTable != null -> CatKnocked(night.catKnockTable!!)
                 night.fridgeStruggling -> FridgeStruggling
                 me.tickets.isNotEmpty() && !handingIn -> HandIn
                 toCollect?.table != null && me.freeHands - collecting.size > 0 -> PickUp(toCollect.table!!, toCollect.id)

@@ -388,6 +388,11 @@ fun NightScene(
                     }
                     drawFuseBox(night.activeChaos?.kind == ChaosKind.POWER_CUT)
 
+                    // The restaurant cat, and the plate it just knocked off the counter.
+                    night.catPose()?.let { pose -> drawCat(pose.at.toPoint(), pose.walking, pose.facingRight, clock) }
+                    val sinceKnock = time - night.catKnockAt
+                    if (sinceKnock in 0f..1.2f) drawFallingPlate(text, Point(78f, SceneLayout.counter.top + 2f), sinceKnock)
+
                     // Anyone fixing the fridge: banging away at it with a spanner.
                     night.waiters.filter { it.errand == ServiceNight.Errand.FixFridge }.forEach { w ->
                         val progress = ((night.time - w.routeStart) / (w.routeEnd - w.routeStart).coerceAtLeast(0.01f)).coerceIn(0f, 1f)
@@ -1028,4 +1033,62 @@ private fun Pen.drawFuseBox(out: Boolean) {
     val lever = if (out) c.y - 5.6f else c.y - 7.6f
     box(c.x - 4.3f, lever, 1f, 1.6f, Color(0xFFE0E0E0), radius = 0.2f)
     dot(c.x - 2.8f, c.y - 8f, 0.35f, if (out) Palette.alert else Color(0xFF4CAF50))
+}
+
+/**
+ * The restaurant cat: a grey tabby with a curling tail and stripes. Walking, its legs move; sitting, it
+ * tucks in and the tail swishes. [facingRight] is the way it's heading.
+ */
+private fun Pen.drawCat(at: Point, walking: Boolean, facingRight: Boolean, clock: Float) {
+    val dir = if (facingRight) 1f else -1f
+    val fur = Color(0xFF8E8E96)
+    val dark = Color(0xFF5E5E66)
+    oval(at.x, at.y + 1.5f, 3.4f, 0.9f, Palette.shadow)
+    // Tail curling up behind.
+    val swish = sin(clock * (if (walking) 6f else 2.2f)) * 1.2f
+    shape(dark, stroke = 0.7f) {
+        moveTo(at.x - dir * 2.6f, at.y)
+        quadTo(at.x - dir * 4.6f, at.y - 1f, at.x - dir * (4f + swish * 0.4f), at.y - 3.4f + swish * 0.3f)
+    }
+    if (walking) {
+        val step = sin(clock * 12f) * 0.6f
+        for ((k, x) in listOf(-1.8f, -0.8f, 0.9f, 1.9f).withIndex()) box(at.x + dir * x - 0.3f, at.y + 0.4f + (if (k % 2 == 0) step else -step), 0.6f, 1.2f, dark, radius = 0.3f)
+        oval(at.x, at.y - 0.2f, 3f, 1.3f, fur)
+    } else {
+        // Sitting tall.
+        oval(at.x, at.y - 0.4f, 2.4f, 1.8f, fur)
+    }
+    for (k in -1..1) line(at.x + k * 0.9f, at.y - 1.3f, at.x + k * 0.9f + 0.3f, at.y + 0.6f, dark, 0.3f) // stripes
+    // Head with ears, eyes and whiskers.
+    val head = Point(at.x + dir * 2.6f, at.y - (if (walking) 1.2f else 2.4f))
+    dot(head, 1.5f, fur)
+    for (side in listOf(-1f, 1f)) shape(fur) {
+        moveTo(head.x + side * 1.4f, head.y - 0.6f)
+        lineTo(head.x + side * 0.9f, head.y - 2.4f)
+        lineTo(head.x + side * 0.2f, head.y - 1.2f)
+        close()
+    }
+    val blink = (clock % 4f) > 3.85f
+    for (side in listOf(-1f, 1f)) {
+        if (blink) line(head.x + side * 0.6f - 0.2f, head.y - 0.2f, head.x + side * 0.6f + 0.2f, head.y - 0.2f, Palette.ink, 0.2f)
+        else dot(head.x + side * 0.6f, head.y - 0.2f, 0.28f, Color(0xFF6DA34D))
+        line(head.x + side * 0.5f, head.y + 0.5f, head.x + side * 2.2f, head.y + 0.3f, Color(0x88FFFFFF), 0.12f)
+    }
+    dot(head.x, head.y + 0.4f, 0.22f, Color(0xFFE8A0A0))
+}
+
+/** A plate tumbling off the counter and smashing, with a "crash!". */
+private fun Pen.drawFallingPlate(text: TextMeasurer, from: Point, t: Float) {
+    if (t < 0.5f) {
+        val y = from.y + t / 0.5f * 7f
+        dot(from.x, y, 2f, Color.White)
+        ring(from.x, y, 2f, Color(0x33000000), 0.2f)
+    } else {
+        val spread = (t - 0.5f) * 6f
+        for (k in 0..5) {
+            val a = k * 1.05f
+            dot(from.x + kotlin.math.cos(a) * spread, from.y + 7.5f + kotlin.math.sin(a) * spread * 0.4f, 0.6f, Color.White)
+        }
+        centeredText(text, "crash!", Point(from.x, from.y + 3f - spread), size = 2.4f, color = Palette.alert, bold = true)
+    }
 }

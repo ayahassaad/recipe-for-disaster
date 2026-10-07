@@ -64,6 +64,13 @@ data class ServiceNight(
     val tableCount: Int = ServiceFloor.TABLE_COUNT,
     /** For guests who gave up: at which step (the door, waiting to order, or waiting for food). */
     val gaveUpAt: Map<Int, WaitedFor> = emptyMap(),
+    /** Whether the restaurant cat is about tonight. */
+    val cat: Boolean = false,
+    /** Tables the cat has sat by tonight: guests there enjoy it. */
+    val catVisited: Set<Int> = emptySet(),
+    /** When the cat last knocked a plate off the counter, and whose it was. */
+    val catKnockAt: Float = -100f,
+    val catKnockTable: Int? = null,
     /** Tonight's chaotic moment, if there is one (rolled when the doors open). */
     val chaos: Chaos? = null,
     /** How tonight's special guests found it, as they leave. */
@@ -402,6 +409,7 @@ data class ServiceNight(
         var night = copy(time = time + dt)
         night = night.fridgeStep()
         night = night.chaosStep()
+        night = night.catStep()
         night = night.arrivals()
         night = night.seatParties()
         night = night.checkPatience()
@@ -410,6 +418,42 @@ data class ServiceNight(
         night = night.moveWaiters()
         night = night.directStaff()
         if (night.time > HARD_STOP) night = night.closeUp()
+        return night
+    }
+
+    /**
+     * Where the cat is and what it's doing: it pads between a few favourite spots, sitting at each for a
+     * moment, and one of the spots is up on the counter by the plates.
+     */
+    fun catPose(): CatPose? {
+        if (!cat) return null
+        val leg = (time / CAT_LEG).toInt()
+        val inLeg = (time % CAT_LEG) / CAT_LEG
+        val from = CAT_SPOTS[leg % CAT_SPOTS.size]
+        val to = CAT_SPOTS[(leg + 1) % CAT_SPOTS.size]
+        val walking = inLeg < CAT_WALKING
+        val at = if (walking) from.lerp(to, inLeg / CAT_WALKING) else to
+        return CatPose(at, walking = walking, onCounter = !walking && to == CAT_COUNTER_SPOT, facingRight = to.x >= from.x)
+    }
+
+    /** The cat's comings and goings: making friends at tables, and knocking forgotten plates off the counter. */
+    private fun catStep(): ServiceNight {
+        val pose = catPose() ?: return this
+        var night = this
+        if (!pose.walking) {
+            // Sitting by a table: whoever's there now enjoys it.
+            layout.tables.indices.firstOrNull { t -> layout.stand(t).distanceTo(pose.at) < 12f && partyAt(t) != null }?.let { t ->
+                if (t !in catVisited) night = night.copy(catVisited = catVisited + t)
+            }
+            // Up on the counter next to a plate that's been sitting there a while: whoops.
+            if (pose.onCounter && time - catKnockAt > CAT_KNOCK_EVERY) {
+                val forgotten = platesOnCounter.firstOrNull { time - it.stageSince > CAT_KNOCK_AFTER }
+                if (forgotten != null) {
+                    night = night.copy(catKnockAt = time, catKnockTable = forgotten.table)
+                        .updateParty(forgotten.id) { it.copy(stage = Stage.IN_KITCHEN, stageSince = time) }
+                }
+            }
+        }
         return night
     }
 
@@ -594,7 +638,9 @@ data class ServiceNight(
                         // A dirty floor puts people off, however good the food was.
                     // A rat or a dog about puts people off as much as a spill does.
                     val bother = if (night.activeChaos?.botherGuests == true) 1 else 0
-                    val mess = (night.messesOnFloor.size + bother).coerceAtMost(MAX_MESS_PENALTIES) * MESS_PENALTY
+                    val mess = (night.messesOnFloor.size + bother).coerceAtMost(MAX_MESS_PENALTIES) * MESS_PENALTY -
+                        // ...while a visit from the cat makes their evening.
+                        (if (party.table in night.catVisited) CAT_JOY else 0)
                     val satisfaction = (ServiceSimulator.resolveSatisfaction(customer, dish, waitedMinutes, kitchenQualityBonus) - mess).coerceIn(0, 100)
                         results = results + (guest to CustomerServiceOutcome(customer, dish, satisfaction, waitedMinutes))
                     }
@@ -879,6 +925,20 @@ data class ServiceNight(
         /** How long a plate sits on the pass before a runner takes it out instead of waiting for the player. */
         private const val RUNNER_DELAY = 3f
 
+        /** The cat: comes from this day, walks between spots (each leg this long, the first part walking). */
+        private const val CAT_FROM_DAY = 3
+        private const val CAT_LEG = 9f
+        private const val CAT_WALKING = 0.5f
+        private const val CAT_JOY = 6
+        /** A plate left on the counter this long tempts the cat; it won't knock more than one this often. */
+        private const val CAT_KNOCK_AFTER = 7f
+        private const val CAT_KNOCK_EVERY = 25f
+        private val CAT_COUNTER_SPOT = FloorPoint(78f, 39.5f)
+        private val CAT_SPOTS = listOf(
+            FloorPoint(14f, 80f), FloorPoint(40f, 108f), FloorPoint(86f, 80f), CAT_COUNTER_SPOT,
+            FloorPoint(62f, 110f), FloorPoint(14f, 132f), FloorPoint(86f, 132f), FloorPoint(38f, 80f),
+        )
+
         /** Seconds to chase out the rat, put out the fire, lead the dog out or flip the fuses. */
         private const val HANDLE_CHAOS = 1.6f
 
@@ -1073,6 +1133,7 @@ data class ServiceNight(
                 tableCount = tableCount,
                 fridgeBreaksAt = fridgeBreaksAt,
                 chaos = chaos,
+                cat = state.day >= CAT_FROM_DAY,
                 fridgeBroken = fridgeBrokenAtOpen,
                 hosted = state.employees.any { it.status == EmployeeStatus.ACTIVE && it.role == Role.HOST },
             )
@@ -1125,3 +1186,6 @@ data class ServiceNight(
         }
     }
 }
+
+/** Where the cat is: walking between spots, or sitting (maybe up on the counter). */
+data class CatPose(val at: FloorPoint, val walking: Boolean, val onCounter: Boolean, val facingRight: Boolean)

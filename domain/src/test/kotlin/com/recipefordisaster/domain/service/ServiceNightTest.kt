@@ -646,4 +646,18 @@ class ServiceNightTest {
         val later = waitFor(n) { it.time > 30f }
         assertEquals(null, later.activeChaos)
     }
+
+    @Test
+    fun `the cat comes from the third night, and knocks a forgotten plate off the counter`() {
+        assertTrue(!open(start.copy(day = 1)).cat)
+        val noRunners = start.copy(day = 4, employees = start.employees.filter { it.role == com.recipefordisaster.domain.employee.Role.COOK })
+        var n = waitFor(open(noRunners)) { night -> night.parties.any { it.stage == Stage.READY_TO_ORDER } }
+        assertTrue(n.cat)
+        val party = n.parties.first { it.stage == Stage.READY_TO_ORDER }
+        n = waitFor(n.tapTable(party.table!!)) { !it.player.walking }
+        n = waitFor(n.tapChef()) { !it.player.walking }
+        // Leave the plate on the counter: sooner or later the cat gets it, and the chef makes it again.
+        n = waitFor(n) { it.catKnockTable == party.table }
+        assertEquals(party.table, n.catKnockTable)
+    }
 }

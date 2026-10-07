@@ -580,6 +580,7 @@ private fun nightHint(night: ServiceNight): String = when (val hint = NightHint.
         },
     )
     NightHint.HandlingChaos -> stringResource(R.string.hint_handling_chaos)
+    is NightHint.CatKnocked -> stringResource(R.string.hint_cat_knocked, hint.table + 1)
     is NightHint.SpecialArrived -> stringResource(
         when (hint.guest) {
             com.recipefordisaster.domain.service.SpecialGuest.CRITIC -> R.string.hint_critic
