@@ -300,5 +300,7 @@
     <string name="leave_body_night">Tonight is saved right where you are. Tap Continue on the start screen to carry on.</string>
     <string name="leave_body_morning">Your game is saved, but this morning\'s changes (buying, hiring and so on) won\'t be kept.</string>
     <string name="leave_confirm">Leave</string>
+    <string name="sound_effects">Sound effects</string>
+    <string name="sound_music">Music</string>
     <string name="leave_stay">Stay</string>
 </resources>

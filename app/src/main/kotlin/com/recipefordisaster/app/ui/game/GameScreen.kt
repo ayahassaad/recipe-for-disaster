@@ -139,6 +139,24 @@ fun GameScreen(
     onBackToStart: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Music plays while you're in the game, and stops when you leave it (or the app goes to the background).
+    val sounds = com.recipefordisaster.app.ui.sound.Sounds.get(androidx.compose.ui.platform.LocalContext.current)
+    val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycle) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            when (event) {
+                androidx.lifecycle.Lifecycle.Event.ON_START -> sounds.musicPlaying(true)
+                androidx.lifecycle.Lifecycle.Event.ON_STOP -> sounds.musicPlaying(false)
+                else -> {}
+            }
+        }
+        lifecycle.lifecycle.addObserver(observer)
+        sounds.musicPlaying(true)
+        onDispose {
+            lifecycle.lifecycle.removeObserver(observer)
+            sounds.musicPlaying(false)
+        }
+    }
     when (uiState) {
         is GameUiState.Loading -> Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         is GameUiState.Error -> Scaffold(modifier = modifier.fillMaxSize()) { padding ->
@@ -165,15 +183,29 @@ fun GameScreen(
                     onDismissRequest = { askLeave = false },
                     title = { Text(stringResource(R.string.leave_title)) },
                     text = {
-                        Text(
-                            stringResource(
-                                when {
-                                    uiState.night != null -> R.string.leave_body_night
-                                    uiState.report == null && uiState.plan != PlayerDecisions() -> R.string.leave_body_morning
-                                    else -> R.string.leave_body
-                                },
-                            ),
-                        )
+                        Column {
+                            Text(
+                                stringResource(
+                                    when {
+                                        uiState.night != null -> R.string.leave_body_night
+                                        uiState.report == null && uiState.plan != PlayerDecisions() -> R.string.leave_body_morning
+                                        else -> R.string.leave_body
+                                    },
+                                ),
+                            )
+                            // Sound settings live in the menu.
+                            var effects by remember { mutableStateOf(sounds.effectsOn) }
+                            var music by remember { mutableStateOf(sounds.musicOn) }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(stringResource(R.string.sound_effects), modifier = Modifier.weight(1f))
+                                androidx.compose.material3.Switch(checked = effects, onCheckedChange = { effects = it; sounds.effectsOn = it })
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(stringResource(R.string.sound_music), modifier = Modifier.weight(1f))
+                                androidx.compose.material3.Switch(checked = music, onCheckedChange = { music = it; sounds.musicOn = it })
+                            }
+                        }
                     },
                     confirmButton = { TextButton(onClick = { askLeave = false; onBackToStart() }) { Text(stringResource(R.string.leave_confirm)) } },
                     dismissButton = { TextButton(onClick = { askLeave = false }) { Text(stringResource(R.string.leave_stay)) } },
@@ -412,6 +444,7 @@ private fun sceneLabels(need: MorningAdvisor.Need? = null): SceneLabels {
  */
 @Composable
 private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit, onProgress: (ServiceNight) -> Unit, onMenu: () -> Unit, modifier: Modifier = Modifier) {
+    val sounds = com.recipefordisaster.app.ui.sound.Sounds.get(androidx.compose.ui.platform.LocalContext.current)
     var night by remember(session) { mutableStateOf(session.opening) }
     var clock by remember { mutableFloatStateOf(0f) }
     // Paused: time stands still, nothing can be tapped, and a sign says how to carry on.
@@ -456,10 +489,16 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
             if (paused) continue
             clock += dt
             if (!night.finished) {
+                val before = night
                 night = night.advance(dt)
+                soundsFor(before, night)?.let { sounds.play(it) }
             } else if (!reported) {
                 // The last guest has gone: a moment of "Closing time!" before the bill.
-                if (closedAt < 0f) closedAt = clock
+                if (closedAt < 0f) {
+                    closedAt = clock
+                    val r = night.result().outcomes
+                    if (r.isNotEmpty() && r.all { it.dish != null }) sounds.play(com.recipefordisaster.app.ui.sound.Sfx.FANFARE)
+                }
                 if (clock - closedAt >= CLOSING_PAUSE) {
                     reported = true
                     currentOnFinished(night)
@@ -793,4 +832,32 @@ private fun CostsDialog(state: GameState, onClose: () -> Unit) {
         },
         confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.costs_close)) } },
     )
+}
+
+/**
+ * The sound for what just happened between two moments of the night, if anything did (only the most
+ * notable one, so sounds never pile up on top of each other).
+ */
+private fun soundsFor(before: ServiceNight, after: ServiceNight): com.recipefordisaster.app.ui.sound.Sfx? {
+    fun count(n: ServiceNight, stage: ServiceNight.Stage) = n.parties.count { it.stage == stage }
+    val beforeMe = before.player
+    val afterMe = after.player
+    return when {
+        after.activeChaos != null && before.activeChaos == null -> com.recipefordisaster.app.ui.sound.Sfx.ALARM
+        after.fridgeBroken && !before.fridgeBroken -> com.recipefordisaster.app.ui.sound.Sfx.ALARM
+        count(after, ServiceNight.Stage.LEAVING_ANGRY) > count(before, ServiceNight.Stage.LEAVING_ANGRY) -> com.recipefordisaster.app.ui.sound.Sfx.GRUMBLE
+        count(after, ServiceNight.Stage.LEAVING_HAPPY) > count(before, ServiceNight.Stage.LEAVING_HAPPY) -> com.recipefordisaster.app.ui.sound.Sfx.COINS
+        count(after, ServiceNight.Stage.READY_AT_PASS) > count(before, ServiceNight.Stage.READY_AT_PASS) -> com.recipefordisaster.app.ui.sound.Sfx.BELL
+        after.catKnockAt != before.catKnockAt -> com.recipefordisaster.app.ui.sound.Sfx.CLANK
+        (before.activeChaos != null && after.activeChaos == null) || (before.fridgeBroken && !after.fridgeBroken) -> com.recipefordisaster.app.ui.sound.Sfx.CLANK
+        afterMe.plates.size > beforeMe.plates.size -> com.recipefordisaster.app.ui.sound.Sfx.CLINK
+        beforeMe.tickets.isNotEmpty() && afterMe.tickets.isEmpty() -> com.recipefordisaster.app.ui.sound.Sfx.PAPER
+        afterMe.tickets.size > beforeMe.tickets.size -> com.recipefordisaster.app.ui.sound.Sfx.PAPER
+        afterMe.errand == ServiceNight.Errand.Wash && beforeMe.errand != ServiceNight.Errand.Wash -> com.recipefordisaster.app.ui.sound.Sfx.SPLASH
+        after.messesOnFloor.size > before.messesOnFloor.size -> com.recipefordisaster.app.ui.sound.Sfx.SPLASH
+        count(after, ServiceNight.Stage.QUEUEING) + count(after, ServiceNight.Stage.WALKING_TO_TABLE) >
+            count(before, ServiceNight.Stage.QUEUEING) + count(before, ServiceNight.Stage.WALKING_TO_TABLE) -> com.recipefordisaster.app.ui.sound.Sfx.DOOR
+        after.catVisited.size > before.catVisited.size -> com.recipefordisaster.app.ui.sound.Sfx.MEOW
+        else -> null
+    }
 }
