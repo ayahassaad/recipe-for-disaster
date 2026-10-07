@@ -101,6 +101,7 @@ data class GameActions(
     val onToggleUpgrade: (EquipmentId) -> Unit = {},
     val onToggleDeepClean: () -> Unit = {},
     val onToggleBuyTable: () -> Unit = {},
+    val onToggleDecor: (com.recipefordisaster.domain.restaurant.Decor) -> Unit = {},
 )
 
 fun GameViewModel.actions(): GameActions = GameActions(
@@ -122,6 +123,7 @@ fun GameViewModel.actions(): GameActions = GameActions(
     onToggleUpgrade = ::toggleUpgrade,
     onToggleDeepClean = ::toggleDeepClean,
     onToggleBuyTable = ::toggleBuyTable,
+    onToggleDecor = ::toggleDecor,
 )
 
 /**
@@ -358,6 +360,7 @@ internal fun sceneModelFor(state: GameState, advice: List<Advice>, hiringOpen: B
         fridgeLevel = com.recipefordisaster.domain.equipment.Fridge.of(state)?.upgradeLevel ?: 1,
         tableCount = state.restaurant.tables,
         name = state.restaurant.displayName,
+        decor = state.restaurant.decor,
         pantryFullness = fullness,
         pantryJars = jars,
         cleanliness = state.restaurant.cleanliness,
@@ -389,6 +392,7 @@ private fun sceneLabels(need: MorningAdvisor.Need? = null): SceneLabels {
         ),
         oven = stringResource(R.string.scene_oven),
         fridge = stringResource(R.string.scene_fridge),
+        decorate = stringResource(R.string.scene_decorate),
         pantry = stringResource(R.string.scene_pantry),
         mop = stringResource(R.string.scene_mop),
         hiringSign = stringResource(R.string.scene_hiring),

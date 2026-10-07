@@ -127,6 +127,8 @@ data class PlayerDecisions(
     val deepClean: Boolean = false,
     /** Buy one more table (only possible once the free ones have all arrived). */
     val buyTable: Boolean = false,
+    /** Decorations to buy this morning. */
+    val buyDecor: Set<com.recipefordisaster.domain.restaurant.Decor> = emptySet(),
 )
 
 data class DayResult(

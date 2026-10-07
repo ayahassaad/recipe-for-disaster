@@ -33,6 +33,8 @@ import com.recipefordisaster.domain.employee.Role as StaffRole
 sealed interface SceneTarget {
     data object Oven : SceneTarget
     data object Fridge : SceneTarget
+    /** Any of the potted plants: opens the decorations shop. */
+    data class Decorate(val spot: Int) : SceneTarget
     data object Pantry : SceneTarget
     data object MenuBoard : SceneTarget
     data object Mop : SceneTarget
@@ -74,6 +76,7 @@ data class SceneModel(
     val fridgeLevel: Int = 1,
     /** The restaurant's name, for the sign over the door. */
     val name: String = "",
+    val decor: Set<com.recipefordisaster.domain.restaurant.Decor> = emptySet(),
 )
 
 data class SceneLabels(
@@ -81,6 +84,7 @@ data class SceneLabels(
     val hiring: String,
     val oven: String,
     val fridge: String = "",
+    val decorate: String = "",
     val pantry: String,
     val mop: String,
     val hiringSign: String,
@@ -131,13 +135,13 @@ fun RestaurantScene(
             val pen = Pen(this, unit, origin)
             val time = clock
             with(pen) {
-                drawRoom(model.cleanliness, doorOpen = 0f, time = time, name = model.name, text = text)
+                drawRoom(model.cleanliness, doorOpen = 0f, time = time, name = model.name, text = text, decor = model.decor)
                 drawOven(model.ovenCondition, time, model.ovenOnFire, model.ovenLevel)
                 drawStove(false, time)
                 drawFridge(model.fridgeCondition, broken = model.fridgeCondition <= 0, struggling = false, level = model.fridgeLevel, time = time)
                 drawDishStation(text, labels.dishSign)
                 drawPantry(model.pantryFullness, model.pantryJars)
-                drawTables(ServiceFloor.layout(model.tableCount))
+                drawTables(ServiceFloor.layout(model.tableCount), fancy = com.recipefordisaster.domain.restaurant.Decor.TABLECLOTHS in model.decor)
                 drawMenuBoard(text, labels.menu)
                 drawMopBucket()
                 if (model.hiring) drawHiringSign(text, labels.hiring)
@@ -170,6 +174,9 @@ fun RestaurantScene(
             val targets = listOf(
                 SceneTarget.Oven to labels.oven,
                 SceneTarget.Fridge to labels.fridge,
+                SceneTarget.Decorate(0) to labels.decorate,
+                SceneTarget.Decorate(1) to labels.decorate,
+                SceneTarget.Decorate(2) to labels.decorate,
                 SceneTarget.Pantry to labels.pantry,
                 SceneTarget.MenuBoard to labels.menu,
                 SceneTarget.Mop to labels.mop,
@@ -217,6 +224,7 @@ internal fun staffPositions(staff: List<StaffFigure>): List<Pair<StaffFigure, Po
 private fun rectFor(target: SceneTarget, staffSpots: List<Pair<StaffFigure, Point>>): Rect? = when (target) {
     SceneTarget.Oven -> SceneLayout.oven
     SceneTarget.Fridge -> SceneLayout.fridge
+    is SceneTarget.Decorate -> listOf(Point(5f, 50f), Point(95f, 50f), Point(95f, 131f))[target.spot].let { Rect(it.x - 5f, it.y - 5f, it.x + 5f, it.y + 5f) }
     SceneTarget.Pantry -> SceneLayout.pantry
     SceneTarget.MenuBoard -> SceneLayout.menuBoard
     SceneTarget.Mop -> Rect(SceneLayout.mopBucket.left, SceneLayout.mopBucket.top - 6f, SceneLayout.mopBucket.right + 4f, SceneLayout.mopBucket.bottom)

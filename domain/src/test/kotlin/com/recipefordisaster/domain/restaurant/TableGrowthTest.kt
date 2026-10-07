@@ -80,4 +80,16 @@ class TableGrowthTest {
         val rng = SeededRandomSource(9L)
         repeat(500) { assertTrue(com.recipefordisaster.domain.customer.CustomerFlow.generateCustomer(rng, it).budget >= cheapest) }
     }
+
+    @Test
+    fun `decorations are bought once, cost coins, and help`() {
+        val rich = start.copy(restaurant = start.restaurant.copy(cash = 2_000))
+        val applied = DecisionApplier.apply(rich, PlayerDecisions(buyDecor = setOf(Decor.FISH_TANK, Decor.PLANTS)))
+        assertEquals(setOf(Decor.FISH_TANK, Decor.PLANTS), applied.state.restaurant.decor)
+        assertEquals(370L, applied.spending.upgrades)
+        assertTrue(applied.state.restaurant.guestCapacity > rich.restaurant.guestCapacity)
+        // Buying it again does nothing.
+        assertEquals(0L, DecisionApplier.apply(applied.state, PlayerDecisions(buyDecor = setOf(Decor.FISH_TANK))).spending.upgrades)
+        assertTrue(Decor.satisfactionBonus(setOf(Decor.TABLECLOTHS, Decor.PAINTING)) > 0)
+    }
 }
