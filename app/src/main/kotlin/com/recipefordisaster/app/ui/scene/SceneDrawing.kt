@@ -7,6 +7,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
@@ -135,9 +136,28 @@ internal object Palette {
 internal fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSurround(origin: androidx.compose.ui.geometry.Offset, unit: Float) {
     val top = origin.y
     val bottom = origin.y + unit * SceneLayout.HEIGHT
-    if (top > 0f) {
-        drawRect(Palette.kitchenTileB, size = Size(size.width, top + 1f))
-        drawRect(Palette.grout, topLeft = androidx.compose.ui.geometry.Offset(0f, top - unit * 0.4f), size = Size(size.width, unit * 0.4f))
+    if (top > 0f) clipRect(0f, 0f, size.width, top) {
+        // The kitchen's tiled wall carries on up to the top of the screen, in the same checkerboard
+        // (clipped, so it never spills over the bar above).
+        val tile = 6f * unit
+        var row = 1
+        while (top - row * tile > -tile) {
+            val y = top - row * tile
+            var col = kotlin.math.floor(-origin.x / tile).toInt()
+            while (origin.x + col * tile < size.width) {
+                val x = origin.x + col * tile
+                val even = (col + row) % 2 == 0
+                drawRect(if (even) Palette.kitchenTileB else Palette.kitchenTileA, topLeft = androidx.compose.ui.geometry.Offset(x, y), size = Size(tile + 1f, tile + 1f))
+                col++
+            }
+            drawRect(Palette.grout, topLeft = androidx.compose.ui.geometry.Offset(0f, y), size = Size(size.width, unit * 0.15f))
+            row++
+        }
+        var c = kotlin.math.floor(-origin.x / tile).toInt()
+        while (origin.x + c * tile < size.width) {
+            drawRect(Palette.grout, topLeft = androidx.compose.ui.geometry.Offset(origin.x + c * tile, 0f), size = Size(unit * 0.15f, top))
+            c++
+        }
     }
     if (bottom < size.height) drawRect(Palette.woodDark, topLeft = androidx.compose.ui.geometry.Offset(0f, bottom - 1f), size = Size(size.width, size.height - bottom + 1f))
 }
