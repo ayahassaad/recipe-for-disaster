@@ -285,7 +285,17 @@ private fun Hud(day: Int, cash: Long, reputation: Int, subtitle: String, onMenu:
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(stringResource(R.string.day, day), style = MaterialTheme.typography.headlineMedium)
-                StarRating(reputation)
+                // Tap the stars to see what they mean and what moves them.
+                var explainStars by remember { mutableStateOf(false) }
+                Box(modifier = Modifier.clickable(onClickLabel = stringResource(R.string.stars_title)) { explainStars = true }) { StarRating(reputation) }
+                if (explainStars) {
+                    AlertDialog(
+                        onDismissRequest = { explainStars = false },
+                        title = { Text(stringResource(R.string.stars_title)) },
+                        text = { Text(stringResource(R.string.stars_body, reputation)) },
+                        confirmButton = { TextButton(onClick = { explainStars = false }) { Text(stringResource(R.string.costs_close)) } },
+                    )
+                }
             }
             Column(horizontalAlignment = Alignment.End) {
                 // The total counts up (or down) to its new value, and flashes gold when money comes in.

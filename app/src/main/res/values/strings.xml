@@ -246,6 +246,8 @@
     <string name="final_best">Best seller</string>
     <string name="game_back_to_start">Back to start</string>
     <string name="menu_button">Menu</string>
+    <string name="stars_title">Your stars</string>
+    <string name="stars_body">Your reputation is %1$d out of 100. More stars bring more guests every night.\n\nStars go up when guests leave happy: good food, fair prices and quick service.\n\nThey go down when guests wait too long, go hungry, or the place is dirty. Bad reviews and inspections can knock them down too.</string>
     <string name="costs_title">What it costs each day</string>
     <string name="costs_wage">%1$s\'s wage</string>
     <string name="costs_rent">Rent (%1$d tables)</string>
