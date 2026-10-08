@@ -141,7 +141,11 @@ class GameViewModel(
                     // Saves from before the fridge existed get one.
                     val state = com.recipefordisaster.domain.equipment.Fridge.ensure(result.state).let { s ->
                         // Older saves may be missing a kind of applicant: there's always one of each to hire now.
-                        s.copy(applicants = com.recipefordisaster.domain.employee.StaffingMarket.withEveryBasicRole(s.applicants, com.recipefordisaster.domain.simulation.SeededRandomSource(s.seed + s.day), s.day))
+                        s.copy(
+                            applicants = com.recipefordisaster.domain.employee.StaffingMarket.withEveryBasicRole(s.applicants, com.recipefordisaster.domain.simulation.SeededRandomSource(s.seed + s.day), s.day),
+                            // The room now holds at most nine tables.
+                            restaurant = s.restaurant.copy(tables = s.restaurant.tables.coerceAtMost(com.recipefordisaster.domain.restaurant.TableGrowth.MAX)),
+                        )
                     }
                     // If the app was closed during service, pick the night back up where it was left.
                     val night = gameRepository.loadNight()?.takeIf { it.setup.original == result.state }

@@ -35,11 +35,12 @@ class TableGrowthTest {
     }
 
     @Test
-    fun `tables after the sixth cost coins, each more than the last, up to twelve`() {
+    fun `tables after the sixth cost coins, each more than the last, up to nine`() {
         assertNull(TableGrowth.nextTablePrice(5))
         assertEquals(300L, TableGrowth.nextTablePrice(6))
         assertEquals(400L, TableGrowth.nextTablePrice(7))
-        assertNull(TableGrowth.nextTablePrice(12))
+        assertEquals(500L, TableGrowth.nextTablePrice(8))
+        assertNull(TableGrowth.nextTablePrice(9))
     }
 
     @Test
@@ -51,10 +52,10 @@ class TableGrowthTest {
     }
 
     @Test
-    fun `you can't buy a table while free ones are still arriving, or past twelve, or without the money`() {
+    fun `you can't buy a table while free ones are still arriving, or past nine, or without the money`() {
         assertEquals(2, DecisionApplier.apply(start, PlayerDecisions(buyTable = true)).state.restaurant.tables)
-        val full = start.copy(restaurant = start.restaurant.copy(tables = 12))
-        assertEquals(12, DecisionApplier.apply(full, PlayerDecisions(buyTable = true)).state.restaurant.tables)
+        val full = start.copy(restaurant = start.restaurant.copy(tables = 9))
+        assertEquals(9, DecisionApplier.apply(full, PlayerDecisions(buyTable = true)).state.restaurant.tables)
         val broke = start.copy(restaurant = start.restaurant.copy(tables = 6, cash = 100))
         assertEquals(6, DecisionApplier.apply(broke, PlayerDecisions(buyTable = true)).state.restaurant.tables)
     }
@@ -63,7 +64,7 @@ class TableGrowthTest {
     fun `rent is for the tables you have, so a small new restaurant pays less`() {
         assertEquals(20L, start.restaurant.costsToday.rentPerDay)
         assertEquals(60L, start.restaurant.copy(tables = 6).costsToday.rentPerDay)
-        assertEquals(120L, start.restaurant.copy(tables = 12).costsToday.rentPerDay)
+        assertEquals(90L, start.restaurant.copy(tables = 9).costsToday.rentPerDay)
     }
 
     @Test

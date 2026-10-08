@@ -124,7 +124,7 @@ fun NightScene(
                 with(pen) {
                     val time = night.time
                     val cooking = night.parties.any { it.stage == Stage.COOKING }
-                    drawRoom(model.cleanliness, doorOpen = doorOpenness(night), time = clock, name = model.name, text = text)
+                    drawRoom(model.cleanliness, doorOpen = doorOpenness(night), time = clock, name = model.name, text = text, aisles = layout.aisles)
                     drawOven(model.ovenCondition, clock, onFire = false, level = model.ovenLevel)
                     drawStove(cooking, clock)
                     drawFridge(model.fridgeCondition, broken = night.fridgeBroken, struggling = night.fridgeStruggling, level = model.fridgeLevel, time = clock)
@@ -186,7 +186,7 @@ fun NightScene(
                                 val progress = 1f - (party.until - time) / (party.until - party.stageSince).coerceAtLeast(0.01f)
                                 party.guests.forEachIndexed { g, guest ->
                                     val seat = layout.seats(table)[g]
-                                    val route = ServiceFloor.route(ServiceFloor.door, layout.stand(table)) + seat
+                                    val route = ServiceFloor.route(ServiceFloor.door, layout.stand(table), layout.aisles) + seat
                                     // Side by side all the way in, then each steps into their own seat.
                                     val apart = if (party.guests.size > 1) (1f - ((progress - 0.8f) / 0.2f)).coerceIn(0f, 1f) else 0f
                                     val at = sideBySide(route, progress, if (g == 0) -1f else 1f, apart)
@@ -200,7 +200,7 @@ fun NightScene(
                                 val angry = party.stage == Stage.LEAVING_ANGRY
                                 party.guests.forEachIndexed { g, guest ->
                                     val seat = layout.seats(table)[g]
-                                    val route = listOf(seat) + ServiceFloor.route(layout.stand(table), ServiceFloor.door) + FloorPoint(50f, 156f)
+                                    val route = listOf(seat) + ServiceFloor.route(layout.stand(table), ServiceFloor.door, layout.aisles) + FloorPoint(50f, 156f)
                                     val mood = if (angry) 5 else night.results[guest]?.satisfaction ?: 70
                                     // Up from their seats, then out together side by side.
                                     val apart = if (party.guests.size > 1) (progress / 0.2f).coerceIn(0f, 1f) else 0f

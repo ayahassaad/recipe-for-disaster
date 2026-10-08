@@ -9,7 +9,7 @@ package com.recipefordisaster.domain.restaurant
 object TableGrowth {
     const val STARTING = 2
     const val FREE_UP_TO = 6
-    const val MAX = 12
+    const val MAX = 9
 
     /** Whether tomorrow brings a free table. */
     fun growsFree(tables: Int): Boolean = tables < FREE_UP_TO

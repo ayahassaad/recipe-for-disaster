@@ -453,8 +453,8 @@ class ServiceNightTest {
     }
 
     @Test
-    fun `a packed room of twelve tables plays a full night`() {
-        val big = start.copy(restaurant = start.restaurant.copy(tables = 12, reputation = 80))
+    fun `a full room of nine tables plays a full night`() {
+        val big = start.copy(restaurant = start.restaurant.copy(tables = 9, reputation = 80))
         val n = play(open(big), ::busyPlayer)
         assertTrue(n.finished)
         assertTrue(n.parties.mapNotNull { it.table }.any { it >= 6 })
@@ -659,5 +659,14 @@ class ServiceNightTest {
         // Leave the plate on the counter: sooner or later the cat gets it, and the chef makes it again.
         n = waitFor(n) { it.catKnockTable == party.table }
         assertEquals(party.table, n.catKnockTable)
+    }
+
+    @Test
+    fun `in a nine-table room nobody walks through the middle column of tables`() {
+        val layout = ServiceFloor.layout(9)
+        assertEquals(ServiceFloor.GRID_AISLES, layout.aisles)
+        // From the counter to the middle table in the top row, the walk goes down an aisle, not straight through.
+        val route = ServiceFloor.route(ServiceFloor.pass, layout.stand(1), layout.aisles)
+        assertTrue(route.drop(1).dropLast(1).all { it.x in ServiceFloor.GRID_AISLES })
     }
 }

@@ -163,7 +163,7 @@ internal fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSurround(origi
 }
 
 /** The room. [doorOpen] is how far the front doors are open: 0 shut, 1 wide open. */
-internal fun Pen.drawRoom(cleanliness: Int, doorOpen: Float, time: Float, name: String = "", text: TextMeasurer? = null) {
+internal fun Pen.drawRoom(cleanliness: Int, doorOpen: Float, time: Float, name: String = "", text: TextMeasurer? = null, aisles: List<Float> = listOf(50f)) {
     drawRect(Palette.wall, topLeft = p(0f, 0f), size = Size(u(SceneLayout.WIDTH), u(SceneLayout.HEIGHT)))
 
     // Kitchen: square tiles with grout lines, and a tiled splashback along the back wall.
@@ -201,10 +201,13 @@ internal fun Pen.drawRoom(cleanliness: Int, doorOpen: Float, time: Float, name: 
         y += plankH
         row++
     }
-    // A runner rug down the centre aisle.
-    box(44f, 46f, 12f, 92f, Color(0xFF9E3B2F), radius = 0.8f)
-    box(45f, 47f, 10f, 90f, Color(0xFFB8493A), radius = 0.6f)
-    for (k in 0..8) line(46f, 50f + k * 10f, 54f, 50f + k * 10f, Color(0x55F2D29B), 0.3f)
+    // A runner rug down each aisle: one down the middle, or two between the three columns of a bigger room.
+    val rug = if (aisles.size > 1) 8f else 12f
+    for (x in aisles) {
+        box(x - rug / 2, 46f, rug, 92f, Color(0xFF9E3B2F), radius = 0.8f)
+        box(x - rug / 2 + 1f, 47f, rug - 2f, 90f, Color(0xFFB8493A), radius = 0.6f)
+        for (k in 0..8) line(x - rug / 2 + 2f, 50f + k * 10f, x + rug / 2 - 2f, 50f + k * 10f, Color(0x55F2D29B), 0.3f)
+    }
 
     // Dirt: more stains the dirtier it gets, always in the same places so they don't jump around.
     val stains = ((100 - cleanliness) / 12).coerceIn(0, STAIN_SPOTS.size)

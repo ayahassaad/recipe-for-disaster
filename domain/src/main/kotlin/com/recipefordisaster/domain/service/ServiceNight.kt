@@ -396,7 +396,7 @@ data class ServiceNight(
             is Errand.CleanMess -> messes.firstOrNull { it.id == errand.messId }?.at ?: here
             Errand.Rest -> waiter.restSpot
         }
-        val route = ServiceFloor.route(here, destination)
+        val route = ServiceFloor.route(here, destination, layout.aisles)
         val duration = ServiceFloor.length(route) / waiter.speed
         val moved = waiter.copy(route = route, routeStart = time, routeEnd = time + duration, errand = errand)
         return copy(waiters = waiters.map { if (it.id == waiterId) moved else it })
@@ -527,7 +527,7 @@ data class ServiceNight(
             val free = (0 until night.tableCount).firstOrNull { t ->
                 t !in night.dirtyTables && night.parties.none { it.table == t && it.occupiesTable }
             } ?: break
-            val walk = ServiceFloor.length(ServiceFloor.route(ServiceFloor.door, night.layout.stand(free))) / GUEST_SPEED
+            val walk = ServiceFloor.length(ServiceFloor.route(ServiceFloor.door, night.layout.stand(free), night.layout.aisles)) / GUEST_SPEED
             night = night.updateParty(party.id) { it.copy(stage = Stage.WALKING_TO_TABLE, stageSince = time, table = free, until = time + walk) }
         }
         // Parties that have reached their table are ready to order.

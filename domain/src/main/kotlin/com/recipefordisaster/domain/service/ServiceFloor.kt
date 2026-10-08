@@ -30,7 +30,7 @@ object ServiceFloor {
     const val TABLE_COUNT = 6
 
     /** The most tables the room can hold: twelve smaller ones in four columns. */
-    const val MAX_TABLES = 12
+    const val MAX_TABLES = 9
 
     /** Table centres in a six-table room; table 1 is index 0 (top left), table 6 is index 5 (bottom right). */
     val tables: List<FloorPoint> = listOf(
@@ -39,16 +39,19 @@ object ServiceFloor {
         FloorPoint(27f, 120f), FloorPoint(73f, 120f),
     )
 
-    /** Table centres when the room is packed with more than six: four columns, smaller tables. */
-    private val packed: List<FloorPoint> = listOf(64f, 92f, 120f).flatMap { y -> listOf(13f, 37f, 63f, 87f).map { x -> FloorPoint(x, y) } }
+    /** Table centres when there are more than six: a 3x3 grid, three columns with an aisle between each. */
+    private val grid: List<FloorPoint> = listOf(64f, 92f, 120f).flatMap { y -> listOf(17f, 50f, 83f).map { x -> FloorPoint(x, y) } }
 
-    /** How small tables (and the chairs and people at them) are drawn when the room is packed. */
-    const val PACKED_SCALE = 0.62f
+    /** How big tables (and the chairs and people at them) are drawn in the 3x3 grid: only a little smaller. */
+    const val PACKED_SCALE = 0.8f
+
+    /** The two aisles between the three columns of the grid, where people walk and the carpets run. */
+    val GRID_AISLES = listOf(33.5f, 66.5f)
 
     /** The room laid out for [count] tables. Up to six fit at full size; more need the packed layout. */
     fun layout(count: Int): TableLayout {
         val n = count.coerceIn(1, MAX_TABLES)
-        return if (n <= TABLE_COUNT) TableLayout(tables.take(n), 1f) else TableLayout(packed.take(n), PACKED_SCALE)
+        return if (n <= TABLE_COUNT) TableLayout(tables.take(n), 1f) else TableLayout(grid.take(n), PACKED_SCALE, GRID_AISLES)
     }
 
     /** The two chairs at a table in the six-table room: left, then right. */
@@ -93,8 +96,12 @@ object ServiceFloor {
     fun queueSpot(index: Int): FloorPoint = FloorPoint(38f + (index % 4) * 8f, 134f - (index / 4) * 6f)
 
     /** Walking from one spot to another along the aisles: across to the centre aisle, along it, then across. */
-    fun route(from: FloorPoint, to: FloorPoint): List<FloorPoint> =
-        if (abs(from.y - to.y) < 0.5f) listOf(from, to) else listOf(from, FloorPoint(AISLE_X, from.y), FloorPoint(AISLE_X, to.y), to)
+    fun route(from: FloorPoint, to: FloorPoint, aisles: List<Float> = listOf(AISLE_X)): List<FloorPoint> {
+        if (abs(from.y - to.y) < 0.5f) return listOf(from, to)
+        // Up or down whichever aisle is the shortest way round.
+        val aisle = aisles.minBy { abs(from.x - it) + abs(to.x - it) }
+        return listOf(from, FloorPoint(aisle, from.y), FloorPoint(aisle, to.y), to)
+    }
 
     fun length(route: List<FloorPoint>): Float = route.zipWithNext { a, b -> a.distanceTo(b) }.sum()
 
@@ -112,7 +119,7 @@ object ServiceFloor {
 }
 
 /** Where the tables are tonight, and how big they're drawn ([scale] 1 is full size). */
-data class TableLayout(val tables: List<FloorPoint>, val scale: Float) {
+data class TableLayout(val tables: List<FloorPoint>, val scale: Float, val aisles: List<Float> = listOf(ServiceFloor.AISLE_X)) {
     val count: Int get() = tables.size
 
     /** The two chairs at a table: left, then right. */
