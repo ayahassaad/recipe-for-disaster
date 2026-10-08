@@ -432,8 +432,14 @@ data class ServiceNight(
         val from = CAT_SPOTS[leg % CAT_SPOTS.size]
         val to = CAT_SPOTS[(leg + 1) % CAT_SPOTS.size]
         val walking = inLeg < CAT_WALKING
-        val at = if (walking) from.lerp(to, inLeg / CAT_WALKING) else to
-        return CatPose(at, walking = walking, onCounter = !walking && to == CAT_COUNTER_SPOT, facingRight = to.x >= from.x)
+        // Like everyone else, the cat keeps to the floor: along the gaps between the rows of tables and
+        // up and down the aisles, never across a table. (From the end of an aisle it hops up onto the counter.)
+        val route = ServiceFloor.route(from, to, layout.aisles)
+        val t = (inLeg / CAT_WALKING).coerceIn(0f, 1f)
+        val at = if (walking) ServiceFloor.along(route, t) else to
+        val ahead = ServiceFloor.along(route, (t + 0.03f).coerceAtMost(1f))
+        val facingRight = if (walking && kotlin.math.abs(ahead.x - at.x) > 0.01f) ahead.x > at.x else to.x >= from.x
+        return CatPose(at, walking = walking, onCounter = !walking && to == CAT_COUNTER_SPOT, facingRight = facingRight)
     }
 
     /** The cat's comings and goings: making friends at tables, and knocking forgotten plates off the counter. */

@@ -669,4 +669,21 @@ class ServiceNightTest {
         val route = ServiceFloor.route(ServiceFloor.pass, layout.stand(1), layout.aisles)
         assertTrue(route.drop(1).dropLast(1).all { it.x in ServiceFloor.GRID_AISLES })
     }
+
+    @Test
+    fun `the cat keeps to the floor and never walks over a table`() {
+        for (tables in listOf(2, 6, 9)) {
+            var n = open(start.copy(day = 4, restaurant = start.restaurant.copy(tables = tables)))
+            val layout = n.layout
+            repeat(2_000) {
+                n = n.copy(time = n.time + 0.1f)
+                val pose = n.catPose()!!
+                layout.tables.forEach { table ->
+                    // Inside a table and its two chairs.
+                    val overTable = kotlin.math.abs(pose.at.x - table.x) < 13f * layout.scale && kotlin.math.abs(pose.at.y - table.y) < 7f * layout.scale
+                    assertTrue("cat on a table at ${pose.at} (tables=$tables)", !overTable)
+                }
+            }
+        }
+    }
 }
