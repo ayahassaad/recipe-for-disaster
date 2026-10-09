@@ -408,6 +408,7 @@ internal fun sceneModelFor(state: GameState, advice: List<Advice>, hiringOpen: B
     }.toSet()
     return SceneModel(
         staff = working.map { StaffFigure(it.id, it.name, it.role, it.morale, it.stress) },
+        chefMood = com.recipefordisaster.domain.service.ChefMood.of(state.employees),
         ovenCondition = oven(state)?.condition ?: 100,
         ovenLevel = oven(state)?.upgradeLevel ?: 1,
         fridgeCondition = com.recipefordisaster.domain.equipment.Fridge.of(state)?.condition ?: 100,

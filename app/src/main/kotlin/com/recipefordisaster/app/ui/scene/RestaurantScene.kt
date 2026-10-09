@@ -74,6 +74,8 @@ data class SceneModel(
     val fridgeLevel: Int = 1,
     /** The restaurant's name, for the sign over the door. */
     val name: String = "",
+    /** How the cooks are feeling: it shows over their heads, so you can see a grumpy night coming. */
+    val chefMood: com.recipefordisaster.domain.service.ChefMood = com.recipefordisaster.domain.service.ChefMood.NORMAL,
 )
 
 data class SceneLabels(
@@ -158,6 +160,7 @@ fun RestaurantScene(
                         variant = figure.name.hashCode().mod(5),
                         apron = helperColor[figure.id.value],
                     )
+                    if (figure.role == StaffRole.COOK) drawChefMood(text, spot, model.chefMood, time + figure.id.hashCode() % 5)
                 }
 
                 // You: ready for the day, or after service, pleased or fed up with how it went.

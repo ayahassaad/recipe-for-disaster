@@ -913,7 +913,7 @@ private fun Pen.drawChatter(text: TextMeasurer, table: Point, partyId: Int, cloc
  * few seconds a taste from the spoon with a pleased "mm!".
  */
 /** A storm cloud over a grumpy chef, or music notes floating up from a happy one. */
-private fun Pen.drawChefMood(text: TextMeasurer, chef: Point, mood: ChefMood, clock: Float) {
+internal fun Pen.drawChefMood(text: TextMeasurer, chef: Point, mood: ChefMood, clock: Float) {
     when (mood) {
         ChefMood.GRUMPY -> {
             val c = Point(chef.x + sin(clock * 0.7f) * 0.8f, chef.y - 17f)
