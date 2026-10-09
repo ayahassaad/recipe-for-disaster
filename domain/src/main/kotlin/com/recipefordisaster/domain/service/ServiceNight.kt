@@ -659,6 +659,8 @@ data class ServiceNight(
                         dirtiedAt = night.dirtiedAt + listOfNotNull(party.table?.let { it to time }),
                     )
                         .updateParty(party.id) { it.copy(stage = Stage.LEAVING_HAPPY, stageSince = time, until = time + LEAVE, tip = tipFor(party, results)) }
+                    // Children drop food: a family leaves a mess on the floor by their table.
+                    if (party.family) night = night.familyMess(party)
                     party.special?.let { special ->
                         // The inspector judges the room, not the meal: any spill or other dirty table counts against you.
                         val pleased = when (special) {
@@ -673,6 +675,17 @@ data class ServiceNight(
             }
         }
         return night
+    }
+
+    /** The mess a family leaves behind, on the nearest bit of open floor to their table that's still clean. */
+    private fun familyMess(party: Party): ServiceNight {
+        val table = party.table ?: return this
+        val near = layout.stand(table)
+        val spot = ServiceFloor.spillSpots
+            .filter { spot -> messesOnFloor.none { it.at.distanceTo(spot) < 1f } }
+            .minByOrNull { it.distanceTo(near) } ?: return this
+        val id = (messes.maxOfOrNull { it.id } ?: -1) + 1
+        return copy(messes = messes + Mess(id = id, at = spot, appearsAt = time))
     }
 
     private fun moveWaiters(): ServiceNight {
