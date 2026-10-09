@@ -713,6 +713,7 @@ private fun ResultsPlay(report: DayReport, gameOver: Boolean, newTable: Boolean,
                 onTap = {},
                 playerLook = com.recipefordisaster.app.ui.player.PlayerLooks.get(androidx.compose.ui.platform.LocalContext.current).look,
                 playerPose = if (report.books.profitOrLoss >= 0) com.recipefordisaster.app.ui.scene.PlayerPose.CHEERING else com.recipefordisaster.app.ui.scene.PlayerPose.GLUM,
+                evening = 1f,
             )
             EndOfNightPanel(
                 visible = true,

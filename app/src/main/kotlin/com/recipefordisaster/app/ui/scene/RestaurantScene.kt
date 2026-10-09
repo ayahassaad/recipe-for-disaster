@@ -106,6 +106,8 @@ fun RestaurantScene(
     playerLook: com.recipefordisaster.app.ui.player.PlayerLook? = null,
     /** What the player is doing while they stand about. */
     playerPose: PlayerPose = PlayerPose.WAVING,
+    /** How dark it is: 0 in the morning, 1 once service is over and it's late evening. */
+    evening: Float = 0f,
 ) {
     var clock by remember { mutableFloatStateOf(0f) }
 
@@ -165,6 +167,12 @@ fun RestaurantScene(
 
                 // You: ready for the day, or after service, pleased or fed up with how it went.
                 playerLook?.let { drawIdlePlayer(PLAYER_IDLE_SPOT, it, playerPose, time) }
+
+                // After closing it's late: the evening light, with the candles still lit.
+                if (evening > 0f) {
+                    drawEveningLight(evening)
+                    drawLamps(evening, ServiceFloor.layout(model.tableCount), time)
+                }
 
                 // "This needs you" markers.
                 model.alerts.forEach { target ->
