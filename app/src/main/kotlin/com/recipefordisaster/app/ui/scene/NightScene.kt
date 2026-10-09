@@ -451,7 +451,11 @@ fun NightScene(
                     }
 
                     // The evening drawing in as the night goes on (not while the lights are out: that's dark enough).
-                    if (night.activeChaos?.kind != ChaosKind.POWER_CUT) drawEveningLight(eveningOf(time, night.parties.maxOfOrNull { it.arriveAt } ?: 0f))
+                    if (night.activeChaos?.kind != ChaosKind.POWER_CUT) {
+                        val evening = eveningOf(time, night.parties.maxOfOrNull { it.arriveAt } ?: 0f)
+                        drawEveningLight(evening)
+                        drawLamps(evening, layout, clock)
+                    }
                 }
             }
         }

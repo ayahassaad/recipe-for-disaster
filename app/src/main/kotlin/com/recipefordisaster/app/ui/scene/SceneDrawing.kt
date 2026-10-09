@@ -954,6 +954,37 @@ internal fun Pen.drawEveningLight(dark: Float) {
     drawRect(Color(0xFF16204A).copy(alpha = 0.3f * d), topLeft = p(0f, 0f), size = room)
 }
 
+/**
+ * As it gets dark the lamps come on: a candle on each table and a warm pool of light around it, and
+ * the kitchen lights over the counter. Drawn over [drawEveningLight], so they glow.
+ */
+internal fun Pen.drawLamps(dark: Float, layout: TableLayout, time: Float) {
+    val on = ((dark - LAMPS_FROM) / (1f - LAMPS_FROM)).coerceIn(0f, 1f)
+    if (on <= 0f) return
+    // Kitchen lights along the counter.
+    for (x in listOf(20f, 50f, 80f)) {
+        dot(x, SceneLayout.counter.top + 1f, 13f, Color(0xFFFFD27A).copy(alpha = 0.09f * on))
+        dot(x, SceneLayout.counter.top + 1f, 7f, Color(0xFFFFD27A).copy(alpha = 0.08f * on))
+    }
+    layout.tables.forEachIndexed { k, t ->
+        val table = Point(t.x, t.y)
+        with(around(table, layout.scale)) {
+            dot(table, 11f, Color(0xFFFFC860).copy(alpha = 0.12f * on))
+            dot(table, 6.5f, Color(0xFFFFC860).copy(alpha = 0.1f * on))
+            // The candle, in a little holder, with a flickering flame.
+            val c = Point(table.x, table.y + 3.4f)
+            dot(c.x, c.y + 0.6f, 0.9f, Color(0xFF7A5A3A))
+            box(c.x - 0.4f, c.y - 1.2f, 0.8f, 1.8f, Color(0xFFF7F1E3), radius = 0.2f)
+            val flicker = 1f + sin(time * 13f + k * 2.1f) * 0.15f + sin(time * 7.3f + k) * 0.1f
+            oval(c.x, c.y - 1.9f, 0.45f * flicker, 0.8f * flicker, Color(0xFFFFB238).copy(alpha = on))
+            oval(c.x, c.y - 1.8f, 0.2f, 0.4f, Color(0xFFFFF4C2).copy(alpha = on))
+        }
+    }
+}
+
+/** The lamps start coming on once it's this dark. */
+private const val LAMPS_FROM = 0.25f
+
 /** How far into the evening it is, from how far through the night's guests we are. */
 internal fun eveningOf(time: Float, lastArrival: Float): Float = (time / (lastArrival + EVENING_AFTER_LAST)).coerceIn(0f, 1f)
 
