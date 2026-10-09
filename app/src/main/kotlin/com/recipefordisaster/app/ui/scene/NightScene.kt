@@ -242,7 +242,10 @@ fun NightScene(
                                         drawGuest(seat, guest, mood, angry = waitedFraction > 0.75f, walkPhase = null, g, bob = guestBob)
                                         if (g == 0) party.special?.let { drawSpecialLook(seat, it, clock, guestBob) }
                                         // Reading the menu while deciding; now and then someone checks their phone while the food comes.
+                                        // Once they've waited a good while, they keep looking at their watch instead.
+                                        val waitingStage = party.stage == Stage.READY_TO_ORDER || party.stage in Stage.ORDER_TAKEN..Stage.CARRIED
                                         when {
+                                            waitingStage && waitedFraction >= WATCH_FROM && ((clock * 0.35f + guest * 0.5f) % 1f) < 0.45f -> drawWatchCheck(seat, clock, Palette.guestColors[guest % Palette.guestColors.size])
                                             party.stage == Stage.DECIDING || party.stage == Stage.READY_TO_ORDER -> drawMenuCard(seat, clock + guest)
                                             party.stage in Stage.ORDER_TAKEN..Stage.CARRIED && waitedFraction < 0.6f &&
                                                 ((clock * 0.2f + guest * 0.37f) % 1f) < 0.4f -> drawPhone(seat, clock)
@@ -894,6 +897,26 @@ private fun Pen.drawMenuCard(seat: Point, clock: Float) {
         line(c.x + 0.5f, c.y - 0.6f + k * 1f, c.x + 1.9f, c.y - 0.6f + k * 1f, Palette.gold, 0.2f)
     }
     for (side in listOf(-1f, 1f)) dot(c.x + side * 2.5f, c.y + 0.6f, 0.75f, Palette.face)
+}
+
+/** How long a party has to have waited (as a share of their patience) before they start checking their watch. */
+private const val WATCH_FROM = 0.45f
+
+/** A guest lifting their wrist to look at their watch, with a little ticking clock over their head. */
+private fun Pen.drawWatchCheck(seat: Point, clock: Float, sleeve: Color) {
+    // Forearm raised across the chest, the watch face towards them.
+    val wrist = Point(seat.x + 1.6f, seat.y + 0.4f)
+    line(seat.x - 3.4f, seat.y + 2.6f, wrist.x, wrist.y, sleeve.copy(red = sleeve.red * 0.82f, green = sleeve.green * 0.82f, blue = sleeve.blue * 0.82f), 1.9f)
+    dot(wrist.x + 0.9f, wrist.y - 0.2f, 0.85f, Palette.face)
+    dot(wrist.x, wrist.y, 0.75f, Palette.gold)
+    dot(wrist.x, wrist.y, 0.5f, Color.White)
+    // The clock bubble.
+    val c = Point(seat.x + 3.6f, seat.y - 10.5f)
+    dot(c, 1.9f, Color.White)
+    ring(c.x, c.y, 1.9f, Palette.ink, 0.3f)
+    val angle = clock * 6f
+    line(c.x, c.y, c.x + kotlin.math.sin(angle) * 1.3f, c.y - kotlin.math.cos(angle) * 1.3f, Palette.alert, 0.3f)
+    line(c.x, c.y, c.x, c.y - 0.9f, Palette.ink, 0.3f)
 }
 
 /** A phone in a guest's hand, screen glowing, a thumb scrolling. */
