@@ -252,7 +252,13 @@ private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, onMe
             onHire = if (model.hiring) null else ({ open = SceneTarget.HiringSign }),
             onSubtitle = { showCosts = true })
         if (showCosts) CostsDialog(morning, onClose = { showCosts = false })
-        RestaurantScene(model = model, labels = sceneLabels(staffNeed), onTap = { open = it }, modifier = Modifier.weight(1f))
+        RestaurantScene(
+            model = model,
+            labels = sceneLabels(staffNeed),
+            onTap = { open = it },
+            modifier = Modifier.weight(1f),
+            playerLook = com.recipefordisaster.app.ui.player.PlayerLooks.get(androidx.compose.ui.platform.LocalContext.current).look,
+        )
         // Opening with nothing the kitchen can cook means every guest walks straight back out.
         val noFood = remember(morning) {
             morning.menu.filter { it.available }.none { com.recipefordisaster.domain.inventory.InventoryOperations.canFulfill(morning.inventory, it.recipe) }

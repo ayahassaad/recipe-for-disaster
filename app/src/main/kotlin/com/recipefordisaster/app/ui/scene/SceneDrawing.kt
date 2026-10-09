@@ -881,6 +881,36 @@ internal fun Pen.drawPerson(
     }
 }
 
+/** What the player is up to when the restaurant is shut: in the morning they wave hello. */
+internal enum class PlayerPose { WAVING }
+
+/** Where the player stands when the restaurant is shut: in the open floor between the first two rows of tables. */
+internal val PLAYER_IDLE_SPOT = Point(50f, 79f)
+
+/** The player, in their own look, standing about while the restaurant is shut. */
+internal fun Pen.drawIdlePlayer(at: Point, look: PlayerLook, pose: PlayerPose, time: Float) {
+    val bob = sin(time * 1.6f) * 0.25f
+    drawPerson(at = at, outfit = Outfit.SERVER, mood = 85, bob = bob, apron = look.apronColor, armsBusy = true, look = look)
+    val y = at.y - bob
+    val sleeve = Color(0xFF2B2B2B)
+    when (pose) {
+        PlayerPose.WAVING -> {
+            // Left arm down; the right one up in a wave every few seconds, then back down.
+            box(at.x - 5.2f, y - 0.4f, 1.8f, 4.4f, sleeve, radius = 0.9f)
+            dot(at.x - 4.3f, y + 4.2f, 0.9f, look.skinColor)
+            val waving = (time % 5f) < 1.6f
+            if (waving) {
+                val sway = sin(time * 10f) * 0.9f
+                line(at.x + 3.6f, y + 0.2f, at.x + 5.6f + sway, y - 4.4f, sleeve, 1.8f)
+                dot(at.x + 5.8f + sway, y - 5.2f, 1f, look.skinColor)
+            } else {
+                box(at.x + 3.4f, y - 0.4f, 1.8f, 4.4f, sleeve, radius = 0.9f)
+                dot(at.x + 4.3f, y + 4.2f, 0.9f, look.skinColor)
+            }
+        }
+    }
+}
+
 /** A served plate: food and a garnish. */
 internal fun Pen.drawPlate(at: Point) {
     dot(at, 2.3f, Color.White)

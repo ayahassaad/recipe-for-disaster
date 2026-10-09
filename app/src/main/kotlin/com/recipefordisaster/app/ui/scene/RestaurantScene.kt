@@ -100,6 +100,8 @@ fun RestaurantScene(
     labels: SceneLabels,
     onTap: (SceneTarget) -> Unit,
     modifier: Modifier = Modifier,
+    /** The player's look, to show them in the room too; null leaves them out. */
+    playerLook: com.recipefordisaster.app.ui.player.PlayerLook? = null,
 ) {
     var clock by remember { mutableFloatStateOf(0f) }
 
@@ -155,6 +157,9 @@ fun RestaurantScene(
                         apron = helperColor[figure.id.value],
                     )
                 }
+
+                // You, ready for the day.
+                playerLook?.let { drawIdlePlayer(PLAYER_IDLE_SPOT, it, PlayerPose.WAVING, time) }
 
                 // "This needs you" markers.
                 model.alerts.forEach { target ->
