@@ -91,7 +91,14 @@ data class ServiceNight(
 
     /** A spill on the floor. Guests who finish their meal while it's there notice it. */
     @Serializable
-    data class Mess(val id: Int, val at: FloorPoint, val appearsAt: Float, val cleaned: Boolean = false)
+    data class Mess(
+        val id: Int,
+        val at: FloorPoint,
+        val appearsAt: Float,
+        val cleaned: Boolean = false,
+        /** Food a child dropped, rather than a spilt drink or sauce. */
+        val crumbs: Boolean = false,
+    )
 
     /** Spills on the floor right now. */
     val messesOnFloor: List<Mess> get() = messes.filter { !it.cleaned && it.appearsAt <= time }
@@ -685,7 +692,7 @@ data class ServiceNight(
             .filter { spot -> messesOnFloor.none { it.at.distanceTo(spot) < 1f } }
             .minByOrNull { it.distanceTo(near) } ?: return this
         val id = (messes.maxOfOrNull { it.id } ?: -1) + 1
-        return copy(messes = messes + Mess(id = id, at = spot, appearsAt = time))
+        return copy(messes = messes + Mess(id = id, at = spot, appearsAt = time, crumbs = true))
     }
 
     private fun moveWaiters(): ServiceNight {

@@ -155,7 +155,9 @@ fun NightScene(
                     night.dirtyTables.forEach { t -> around(tablePoints[t], scale).drawDirtyTable(tablePoints[t]) }
 
                     // Spills on the floor, and a ring filling up while someone mops one.
-                    night.messesOnFloor.forEach { mess -> drawSpill(mess.at.toPoint(), mess.id, clock, sinceAppeared = night.time - mess.appearsAt) }
+                    night.messesOnFloor.forEach { mess ->
+                        if (mess.crumbs) drawDroppedFood(mess.at.toPoint(), mess.id, clock) else drawSpill(mess.at.toPoint(), mess.id, clock, sinceAppeared = night.time - mess.appearsAt)
+                    }
                     night.waiters.forEach { w ->
                         val mopping = w.errand as? ServiceNight.Errand.Mopping ?: return@forEach
                         val at = night.messes.first { it.id == mopping.messId }.at
@@ -709,6 +711,26 @@ private fun Pen.drawWashingUp(at: Point, progress: Float, clock: Float, sleeve: 
 }
 
 /** A spill: a puddle with splashes and a shine, plus a wobbling warning so it catches the eye. */
+/** What a child dropped: a squashed bread roll, a few peas, crumbs everywhere, and a wet-floor sign all the same. */
+private fun Pen.drawDroppedFood(at: Point, seed: Int, clock: Float) {
+    oval(at.x - 1f, at.y + 0.2f, 2f, 1.2f, Color(0xFFD9A55B)) // the roll
+    oval(at.x - 1.3f, at.y - 0.2f, 1.1f, 0.5f, Color(0xFFE9C083))
+    for (k in 0..4) dot(at.x + 1.6f + (k % 3) * 1.1f, at.y - 0.8f + (k / 3) * 1.4f + (k % 2) * 0.3f, 0.45f, Color(0xFF6DAA45)) // peas
+    for (k in 0..7) {
+        val a = k * 0.8f + seed
+        dot(at.x + kotlin.math.cos(a) * (2.6f + k % 3), at.y + kotlin.math.sin(a) * 1.6f, 0.22f, Color(0xFFC08A4A))
+    }
+    val bob = sin(clock * 4f + seed) * 0.4f
+    shape(Color(0xFFF2C230)) {
+        moveTo(at.x, at.y - 6.6f + bob)
+        lineTo(at.x + 2.2f, at.y - 3f + bob)
+        lineTo(at.x - 2.2f, at.y - 3f + bob)
+        close()
+    }
+    box(at.x - 0.25f, at.y - 5.6f + bob, 0.5f, 1.4f, Color(0xFF3A2A10))
+    dot(at.x, at.y - 3.7f + bob, 0.3f, Color(0xFF3A2A10))
+}
+
 private fun Pen.drawSpill(at: Point, seed: Int, clock: Float, sinceAppeared: Float) {
     val grow = (sinceAppeared / 0.4f).coerceIn(0.2f, 1f)
     val colour = if (seed % 2 == 0) Color(0xCC8B4A22) else Color(0xCC9A2E2E) // gravy, or red wine
