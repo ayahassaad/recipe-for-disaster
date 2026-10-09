@@ -139,6 +139,8 @@ data class ServiceNight(
         val tip: Long = 0,
         /** A critic, celebrity or inspector in the party, if any. */
         val special: SpecialGuest? = null,
+        /** A grown-up and a child out together: the second guest is the child. */
+        val family: Boolean = false,
     ) {
         val seated: Boolean get() = stage in Stage.DECIDING..Stage.LEAVING_ANGRY
         val occupiesTable: Boolean get() = table != null && stage in Stage.WALKING_TO_TABLE..Stage.LEAVING_ANGRY
@@ -959,6 +961,10 @@ data class ServiceNight(
         private const val SPECIALS_FROM_DAY = 3
         private const val SPECIAL_CHANCE = 0.4f
 
+        /** Families start coming in from this day, and this share of the parties of two are one. */
+        private const val FAMILIES_FROM_DAY = 2
+        private const val FAMILY_CHANCE = 0.25f
+
         /** Food on the table within this many seconds of sitting down earns the full tip; within [TIP_OK], a small one. */
         private const val TIP_FAST = 24f
         private const val TIP_OK = 34f
@@ -1123,9 +1129,16 @@ data class ServiceNight(
                 null
             }
 
+            // Some parties of two are a grown-up out with a child (rolled after everything else).
+            val withFamilies = if (state.day >= FAMILIES_FROM_DAY) {
+                specialParties.map { p -> if (p.guests.size == 2 && p.special == null && rng.nextFloat() < FAMILY_CHANCE) p.copy(family = true) else p }
+            } else {
+                specialParties
+            }
+
             return ServiceNight(
                 time = 0f,
-                parties = specialParties,
+                parties = withFamilies,
                 waiters = waiters,
                 inventory = state.inventory,
                 kitchenSlots = slots,
