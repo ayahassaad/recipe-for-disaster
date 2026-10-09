@@ -152,6 +152,12 @@ fun StartScreen(
                         }
                     }
                 }
+                // Dress your waiter before you start.
+                var choosingLook by remember { mutableStateOf(false) }
+                TextButton(onClick = { choosingLook = true }, modifier = Modifier.padding(top = 6.dp)) {
+                    Text(stringResource(R.string.look_button), style = MaterialTheme.typography.titleMedium, color = WoodBrown)
+                }
+                if (choosingLook) com.recipefordisaster.app.ui.player.PlayerLookDialog(onClose = { choosingLook = false })
             }
         }
     }
