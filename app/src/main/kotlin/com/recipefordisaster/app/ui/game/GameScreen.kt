@@ -866,7 +866,10 @@ private fun CostsDialog(state: GameState, onClose: () -> Unit) {
  * The sound for what just happened between two moments of the night, if anything did (only the most
  * notable one, so sounds never pile up on top of each other).
  */
-/** A buzz when something goes wrong: trouble starting, the fridge dying, the cat knocking a plate off, or guests storming out. */
+/**
+ * A buzz when something goes wrong: trouble starting, the fridge dying, the cat knocking a plate off, or
+ * guests storming out. And a little tap when food is ready to pick up, so you notice without looking.
+ */
 private fun buzzFor(before: ServiceNight, after: ServiceNight): com.recipefordisaster.app.ui.sound.Buzzes? {
     fun angry(n: ServiceNight) = n.parties.count { it.stage == ServiceNight.Stage.LEAVING_ANGRY }
     return when {
@@ -874,6 +877,8 @@ private fun buzzFor(before: ServiceNight, after: ServiceNight): com.recipefordis
         after.fridgeBroken && !before.fridgeBroken -> com.recipefordisaster.app.ui.sound.Buzzes.TROUBLE
         after.catKnockAt != before.catKnockAt -> com.recipefordisaster.app.ui.sound.Buzzes.TROUBLE
         angry(after) > angry(before) -> com.recipefordisaster.app.ui.sound.Buzzes.TROUBLE
+        after.parties.count { it.stage == ServiceNight.Stage.READY_AT_PASS } > before.parties.count { it.stage == ServiceNight.Stage.READY_AT_PASS } ->
+            com.recipefordisaster.app.ui.sound.Buzzes.TAP
         else -> null
     }
 }
