@@ -87,6 +87,8 @@ data class ServiceNight(
     val chefMood: ChefMood = ChefMood.NORMAL,
     /** Rolled when the doors open: picks which plates the chef's mood touches, so the night stays repeatable. */
     val chefLuck: Float = 0f,
+    /** When the chef last burnt something (for the puff of smoke). */
+    val lastBurnAt: Float = -100f,
 ) {
 
     /** What a guest was waiting for when they gave up. */
@@ -152,6 +154,8 @@ data class ServiceNight(
         val special: SpecialGuest? = null,
         /** A grown-up and a child out together: the second guest is the child. */
         val family: Boolean = false,
+        /** A grumpy chef burnt this table's food and had to start again. */
+        val burnt: Boolean = false,
     ) {
         val seated: Boolean get() = stage in Stage.DECIDING..Stage.LEAVING_ANGRY
         val occupiesTable: Boolean get() = table != null && stage in Stage.WALKING_TO_TABLE..Stage.LEAVING_ANGRY
@@ -622,9 +626,13 @@ data class ServiceNight(
         if (night.activeChaos?.stopsKitchen == true) {
             return night.copy(parties = night.parties.map { if (it.stage == Stage.COOKING) it.copy(until = it.until + dt) else it })
         }
-        // Finished cooking: plates go up on the pass.
+        // Finished cooking: plates go up on the pass — unless a grumpy chef has burnt them, and starts again.
         night.parties.filter { it.stage == Stage.COOKING && time >= it.until }.forEach { party ->
-            night = night.updateParty(party.id) { it.copy(stage = Stage.READY_AT_PASS, stageSince = time) }
+            night = if (night.burns(party)) {
+                night.copy(lastBurnAt = time).updateParty(party.id) { it.copy(burnt = true, until = time + night.cookTime(party.orders)) }
+            } else {
+                night.updateParty(party.id) { it.copy(stage = Stage.READY_AT_PASS, stageSince = time) }
+            }
         }
         // Free cooks pick up the oldest tickets.
         val busy = night.parties.count { it.stage == Stage.COOKING }
@@ -635,12 +643,23 @@ data class ServiceNight(
             night = if (cooked.all { it == null }) {
                 night.updateParty(party.id) { it.copy(stage = Stage.LEAVING_ANGRY, stageSince = time, until = time + LEAVE) }
             } else {
-                val cookTime = night.secondsPerDish * cooked.count { it != null } + COOK_BASE
-                night.updateParty(party.id) { it.copy(stage = Stage.COOKING, stageSince = time, until = time + cookTime, orders = cooked) }
+                night.updateParty(party.id) { it.copy(stage = Stage.COOKING, stageSince = time, until = time + night.cookTime(cooked), orders = cooked) }
             }
         }
         return night
     }
+
+    /** How long the kitchen takes to cook a table's order. */
+    private fun cookTime(orders: List<DishId?>): Float = secondsPerDish * orders.count { it != null } + COOK_BASE
+
+    /** Which of tonight's plates the chef's mood touches: the same ones every time the night is played. */
+    private fun touchedByMood(party: Party, chance: Float): Boolean = (party.id * 0.618f + chefLuck) % 1f < chance
+
+    /** A grumpy chef burns some plates (each one only once). */
+    private fun burns(party: Party): Boolean = chefMood == ChefMood.GRUMPY && !party.burnt && touchedByMood(party, BURN_CHANCE)
+
+    /** How many tables' food got burnt tonight. */
+    val burntPlates: Int get() = parties.count { it.burnt }
 
     private fun finishMeals(): ServiceNight {
         var night = this
@@ -988,6 +1007,9 @@ data class ServiceNight(
         /** Families start coming in from this day, and this share of the parties of two are one. */
         private const val FAMILIES_FROM_DAY = 2
         private const val FAMILY_CHANCE = 0.25f
+
+        /** The share of plates a grumpy chef burns. */
+        private const val BURN_CHANCE = 0.3f
 
         /** Food on the table within this many seconds of sitting down earns the full tip; within [TIP_OK], a small one. */
         private const val TIP_FAST = 24f

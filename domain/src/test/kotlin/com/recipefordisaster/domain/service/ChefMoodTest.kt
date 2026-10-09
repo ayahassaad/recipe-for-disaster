@@ -8,6 +8,7 @@ import com.recipefordisaster.domain.simulation.NewGameFactory
 import com.recipefordisaster.domain.simulation.PlayerDecisions
 import com.recipefordisaster.domain.simulation.SeededRandomSource
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ChefMoodTest {
@@ -28,5 +29,31 @@ class ChefMoodTest {
         assertEquals(ChefMood.GRUMPY, open(withCooks(morale = 80, stress = 80)).chefMood)
         assertEquals(ChefMood.HAPPY, open(withCooks(morale = 85, stress = 20)).chefMood)
         assertEquals(ChefMood.NORMAL, ChefMood.of(emptyList()))
+    }
+
+    /** Plays the night with a quick player who serves everyone as fast as they can. */
+    private fun play(night: ServiceNight): ServiceNight {
+        var n = night
+        var guard = 0
+        while (!n.finished && guard++ < 20_000) {
+            val me = n.player
+            if (!me.walking) {
+                n = me.plates.firstOrNull()?.let { id -> n.parties.first { it.id == id }.table?.let { n.tapTable(it) } }
+                    ?: (if (me.tickets.isNotEmpty() || n.parties.any { it.stage == ServiceNight.Stage.READY_AT_PASS }) n.tapPass() else null)
+                    ?: n.parties.filter { it.stage == ServiceNight.Stage.READY_TO_ORDER }.minByOrNull { it.stageSince }?.table?.let { n.tapTable(it) }
+                    ?: (if (me.dirtyDishes.isNotEmpty()) n.tapDishStation() else n.dirtyTables.firstOrNull()?.let { n.tapTable(it) })
+                    ?: n
+            }
+            n = n.advance(0.05f)
+        }
+        return n
+    }
+
+    @Test
+    fun `a grumpy chef burns some plates and cooks them again, a normal one never does`() {
+        val grumpy = play(open(withCooks(morale = 30, stress = 20)))
+        assertTrue(grumpy.burntPlates > 0)
+        assertTrue(grumpy.burntPlates < grumpy.parties.size)
+        assertEquals(0, play(open(withCooks(morale = 70, stress = 20))).burntPlates)
     }
 }
