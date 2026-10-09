@@ -203,6 +203,17 @@ fun GameScreen(
                                 Text(stringResource(R.string.sound_music), modifier = Modifier.weight(1f))
                                 androidx.compose.material3.Switch(checked = music, onCheckedChange = { music = it; sounds.musicOn = it })
                             }
+                            val buzz = com.recipefordisaster.app.ui.sound.Buzz.get(androidx.compose.ui.platform.LocalContext.current)
+                            var vibration by remember { mutableStateOf(buzz.on) }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(stringResource(R.string.vibration), modifier = Modifier.weight(1f))
+                                androidx.compose.material3.Switch(checked = vibration, onCheckedChange = {
+                                    vibration = it
+                                    buzz.on = it
+                                    // A little buzz to show what it feels like.
+                                    if (it) buzz.buzz(com.recipefordisaster.app.ui.sound.Buzzes.TAP)
+                                })
+                            }
                             // Change how your waiter looks.
                             var choosingLook by remember { mutableStateOf(false) }
                             TextButton(onClick = { choosingLook = true }, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {

@@ -1,5 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- A buzz when something goes wrong during service (it can be turned off in the menu). -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <application
         android:name=".RecipeForDisasterApplication"
         android:allowBackup="true"
