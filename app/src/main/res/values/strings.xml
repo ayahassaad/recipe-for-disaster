@@ -291,6 +291,14 @@
     <string name="sound_effects">Sound effects</string>
     <string name="sound_music">Music</string>
     <string name="vibration">Vibration</string>
+    <plurals name="chefs_specials">
+        <item quantity="one">The chef was in a great mood: one table got a chef\'s special!</item>
+        <item quantity="other">The chef was in a great mood: %d tables got a chef\'s special!</item>
+    </plurals>
+    <plurals name="chef_burnt">
+        <item quantity="one">The chef was grumpy and burnt one order. Cheer the cooks up with a day off.</item>
+        <item quantity="other">The chef was grumpy and burnt %d orders. Cheer the cooks up with a day off.</item>
+    </plurals>
     <string name="leave_stay">Stay</string>
     <string name="look_button">Your look</string>
     <string name="look_title">Your look</string>

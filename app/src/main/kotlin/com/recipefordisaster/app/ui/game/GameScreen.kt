@@ -41,6 +41,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -789,6 +790,13 @@ private fun EndOfNightPanel(visible: Boolean, report: DayReport, onShowBill: () 
                     com.recipefordisaster.domain.service.SpecialGuest.INSPECTOR -> if (visit.pleased) R.string.special_inspector_good else R.string.special_inspector_bad
                 }
                 Text(stringResource(line), style = MaterialTheme.typography.titleMedium, color = if (visit.pleased) LeafGreen else DisasterRed, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
+            }
+            // How the kitchen's mood showed tonight.
+            if (report.chefsSpecials > 0) {
+                Text(pluralStringResource(R.plurals.chefs_specials, report.chefsSpecials, report.chefsSpecials), style = MaterialTheme.typography.bodyMedium, color = LeafGreen, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
+            }
+            if (report.burnt > 0) {
+                Text(pluralStringResource(R.plurals.chef_burnt, report.burnt, report.burnt), style = MaterialTheme.typography.bodyMedium, color = DisasterRed, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
             }
             if (newTable) {
                 Text(stringResource(R.string.new_table_tomorrow), style = MaterialTheme.typography.titleMedium, color = LeafGreen, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
