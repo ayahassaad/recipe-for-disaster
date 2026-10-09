@@ -83,6 +83,10 @@ data class ServiceNight(
     val fridgeBrokeTonight: Boolean = false,
     /** When the cold food last went off a bit while the fridge was broken. */
     val fridgeLastSpoil: Float = 0f,
+    /** How the cooks are feeling tonight. */
+    val chefMood: ChefMood = ChefMood.NORMAL,
+    /** Rolled when the doors open: picks which plates the chef's mood touches, so the night stays repeatable. */
+    val chefLuck: Float = 0f,
 ) {
 
     /** What a guest was waiting for when they gave up. */
@@ -1156,9 +1160,14 @@ data class ServiceNight(
                 specialParties
             }
 
+            // Which plates a grumpy chef burns or a happy one makes special (rolled last of all).
+            val chefLuck = rng.nextFloat()
+
             return ServiceNight(
                 time = 0f,
                 parties = withFamilies,
+                chefMood = ChefMood.of(state.employees),
+                chefLuck = chefLuck,
                 waiters = waiters,
                 inventory = state.inventory,
                 kitchenSlots = slots,
