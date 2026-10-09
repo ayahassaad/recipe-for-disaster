@@ -954,6 +954,21 @@ internal fun Pen.drawEveningLight(dark: Float) {
     drawRect(Color(0xFF16204A).copy(alpha = 0.3f * d), topLeft = p(0f, 0f), size = room)
 }
 
+/** Morning sun slanting in from the front windows: soft bright bands across the dining room floor, gently shimmering. */
+internal fun Pen.drawMorningSun(time: Float) {
+    val shimmer = 0.85f + sin(time * 0.6f) * 0.15f
+    for (k in 0..2) {
+        val x = 8f + k * 30f
+        shape(Color(0xFFFFF3C4).copy(alpha = 0.16f * shimmer)) {
+            moveTo(x, 140f)
+            lineTo(x + 12f, 140f)
+            lineTo(x + 26f, 70f)
+            lineTo(x + 18f, 70f)
+            close()
+        }
+    }
+}
+
 /**
  * As it gets dark the lamps come on: a candle on each table and a warm pool of light around it, and
  * the kitchen lights over the counter. Drawn over [drawEveningLight], so they glow.
