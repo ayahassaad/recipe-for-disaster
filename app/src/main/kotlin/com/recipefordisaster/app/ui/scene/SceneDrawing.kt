@@ -941,6 +941,24 @@ internal fun Pen.drawIdlePlayer(at: Point, look: PlayerLook, pose: PlayerPose, t
     }
 }
 
+/**
+ * The light changing as service goes on: [dark] 0 is the golden late afternoon the doors open in,
+ * 1 is the deep blue of late evening. Drawn over the whole room.
+ */
+internal fun Pen.drawEveningLight(dark: Float) {
+    val d = dark.coerceIn(0f, 1f)
+    val room = Size(u(SceneLayout.WIDTH), u(SceneLayout.HEIGHT))
+    // A warm glow that fades as the sun goes down...
+    drawRect(Color(0xFFFFC46B).copy(alpha = 0.07f * (1f - d)), topLeft = p(0f, 0f), size = room)
+    // ...and the blue of evening coming in.
+    drawRect(Color(0xFF16204A).copy(alpha = 0.3f * d), topLeft = p(0f, 0f), size = room)
+}
+
+/** How far into the evening it is, from how far through the night's guests we are. */
+internal fun eveningOf(time: Float, lastArrival: Float): Float = (time / (lastArrival + EVENING_AFTER_LAST)).coerceIn(0f, 1f)
+
+private const val EVENING_AFTER_LAST = 30f
+
 /** A served plate: food and a garnish. */
 internal fun Pen.drawPlate(at: Point) {
     dot(at, 2.3f, Color.White)

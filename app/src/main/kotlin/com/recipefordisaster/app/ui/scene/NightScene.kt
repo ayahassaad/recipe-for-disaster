@@ -449,6 +449,9 @@ fun NightScene(
                         val sleeve = if (w.kind == ServiceNight.Kind.DISHWASHER) Palette.washerBlue else Color(0xFF2B2B2B)
                         drawWashingUp(w.position(night.time).toPoint().let { Point(it.x, it.y - 2f) }, progress, clock, sleeve)
                     }
+
+                    // The evening drawing in as the night goes on (not while the lights are out: that's dark enough).
+                    if (night.activeChaos?.kind != ChaosKind.POWER_CUT) drawEveningLight(eveningOf(time, night.parties.maxOfOrNull { it.arriveAt } ?: 0f))
                 }
             }
         }
