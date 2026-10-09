@@ -464,6 +464,7 @@ private fun sceneLabels(need: MorningAdvisor.Need? = null): SceneLabels {
 @Composable
 private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit, onProgress: (ServiceNight) -> Unit, onMenu: () -> Unit, modifier: Modifier = Modifier) {
     val sounds = com.recipefordisaster.app.ui.sound.Sounds.get(androidx.compose.ui.platform.LocalContext.current)
+    val buzz = com.recipefordisaster.app.ui.sound.Buzz.get(androidx.compose.ui.platform.LocalContext.current)
     var night by remember(session) { mutableStateOf(session.opening) }
     var clock by remember { mutableFloatStateOf(0f) }
     // Paused: time stands still, nothing can be tapped, and a sign says how to carry on.
@@ -511,6 +512,7 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
                 val before = night
                 night = night.advance(dt)
                 soundsFor(before, night)?.let { sounds.play(it) }
+                buzzFor(before, night)?.let { buzz.buzz(it) }
             } else if (!reported) {
                 // The last guest has gone: a moment of "Closing time!" before the bill.
                 if (closedAt < 0f) {
@@ -864,6 +866,18 @@ private fun CostsDialog(state: GameState, onClose: () -> Unit) {
  * The sound for what just happened between two moments of the night, if anything did (only the most
  * notable one, so sounds never pile up on top of each other).
  */
+/** A buzz when something goes wrong: trouble starting, the fridge dying, the cat knocking a plate off, or guests storming out. */
+private fun buzzFor(before: ServiceNight, after: ServiceNight): com.recipefordisaster.app.ui.sound.Buzzes? {
+    fun angry(n: ServiceNight) = n.parties.count { it.stage == ServiceNight.Stage.LEAVING_ANGRY }
+    return when {
+        after.activeChaos != null && before.activeChaos == null -> com.recipefordisaster.app.ui.sound.Buzzes.TROUBLE
+        after.fridgeBroken && !before.fridgeBroken -> com.recipefordisaster.app.ui.sound.Buzzes.TROUBLE
+        after.catKnockAt != before.catKnockAt -> com.recipefordisaster.app.ui.sound.Buzzes.TROUBLE
+        angry(after) > angry(before) -> com.recipefordisaster.app.ui.sound.Buzzes.TROUBLE
+        else -> null
+    }
+}
+
 private fun soundsFor(before: ServiceNight, after: ServiceNight): com.recipefordisaster.app.ui.sound.Sfx? {
     fun count(n: ServiceNight, stage: ServiceNight.Stage) = n.parties.count { it.stage == stage }
     val beforeMe = before.player
