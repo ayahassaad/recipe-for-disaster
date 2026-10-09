@@ -84,7 +84,7 @@ fun StartScreen(
                     modifier = Modifier.size(240.dp),
                 )
             }
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(14.dp))
             Chalkboard {
                 Text(
                     text = stringResource(R.string.app_name),
@@ -102,7 +102,7 @@ fun StartScreen(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 )
             }
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Starting over throws the current restaurant away, so ask first if there is one.
             var confirmNewGame by remember { mutableStateOf(false) }
@@ -154,7 +154,7 @@ fun StartScreen(
                 }
                 // Dress your waiter before you start.
                 var choosingLook by remember { mutableStateOf(false) }
-                TextButton(onClick = { choosingLook = true }, modifier = Modifier.padding(top = 6.dp)) {
+                TextButton(onClick = { choosingLook = true }, modifier = Modifier.padding(top = 2.dp)) {
                     Text(stringResource(R.string.look_button), style = MaterialTheme.typography.titleMedium, color = WoodBrown)
                 }
                 if (choosingLook) com.recipefordisaster.app.ui.player.PlayerLookDialog(onClose = { choosingLook = false })
