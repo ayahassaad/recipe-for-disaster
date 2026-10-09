@@ -24,6 +24,7 @@ import com.recipefordisaster.app.ui.scene.SceneLayout.Rect
 import com.recipefordisaster.domain.employee.Role as StaffRole
 import com.recipefordisaster.domain.service.FloorPoint
 import com.recipefordisaster.domain.service.ChaosKind
+import com.recipefordisaster.domain.service.ChefMood
 import com.recipefordisaster.domain.service.ServiceFloor
 import com.recipefordisaster.domain.service.ServiceNight
 import com.recipefordisaster.domain.service.ServiceNight.Stage
@@ -141,11 +142,22 @@ fun NightScene(
                     staffPositions(model.staff).filter { it.first.role == StaffRole.COOK || it.first.role == StaffRole.HOST }
                         .forEach { (figure, spot) ->
                             val bob = if (figure.role == StaffRole.COOK && cooking) sin(clock * 12f) * 0.6f else sin(clock * 1.6f) * 0.2f
-                            drawPerson(spot, outfitFor(figure.role), figure.morale, bob = bob, sweat = figure.stress >= 70, variant = figure.name.hashCode().mod(5), apron = helperColor[figure.id.value])
+                            val cook = figure.role == StaffRole.COOK
+                            // The cooks wear tonight's mood on their faces: scowling, or beaming.
+                            val mood = when {
+                                !cook -> figure.morale
+                                night.chefMood == ChefMood.GRUMPY -> 10
+                                night.chefMood == ChefMood.HAPPY -> 95
+                                else -> figure.morale
+                            }
+                            drawPerson(spot, outfitFor(figure.role), mood, bob = bob, sweat = figure.stress >= 70, variant = figure.name.hashCode().mod(5), apron = helperColor[figure.id.value],
+                                angry = cook && night.chefMood == ChefMood.GRUMPY)
                             helperColor[figure.id.value]?.let { dot(spot.x, spot.y - 11.4f, 1.1f, it) }
-                            if (figure.role == StaffRole.COOK && cooking) drawChefAtWork(text, Point(spot.x, spot.y + bob), clock + figure.id.hashCode() % 7)
+                            if (cook && cooking) drawChefAtWork(text, Point(spot.x, spot.y + bob), clock + figure.id.hashCode() % 7, grumpy = night.chefMood == ChefMood.GRUMPY)
+                            if (cook) drawChefMood(text, Point(spot.x, spot.y), night.chefMood, clock + figure.id.hashCode() % 5)
                         }
 
+                    drawBurnt(text, time - night.lastBurnAt, clock)
                     drawTipJar(text, night, clock)
                     drawTickets(text, night)
                     drawReadyPlates(text, night, clock)
@@ -243,6 +255,7 @@ fun NightScene(
                                         val mood = if (eating) 80 else (75 - waitedFraction * 70).toInt()
                                         // The food goes on the plate already laid at their place, not on a second plate.
                                         if (eating && party.orders.getOrNull(g) != null) drawFood(Point(c.x + (if (g == 0) -4.2f else 4.2f), c.y))
+                                        if (eating && party.chefsSpecial && party.orders.getOrNull(g) != null) drawSpecialStar(Point(c.x + (if (g == 0) -4.2f else 4.2f), c.y))
                                         val eatingPlate = Point(c.x + (if (g == 0) -4.2f else 4.2f), c.y)
                                         // A fresh plate steams for the first few seconds.
                                         if (eating && party.orders.getOrNull(g) != null && time - party.stageSince < 3.5f) drawSteam(eatingPlate, clock, guest)
@@ -351,6 +364,7 @@ fun NightScene(
                                     val plateAt = Point(hand.x, hand.y - hop)
                                     drawPlate(plateAt)
                                     drawSteam(plateAt, clock, item.partyId)
+                                    if (night.parties.firstOrNull { it.id == item.partyId }?.chefsSpecial == true) drawSpecialStar(plateAt)
                                     // The table number travels with the plate, so you always know where it's going.
                                     night.parties.firstOrNull { it.id == item.partyId }?.table?.let { table -> drawNumberFlag(text, plateAt, table + 1) }
                                 }
@@ -607,6 +621,7 @@ private fun Pen.drawReadyPlates(text: TextMeasurer, night: ServiceNight, clock: 
         val at = plateSpot(i)
         drawPlate(at)
         drawSteam(at, clock, party.id)
+        if (party.chefsSpecial) drawSpecialStar(at)
         drawNumberFlag(text, at, (party.table ?: 0) + 1)
     }
 }
@@ -897,7 +912,65 @@ private fun Pen.drawChatter(text: TextMeasurer, table: Point, partyId: Int, cloc
  * The chef while there's cooking: stirring a bowl with a wooden spoon, steam rising off it, and every
  * few seconds a taste from the spoon with a pleased "mm!".
  */
-private fun Pen.drawChefAtWork(text: TextMeasurer, chef: Point, clock: Float) {
+/** A storm cloud over a grumpy chef, or music notes floating up from a happy one. */
+private fun Pen.drawChefMood(text: TextMeasurer, chef: Point, mood: ChefMood, clock: Float) {
+    when (mood) {
+        ChefMood.GRUMPY -> {
+            val c = Point(chef.x + sin(clock * 0.7f) * 0.8f, chef.y - 17f)
+            val cloud = Color(0xFF5E6470)
+            dot(c.x - 2.2f, c.y + 0.4f, 1.8f, cloud)
+            dot(c.x, c.y - 0.6f, 2.3f, cloud)
+            dot(c.x + 2.3f, c.y + 0.3f, 1.7f, cloud)
+            box(c.x - 3.6f, c.y, 7.4f, 2f, cloud, radius = 1f)
+            // Now and then a little flash of lightning.
+            if ((clock % 3f) < 0.25f) {
+                shape(Palette.gold) {
+                    moveTo(c.x + 0.4f, c.y + 1.8f); lineTo(c.x - 0.8f, c.y + 3.8f); lineTo(c.x + 0.2f, c.y + 3.8f)
+                    lineTo(c.x - 0.6f, c.y + 5.6f); lineTo(c.x + 1.2f, c.y + 3.2f); lineTo(c.x + 0.2f, c.y + 3.2f); close()
+                }
+            }
+        }
+        ChefMood.HAPPY -> {
+            for (k in 0..1) {
+                val rise = ((clock * 0.4f + k * 0.5f) % 1f)
+                val alpha = (1f - rise).coerceIn(0f, 1f)
+                centeredText(text, if (k == 0) "♪" else "♫", Point(chef.x + 4f + k * 2f + sin(clock * 2f + k) * 1f, chef.y - 12f - rise * 7f), size = 3f, color = Color(0xFF3E8E41).copy(alpha = alpha), bold = true)
+            }
+        }
+        ChefMood.NORMAL -> {}
+    }
+}
+
+/** Black smoke pouring off the stove, and a cross "Burnt!", for a couple of seconds after the chef burns something. */
+private fun Pen.drawBurnt(text: TextMeasurer, since: Float, clock: Float) {
+    if (since !in 0f..BURNT_SHOWS) return
+    val fade = 1f - since / BURNT_SHOWS
+    val stove = SceneLayout.stove
+    for (k in 0..3) {
+        val rise = ((clock * 0.9f + k * 0.25f) % 1f)
+        dot(stove.center.x - 3f + k * 2f + sin(clock * 3f + k) * 0.8f, stove.top + 4f - rise * 10f, 1.4f + rise * 1.6f, Color(0xFF2B2B2B).copy(alpha = 0.55f * fade * (1f - rise)))
+    }
+    centeredText(text, "Burnt!", Point(stove.center.x, stove.top - 1f), size = 2.8f, color = Palette.alert.copy(alpha = fade), bold = true)
+}
+
+private const val BURNT_SHOWS = 2.5f
+
+/** A little gold star stuck on a chef's special. */
+private fun Pen.drawSpecialStar(plate: Point) {
+    val c = Point(plate.x - 2.4f, plate.y - 2.2f)
+    shape(Palette.gold) {
+        for (k in 0 until 10) {
+            val r = if (k % 2 == 0) 1.3f else 0.55f
+            val a = -kotlin.math.PI.toFloat() / 2 + k * kotlin.math.PI.toFloat() / 5
+            val x = c.x + kotlin.math.cos(a) * r
+            val y = c.y + kotlin.math.sin(a) * r
+            if (k == 0) moveTo(x, y) else lineTo(x, y)
+        }
+        close()
+    }
+}
+
+private fun Pen.drawChefAtWork(text: TextMeasurer, chef: Point, clock: Float, grumpy: Boolean = false) {
     val bowl = Point(chef.x + 5.6f, chef.y + 3.4f)
     oval(bowl.x, bowl.y + 1f, 2.8f, 0.7f, Color(0x33000000))
     shape(Color(0xFFB0573A)) {
@@ -922,7 +995,7 @@ private fun Pen.drawChefAtWork(text: TextMeasurer, chef: Point, clock: Float) {
     dot(handle, 0.85f, Palette.face)
     line(handle.x, handle.y, end.x, end.y, Color(0xFF9A6A3A), 0.5f)
     oval(end.x, end.y, 0.7f, 0.45f, Color(0xFF9A6A3A))
-    if (tasting) centeredText(text, "mm!", Point(chef.x + 6f, chef.y - 8f), size = 2.2f, color = Palette.ink, bold = true)
+    if (tasting) centeredText(text, if (grumpy) "ugh." else "mm!", Point(chef.x + 6f, chef.y - 8f), size = 2.2f, color = Palette.ink, bold = true)
 }
 
 private const val PI_F = 3.1415927f
