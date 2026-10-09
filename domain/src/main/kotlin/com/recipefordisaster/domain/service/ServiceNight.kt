@@ -156,6 +156,8 @@ data class ServiceNight(
         val family: Boolean = false,
         /** A grumpy chef burnt this table's food and had to start again. */
         val burnt: Boolean = false,
+        /** A happy chef made this table's food into a chef's special: they love it, and tip more. */
+        val chefsSpecial: Boolean = false,
     ) {
         val seated: Boolean get() = stage in Stage.DECIDING..Stage.LEAVING_ANGRY
         val occupiesTable: Boolean get() = table != null && stage in Stage.WALKING_TO_TABLE..Stage.LEAVING_ANGRY
@@ -631,7 +633,8 @@ data class ServiceNight(
             night = if (night.burns(party)) {
                 night.copy(lastBurnAt = time).updateParty(party.id) { it.copy(burnt = true, until = time + night.cookTime(party.orders)) }
             } else {
-                night.updateParty(party.id) { it.copy(stage = Stage.READY_AT_PASS, stageSince = time) }
+                val special = night.chefMood == ChefMood.HAPPY && night.touchedByMood(party, CHEFS_SPECIAL_CHANCE)
+                night.updateParty(party.id) { it.copy(stage = Stage.READY_AT_PASS, stageSince = time, chefsSpecial = special) }
             }
         }
         // Free cooks pick up the oldest tickets.
@@ -661,6 +664,9 @@ data class ServiceNight(
     /** How many tables' food got burnt tonight. */
     val burntPlates: Int get() = parties.count { it.burnt }
 
+    /** How many tables got a chef's special tonight. */
+    val chefsSpecials: Int get() = parties.count { it.chefsSpecial }
+
     private fun finishMeals(): ServiceNight {
         var night = this
         for (party in parties) {
@@ -679,7 +685,8 @@ data class ServiceNight(
                     val mess = (night.messesOnFloor.size + bother).coerceAtMost(MAX_MESS_PENALTIES) * MESS_PENALTY -
                         // ...while a visit from the cat makes their evening.
                         (if (party.table in night.catVisited) CAT_JOY else 0)
-                    val satisfaction = (ServiceSimulator.resolveSatisfaction(customer, dish, waitedMinutes, kitchenQualityBonus) - mess).coerceIn(0, 100)
+                    val treat = if (party.chefsSpecial) CHEFS_SPECIAL_JOY else 0
+                    val satisfaction = (ServiceSimulator.resolveSatisfaction(customer, dish, waitedMinutes, kitchenQualityBonus) - mess + treat).coerceIn(0, 100)
                         results = results + (guest to CustomerServiceOutcome(customer, dish, satisfaction, waitedMinutes))
                     }
                     // They leave their dirty plates behind; the table needs clearing before anyone else can sit there.
@@ -930,7 +937,9 @@ data class ServiceNight(
             served <= TIP_OK -> 1L
             else -> 0L
         }
-        return party.guests.sumOf { guest -> if ((results[guest]?.satisfaction ?: 0) >= 55) perGuest else 0L }
+        // A chef's special earns a little extra on top, however long it took.
+        val extra = if (party.chefsSpecial) CHEFS_SPECIAL_TIP else 0L
+        return party.guests.sumOf { guest -> if ((results[guest]?.satisfaction ?: 0) >= 55) perGuest + extra else 0L }
     }
 
     private fun missed(guest: Int, reason: MissedMealReason) =
@@ -1010,6 +1019,11 @@ data class ServiceNight(
 
         /** The share of plates a grumpy chef burns. */
         private const val BURN_CHANCE = 0.3f
+
+        /** The share of plates a happy chef makes special, how much more guests enjoy one, and the extra tip each leaves. */
+        private const val CHEFS_SPECIAL_CHANCE = 0.3f
+        private const val CHEFS_SPECIAL_JOY = 8
+        private const val CHEFS_SPECIAL_TIP = 2L
 
         /** Food on the table within this many seconds of sitting down earns the full tip; within [TIP_OK], a small one. */
         private const val TIP_FAST = 24f

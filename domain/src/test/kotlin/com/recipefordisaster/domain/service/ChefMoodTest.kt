@@ -56,4 +56,17 @@ class ChefMoodTest {
         assertTrue(grumpy.burntPlates < grumpy.parties.size)
         assertEquals(0, play(open(withCooks(morale = 70, stress = 20))).burntPlates)
     }
+
+    @Test
+    fun `a happy chef makes some plates a chef's special, which guests love and tip more for`() {
+        val happy = play(open(withCooks(morale = 85, stress = 20)))
+        val normal = play(open(withCooks(morale = 70, stress = 20)))
+        assertTrue(happy.chefsSpecials > 0)
+        assertEquals(0, normal.chefsSpecials)
+        assertEquals(0, happy.burntPlates)
+        // The same guests, served the same way: the special tables are happier and tip more.
+        val special = happy.parties.filter { it.chefsSpecial }
+        val sameInNormal = normal.parties.filter { p -> p.id in special.map { it.id } }
+        assertTrue(special.sumOf { it.tip } > sameInNormal.sumOf { it.tip })
+    }
 }
