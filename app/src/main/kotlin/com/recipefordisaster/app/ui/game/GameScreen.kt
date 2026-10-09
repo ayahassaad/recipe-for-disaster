@@ -203,6 +203,12 @@ fun GameScreen(
                                 Text(stringResource(R.string.sound_music), modifier = Modifier.weight(1f))
                                 androidx.compose.material3.Switch(checked = music, onCheckedChange = { music = it; sounds.musicOn = it })
                             }
+                            // Change how your waiter looks.
+                            var choosingLook by remember { mutableStateOf(false) }
+                            TextButton(onClick = { choosingLook = true }, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
+                                Text(stringResource(R.string.look_button))
+                            }
+                            if (choosingLook) com.recipefordisaster.app.ui.player.PlayerLookDialog(onClose = { choosingLook = false })
                         }
                     },
                     confirmButton = { TextButton(onClick = { askLeave = false; onBackToStart() }) { Text(stringResource(R.string.leave_confirm)) } },

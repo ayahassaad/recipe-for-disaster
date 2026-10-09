@@ -291,4 +291,16 @@
     <string name="sound_effects">Sound effects</string>
     <string name="sound_music">Music</string>
     <string name="leave_stay">Stay</string>
+    <string name="look_button">Your look</string>
+    <string name="look_title">Your look</string>
+    <string name="look_skin">Skin</string>
+    <string name="look_hair">Hair colour</string>
+    <string name="look_style">Hairstyle</string>
+    <string name="look_apron">Apron</string>
+    <string name="look_done">Done</string>
+    <string name="look_style_parting">Side parting</string>
+    <string name="look_style_curls">Curls</string>
+    <string name="look_style_long">Long</string>
+    <string name="look_style_bun">Bun</string>
+    <string name="look_style_crop">Short crop</string>
 </resources>
