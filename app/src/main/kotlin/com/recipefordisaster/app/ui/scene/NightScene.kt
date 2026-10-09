@@ -177,7 +177,9 @@ fun NightScene(
                                 party.guests.forEachIndexed { g, guest ->
                                     val spot = ServiceFloor.queueSpot(queueIndex++).toPoint()
                                     val mood = (70 - waited * 60).toInt()
-                                    drawGuest(spot, guest, mood, angry = mood < 25, walkPhase = null, g)
+                                    val child = party.family && g == 1
+                                    drawGuest(spot, guest, mood, angry = mood < 25, walkPhase = null, g, child = child)
+                                    if (child) drawBalloon(spot, guest, clock)
                                     if (g == 0) party.special?.let { drawSpecialLook(spot, it, clock) }
                                 }
                                 // A "we need a table" bubble with their patience, so a crowd at the door is hard to miss.
@@ -192,7 +194,9 @@ fun NightScene(
                                     // Side by side all the way in, then each steps into their own seat.
                                     val apart = if (party.guests.size > 1) (1f - ((progress - 0.8f) / 0.2f)).coerceIn(0f, 1f) else 0f
                                     val at = sideBySide(route, progress, if (g == 0) -1f else 1f, apart)
-                                    around(at, scale).drawGuest(at, guest, 65, angry = false, walkPhase = time * 2.2f + g, g)
+                                    val child = party.family && g == 1
+                                    around(at, scale).drawGuest(at, guest, 65, angry = false, walkPhase = time * 2.2f + g, g, child = child)
+                                    if (child) around(at, scale).drawBalloon(at, guest, clock)
                                     if (g == 0) party.special?.let { around(at, scale).drawSpecialLook(at, it, clock) }
                                 }
                             }
@@ -209,7 +213,9 @@ fun NightScene(
                                     val at = sideBySide(route, progress, if (g == 0) -1f else 1f, apart)
                                     // Angry guests stomp out: a faster, bouncier walk, and a cloud of cross words overhead.
                                     val stomp = if (angry) abs(sin(time * 9f + g)) * 0.9f else 0f
-                                    around(at, scale).drawGuest(Point(at.x, at.y - stomp), guest, mood, angry = angry, walkPhase = time * (if (angry) 4.2f else 2.6f) + g, g)
+                                    val child = party.family && g == 1
+                                    around(at, scale).drawGuest(Point(at.x, at.y - stomp), guest, mood, angry = angry, walkPhase = time * (if (angry) 4.2f else 2.6f) + g, g, child = child)
+                                    if (child) around(at, scale).drawBalloon(at, guest, clock)
                                     if (g == 0) party.special?.let { around(at, scale).drawSpecialLook(Point(at.x, at.y - stomp), it, clock) }
                                     if (angry && g == 0) drawGrumble(text, Point(at.x, at.y - 14f), clock)
                                 }
@@ -239,7 +245,10 @@ fun NightScene(
                                         // A fresh plate steams for the first few seconds.
                                         if (eating && party.orders.getOrNull(g) != null && time - party.stageSince < 3.5f) drawSteam(eatingPlate, clock, guest)
                                         val guestBob = if (eating) abs(sin(clock * 6f + guest)) * 0.4f else 0f
-                                        drawGuest(seat, guest, mood, angry = waitedFraction > 0.75f, walkPhase = null, g, bob = guestBob)
+                                        // A child sits up on a booster cushion, so they can see over the table.
+                                        val child = party.family && g == 1
+                                        if (child) box(seat.x - 3f, seat.y + 0.6f, 6f, 2.4f, Color(0xFFE85D75), radius = 1f)
+                                        drawGuest(if (child) Point(seat.x, seat.y - 1.2f) else seat, guest, mood, angry = waitedFraction > 0.75f, walkPhase = null, g, bob = guestBob, child = child)
                                         if (g == 0) party.special?.let { drawSpecialLook(seat, it, clock, guestBob) }
                                         // Reading the menu while deciding; now and then someone checks their phone while the food comes.
                                         // Once they've waited a good while, they keep looking at their watch instead.
@@ -482,7 +491,21 @@ private fun TapArea(rect: Rect, unit: Float, origin: Offset, label: String, onTa
 /** Table index -> colour for its number card: every table is the player's. */
 private fun ownerColors(night: ServiceNight): Map<Int, Color> = night.player.tables.associateWith { PlayerColor }
 
-private fun Pen.drawGuest(at: Point, guest: Int, mood: Int, angry: Boolean, walkPhase: Float?, seatIndex: Int, bob: Float = 0f) {
+private fun Pen.drawGuest(at: Point, guest: Int, mood: Int, angry: Boolean, walkPhase: Float?, seatIndex: Int, bob: Float = 0f, child: Boolean = false) {
+    // A child is a smaller person, standing on the same spot of floor, in a bright top.
+    if (child) {
+        around(Point(at.x, at.y + 3.6f), CHILD_SIZE).drawPerson(
+            at = at,
+            outfit = Outfit.GUEST,
+            mood = mood,
+            bodyColor = CHILD_COLOURS[guest % CHILD_COLOURS.size],
+            bob = bob,
+            angry = angry,
+            variant = guest + 1,
+            walkPhase = walkPhase,
+        )
+        return
+    }
     drawPerson(
         at = at,
         outfit = Outfit.GUEST,
@@ -493,6 +516,19 @@ private fun Pen.drawGuest(at: Point, guest: Int, mood: Int, angry: Boolean, walk
         variant = guest,
         walkPhase = walkPhase,
     )
+}
+
+private const val CHILD_SIZE = 0.68f
+private val CHILD_COLOURS = listOf(Color(0xFFF2C230), Color(0xFFE85D75), Color(0xFF4FB3D9), Color(0xFF7BC67B))
+
+/** A balloon on a string, bobbing above a child walking in or out. */
+private fun Pen.drawBalloon(child: Point, guest: Int, clock: Float) {
+    val sway = sin(clock * 1.7f + guest) * 0.8f
+    val hand = Point(child.x + 2.6f, child.y + 1.4f)
+    val b = Point(child.x + 4.2f + sway, child.y - 9.5f)
+    line(hand.x, hand.y, b.x, b.y + 2.2f, Color(0x99FFFFFF), 0.2f)
+    oval(b.x, b.y, 1.8f, 2.2f, CHILD_COLOURS[(guest + 1) % CHILD_COLOURS.size])
+    dot(b.x - 0.6f, b.y - 0.8f, 0.45f, Color(0x88FFFFFF))
 }
 
 /** A small white card standing on the table with its number, edged in its waiter's colour. */
