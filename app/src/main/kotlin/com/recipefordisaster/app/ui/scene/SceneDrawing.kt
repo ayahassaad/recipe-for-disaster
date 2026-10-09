@@ -15,6 +15,7 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.recipefordisaster.app.ui.player.PlayerLook
 import com.recipefordisaster.app.ui.scene.SceneLayout.Point
 import com.recipefordisaster.app.ui.scene.SceneLayout.Rect
 import com.recipefordisaster.domain.employee.Role
@@ -709,7 +710,10 @@ internal fun Pen.drawPerson(
     apron: Color? = null,
     /** Leave the arms off: the caller draws them doing something (holding a plate to wash, say). */
     armsBusy: Boolean = false,
+    /** The player's chosen look; null for the usual face and hair. */
+    look: PlayerLook? = null,
 ) {
+    val skin = look?.skinColor ?: Palette.face
     val y = at.y - bob + if (slumped) 0.8f else 0f
     oval(at.x, at.y + 3.6f, 4.2f, 1.3f, Palette.shadow)
 
@@ -732,7 +736,7 @@ internal fun Pen.drawPerson(
     val sleeve = if (outfit == Outfit.SERVER) Color(0xFF2B2B2B) else shade
     // Arms and hands first, so the body overlaps the tops of the sleeves.
     val armSwing = step * 0.6f
-    val hand = if (outfit == Outfit.WASHER) Color(0xFFF2C230) else Palette.face
+    val hand = if (outfit == Outfit.WASHER) Color(0xFFF2C230) else skin
     if (!armsBusy) {
         box(at.x - 5.2f, y - 0.4f + armSwing, 1.8f, 4.4f, sleeve, radius = 0.9f)
         box(at.x + 3.4f, y - 0.4f - armSwing, 1.8f, 4.4f, sleeve, radius = 0.9f)
@@ -800,10 +804,10 @@ internal fun Pen.drawPerson(
     // Head.
     val hx = at.x
     val hy = y - 4f + if (slumped) 1f else 0f
-    val hair = Palette.hairColors[variant % Palette.hairColors.size]
-    val style = if (outfit == Outfit.GUEST) variant % 5 else 0
+    val hair = look?.hairColor ?: Palette.hairColors[variant % Palette.hairColors.size]
+    val style = look?.style ?: if (outfit == Outfit.GUEST) variant % 5 else 0
     if (style == 2) box(hx - 3.8f, hy - 2.4f, 7.6f, 6.2f, hair, radius = 2.4f) // long hair behind the head
-    dot(hx, hy, 3.4f, if (angry) Color(0xFFF2B19C) else Palette.face)
+    dot(hx, hy, 3.4f, if (angry) Color(0xFFF2B19C) else skin)
     if (backTurned) {
         dot(hx, hy, 3.4f, hair)
         if (style == 3) dot(hx, hy - 3f, 1.4f, hair)

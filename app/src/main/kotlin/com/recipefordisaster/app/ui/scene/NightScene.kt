@@ -102,6 +102,8 @@ fun NightScene(
     modifier: Modifier = Modifier,
     /** Something to point at with a pulsing ring, for players still learning what to tap. */
     focus: NightFocus? = null,
+    /** How the player has chosen to look. */
+    playerLook: com.recipefordisaster.app.ui.player.PlayerLook = com.recipefordisaster.app.ui.player.PlayerLook(),
 ) {
     val text = rememberTextMeasurer()
     val density = LocalDensity.current
@@ -317,7 +319,8 @@ fun NightScene(
                             sweat = (figure?.stress ?: 0) >= 70,
                             variant = (figure?.name ?: "you").hashCode().mod(5),
                             walkPhase = if (walking && waiter.errand != ServiceNight.Errand.Wash) time * 2.4f else null,
-                            apron = if (waiter.isPlayer) PlayerColor else helperColor[waiter.id],
+                            apron = if (waiter.isPlayer) playerLook.apronColor else helperColor[waiter.id],
+                            look = if (waiter.isPlayer) playerLook else null,
                             // While washing up, the arms are drawn holding the plate instead.
                             armsBusy = waiter.errand == ServiceNight.Errand.Wash || waiter.errand == ServiceNight.Errand.HandleChaos,
                         )

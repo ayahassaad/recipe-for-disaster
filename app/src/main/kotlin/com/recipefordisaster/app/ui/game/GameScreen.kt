@@ -531,6 +531,7 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
                 modifier = Modifier.fillMaxSize(),
                 // For the first few nights, point at what the hint is talking about.
                 focus = if (session.setup.original.day <= GUIDED_DAYS) NightHint.of(night).focus(night) else null,
+                playerLook = com.recipefordisaster.app.ui.player.PlayerLooks.get(androidx.compose.ui.platform.LocalContext.current).look,
             )
             // Everyone fed tonight: confetti!
             if (night.finished) {
