@@ -93,14 +93,14 @@ private val STYLE_NAMES = listOf(R.string.look_style_parting, R.string.look_styl
 private fun LookRow(label: String, colours: List<Color>, chosen: Int, onChoose: (Int) -> Unit) {
     Column {
         Text(label, style = MaterialTheme.typography.titleSmall)
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 4.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(top = 4.dp)) {
             colours.forEachIndexed { i, colour ->
                 val picked = i == chosen.mod(colours.size)
                 Box(
                     modifier = Modifier
-                        .size(30.dp)
+                        .size(28.dp)
                         .border(if (picked) 3.dp else 1.dp, if (picked) MaterialTheme.colorScheme.primary else Color(0x33000000), CircleShape)
-                        .padding(4.dp)
+                        .padding(3.dp)
                         .clip(CircleShape)
                         .background(colour)
                         .semantics {
