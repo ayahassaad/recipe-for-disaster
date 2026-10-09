@@ -102,6 +102,8 @@ fun RestaurantScene(
     modifier: Modifier = Modifier,
     /** The player's look, to show them in the room too; null leaves them out. */
     playerLook: com.recipefordisaster.app.ui.player.PlayerLook? = null,
+    /** What the player is doing while they stand about. */
+    playerPose: PlayerPose = PlayerPose.WAVING,
 ) {
     var clock by remember { mutableFloatStateOf(0f) }
 
@@ -158,8 +160,8 @@ fun RestaurantScene(
                     )
                 }
 
-                // You, ready for the day.
-                playerLook?.let { drawIdlePlayer(PLAYER_IDLE_SPOT, it, PlayerPose.WAVING, time) }
+                // You: ready for the day, or after service, pleased or fed up with how it went.
+                playerLook?.let { drawIdlePlayer(PLAYER_IDLE_SPOT, it, playerPose, time) }
 
                 // "This needs you" markers.
                 model.alerts.forEach { target ->

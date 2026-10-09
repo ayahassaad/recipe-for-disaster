@@ -692,7 +692,13 @@ private fun ResultsPlay(report: DayReport, gameOver: Boolean, newTable: Boolean,
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding().navigationBarsPadding()) {
         Hud(day = report.summary.day, cash = report.summary.cashAfter, reputation = report.summary.reputationAfter, subtitle = "", onMenu = onMenu)
         Box(modifier = Modifier.weight(1f)) {
-            RestaurantScene(model = model, labels = sceneLabels(), onTap = {})
+            RestaurantScene(
+                model = model,
+                labels = sceneLabels(),
+                onTap = {},
+                playerLook = com.recipefordisaster.app.ui.player.PlayerLooks.get(androidx.compose.ui.platform.LocalContext.current).look,
+                playerPose = if (report.books.profitOrLoss >= 0) com.recipefordisaster.app.ui.scene.PlayerPose.CHEERING else com.recipefordisaster.app.ui.scene.PlayerPose.GLUM,
+            )
             EndOfNightPanel(
                 visible = true,
                 report = report,

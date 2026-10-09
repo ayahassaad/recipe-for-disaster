@@ -881,16 +881,25 @@ internal fun Pen.drawPerson(
     }
 }
 
-/** What the player is up to when the restaurant is shut: in the morning they wave hello. */
-internal enum class PlayerPose { WAVING }
+/**
+ * What the player is up to when the restaurant is shut: in the morning they wave hello; after a
+ * night that made money they cheer, and after one that lost money they slump.
+ */
+enum class PlayerPose { WAVING, CHEERING, GLUM }
 
 /** Where the player stands when the restaurant is shut: in the open floor between the first two rows of tables. */
 internal val PLAYER_IDLE_SPOT = Point(50f, 79f)
 
 /** The player, in their own look, standing about while the restaurant is shut. */
 internal fun Pen.drawIdlePlayer(at: Point, look: PlayerLook, pose: PlayerPose, time: Float) {
-    val bob = sin(time * 1.6f) * 0.25f
-    drawPerson(at = at, outfit = Outfit.SERVER, mood = 85, bob = bob, apron = look.apronColor, armsBusy = true, look = look)
+    // Cheering is bouncy; glum barely moves.
+    val bob = when (pose) {
+        PlayerPose.CHEERING -> abs(sin(time * 5f)) * 1.2f
+        PlayerPose.GLUM -> sin(time * 0.8f) * 0.1f
+        else -> sin(time * 1.6f) * 0.25f
+    }
+    val mood = if (pose == PlayerPose.GLUM) 15 else 85
+    drawPerson(at = at, outfit = Outfit.SERVER, mood = mood, bob = bob, apron = look.apronColor, armsBusy = true, look = look, slumped = pose == PlayerPose.GLUM)
     val y = at.y - bob
     val sleeve = Color(0xFF2B2B2B)
     when (pose) {
@@ -906,6 +915,27 @@ internal fun Pen.drawIdlePlayer(at: Point, look: PlayerLook, pose: PlayerPose, t
             } else {
                 box(at.x + 3.4f, y - 0.4f, 1.8f, 4.4f, sleeve, radius = 0.9f)
                 dot(at.x + 4.3f, y + 4.2f, 0.9f, look.skinColor)
+            }
+        }
+        PlayerPose.CHEERING -> {
+            // Both arms up in the air.
+            for (side in listOf(-1f, 1f)) {
+                val sway = sin(time * 5f + side) * 0.6f
+                line(at.x + side * 3.6f, y + 0.2f, at.x + side * (5.8f + sway), y - 4.6f, sleeve, 1.8f)
+                dot(at.x + side * (6f + sway), y - 5.4f, 1f, look.skinColor)
+            }
+        }
+        PlayerPose.GLUM -> {
+            // Arms hanging, a sigh drifting up now and then.
+            val sy = y + 0.8f
+            box(at.x - 5f, sy - 0.2f, 1.8f, 4.6f, sleeve, radius = 0.9f)
+            box(at.x + 3.2f, sy - 0.2f, 1.8f, 4.6f, sleeve, radius = 0.9f)
+            dot(at.x - 4.1f, sy + 4.6f, 0.9f, look.skinColor)
+            dot(at.x + 4.1f, sy + 4.6f, 0.9f, look.skinColor)
+            val sigh = (time % 4f) / 4f
+            if (sigh < 0.6f) {
+                val a = (1f - sigh / 0.6f) * 0.7f
+                ring(at.x + 4.6f + sigh * 3f, y - 8f - sigh * 6f, 0.8f + sigh * 1.4f, Color.White.copy(alpha = a), 0.35f)
             }
         }
     }
