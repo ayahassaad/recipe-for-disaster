@@ -4,6 +4,7 @@ import com.recipefordisaster.domain.decision.DecisionApplier
 import com.recipefordisaster.domain.event.EventEngine
 import com.recipefordisaster.domain.event.KitchenEvents
 import com.recipefordisaster.domain.service.ServiceNight
+import com.recipefordisaster.domain.service.drinksServed
 import com.recipefordisaster.domain.service.ServiceNight.Stage
 import com.recipefordisaster.domain.simulation.DefaultDayTickEngine
 import com.recipefordisaster.domain.simulation.GameState
@@ -31,7 +32,7 @@ class FridgeTest {
     private fun waitFor(night: ServiceNight, condition: (ServiceNight) -> Boolean): ServiceNight {
         var n = night
         var guard = 0
-        while (!condition(n) && guard++ < 20_000) n = n.advance(0.05f)
+        while (!condition(n) && guard++ < 20_000) n = n.advance(0.05f).drinksServed()
         return n
     }
 
@@ -110,7 +111,7 @@ class FridgeTest {
         val seed = (1L..40L).first { open(state, it).fridgeBreaksAt != null }
         val setup = engine.openService(state, PlayerDecisions(), SeededRandomSource(seed))
         var n = ServiceNight.open(setup, SeededRandomSource(seed + 1))
-        while (!n.finished) n = n.advance(0.05f)
+        while (!n.finished) n = n.advance(0.05f).drinksServed()
         val next = engine.closeService(setup, n.result(), SeededRandomSource(seed + 2)).newState
         assertTrue(EquipmentOperations.isBroken(Fridge.of(next)!!))
     }

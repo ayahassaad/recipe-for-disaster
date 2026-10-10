@@ -40,7 +40,7 @@ class FamilyTest {
                     ?: n.parties.firstOrNull { it.id == family.id && it.stage == ServiceNight.Stage.READY_TO_ORDER }?.table?.let { n.tapTable(it) }
                 n = target ?: n
             }
-            n = n.advance(0.05f)
+            n = n.advance(0.05f).drinksServed()
         }
         val left = n.parties.first { it.id == family.id }
         assertTrue("the family never finished", left.stage == ServiceNight.Stage.LEAVING_HAPPY)

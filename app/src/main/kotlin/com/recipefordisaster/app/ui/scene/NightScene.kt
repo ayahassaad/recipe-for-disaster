@@ -356,6 +356,7 @@ fun NightScene(
                             val hand = Point(at.x + (if (k == 0) -4.6f else 4.6f), at.y + 2.6f)
                             when (item) {
                                 is ServiceNight.HandItem.DirtyDishes -> drawDirtyStack(hand)
+                                is ServiceNight.HandItem.Drinks -> {}
                                 ServiceNight.HandItem.Mop -> drawMop(hand, if (k == 0) -1f else 1f, mopping = waiter.errand is ServiceNight.Errand.Mopping, clock = clock)
                                 is ServiceNight.HandItem.Plate -> {
                                     // A little hop as it's picked up.

@@ -30,7 +30,7 @@ class ServiceNightTest {
         var n = night
         var steps = 0
         while (!n.finished && steps < 20_000) {
-            n = player(n).advance(0.05f)
+            n = player(n).advance(0.05f).drinksServed()
             steps++
         }
         return n
@@ -74,7 +74,7 @@ class ServiceNightTest {
     fun `the player has two hands, and can carry two tables' food at once`() {
         // No food runners, so nobody else picks the plates up first.
         var n = open(start.copy(employees = start.employees.filter { it.role != com.recipefordisaster.domain.employee.Role.SERVER }), seed = 3)
-        fun waitUntil(condition: (ServiceNight) -> Boolean) { var guard = 0; while (!condition(n) && guard++ < 20_000) n = n.advance(0.05f) }
+        fun waitUntil(condition: (ServiceNight) -> Boolean) { var guard = 0; while (!condition(n) && guard++ < 20_000) n = n.advance(0.05f).drinksServed() }
         fun walk() = waitUntil { !it.player.walking }
 
         // Take two tables' orders…
@@ -94,12 +94,12 @@ class ServiceNightTest {
     @Test
     fun `taking an order needs the player to actually walk to the table`() {
         var n = open()
-        while (n.parties.none { it.stage == Stage.READY_TO_ORDER && it.table in n.player.tables }) n = n.advance(0.05f)
+        while (n.parties.none { it.stage == Stage.READY_TO_ORDER && it.table in n.player.tables }) n = n.advance(0.05f).drinksServed()
         val table = n.parties.first { it.stage == Stage.READY_TO_ORDER && it.table in n.player.tables }.table!!
         n = n.tapTable(table)
         assertTrue(n.player.walking)
         assertTrue(n.player.tickets.isEmpty())
-        while (n.player.walking) n = n.advance(0.05f)
+        while (n.player.walking) n = n.advance(0.05f).drinksServed()
         assertEquals(1, n.player.tickets.size)
     }
 
@@ -151,7 +151,7 @@ class ServiceNightTest {
         var worst = 0
         while (!n.finished) {
             worst = maxOf(worst, n.parties.count { it.stage == Stage.QUEUEING })
-            n = n.advance(0.05f)
+            n = n.advance(0.05f).drinksServed()
         }
         assertTrue("$worst parties queued at once", worst <= 2)
     }
@@ -172,7 +172,7 @@ class ServiceNightTest {
         assertEquals(listOf<ServiceNight.Errand>(ServiceNight.Errand.VisitPass), n.player.queue)
 
         // Once the first stop is reached, the queued one starts.
-        while (n.player.errand == ServiceNight.Errand.VisitDishStation) n = n.advance(0.05f)
+        while (n.player.errand == ServiceNight.Errand.VisitDishStation) n = n.advance(0.05f).drinksServed()
         assertEquals(ServiceNight.Errand.VisitPass, n.player.errand)
         assertTrue(n.player.queue.isEmpty())
     }
@@ -239,8 +239,8 @@ class ServiceNightTest {
     @Test
     fun `mopping a spill needs the mop from the bucket`() {
         var n = open(noWashers)
-        while (n.messesOnFloor.isEmpty()) n = n.advance(0.05f)
-        fun walk() { while (n.player.walking) n = n.advance(0.05f) }
+        while (n.messesOnFloor.isEmpty()) n = n.advance(0.05f).drinksServed()
+        fun walk() { while (n.player.walking) n = n.advance(0.05f).drinksServed() }
         val mess = n.messesOnFloor.first()
 
         // Empty-handed, walking over does nothing.
@@ -283,10 +283,10 @@ class ServiceNightTest {
         assertTrue(hostedNight.hosted)
         fun stillWaiting(night: ServiceNight): Boolean {
             var n = night
-            while (n.parties.none { it.stage == Stage.READY_TO_ORDER }) n = n.advance(0.05f)
+            while (n.parties.none { it.stage == Stage.READY_TO_ORDER }) n = n.advance(0.05f).drinksServed()
             val party = n.parties.first { it.stage == Stage.READY_TO_ORDER }
             val until = n.time + party.patience * 1.2f
-            while (n.time < until) n = n.advance(0.05f)
+            while (n.time < until) n = n.advance(0.05f).drinksServed()
             return n.parties.first { it.id == party.id }.stage == Stage.READY_TO_ORDER
         }
         assertTrue(stillWaiting(hostedNight))
@@ -318,7 +318,7 @@ class ServiceNightTest {
         assertTrue(!n.kitchenHasFood)
         var everSeated = false
         while (!n.finished) {
-            n = busyPlayer(n).advance(0.05f)
+            n = busyPlayer(n).advance(0.05f).drinksServed()
             if (n.parties.any { it.table != null }) everSeated = true
         }
         assertTrue(!everSeated)
@@ -332,7 +332,7 @@ class ServiceNightTest {
         var n = open(scarce)
         val ordered = mutableSetOf<Int>()
         while (!n.finished) {
-            n = busyPlayer(n).advance(0.05f)
+            n = busyPlayer(n).advance(0.05f).drinksServed()
             n.parties.filter { it.stage >= Stage.ORDER_TAKEN && it.orders.any { o -> o != null } }.forEach { ordered += it.id }
         }
         val fedOrTired = n.parties.filter { it.id in ordered }.flatMap { it.guests.zip(it.orders) }.filter { it.second != null }
@@ -353,7 +353,7 @@ class ServiceNightTest {
     fun `a night half-way through saves and loads back exactly, and carries on the same`() {
         val setup = engine.openService(start, PlayerDecisions(), SeededRandomSource(1L))
         var n = ServiceNight.open(setup, SeededRandomSource(2L))
-        repeat(900) { n = busyPlayer(n).advance(0.05f) } // 45 seconds in: guests seated, food cooking, plates in hand
+        repeat(900) { n = busyPlayer(n).advance(0.05f).drinksServed() } // 45 seconds in: guests seated, food cooking, plates in hand
         val saved = NightInProgress(setup, n, com.recipefordisaster.domain.decision.DecisionSpending(), 7L)
         val json = com.recipefordisaster.domain.simulation.GameStateJson.instance
         val loaded = json.decodeFromString(NightInProgress.serializer(), json.encodeToString(NightInProgress.serializer(), saved))
@@ -370,10 +370,10 @@ class ServiceNightTest {
     @Test
     fun `tapping a table while its guests are still sitting down takes their order once they're seated`() {
         var n = open()
-        while (n.parties.none { it.stage == Stage.WALKING_TO_TABLE }) n = n.advance(0.05f)
+        while (n.parties.none { it.stage == Stage.WALKING_TO_TABLE }) n = n.advance(0.05f).drinksServed()
         val party = n.parties.first { it.stage == Stage.WALKING_TO_TABLE }
         n = n.tapTable(party.table!!)
-        while (n.player.walking) n = n.advance(0.05f)
+        while (n.player.walking) n = n.advance(0.05f).drinksServed()
         assertEquals(listOf(party.id), n.player.tickets)
     }
 
@@ -389,7 +389,7 @@ class ServiceNightTest {
                 me.plates.isNotEmpty() -> n.parties.first { it.id == me.plates.first() }.table?.let { n.tapTable(it) } ?: n
                 me.tickets.isNotEmpty() || n.parties.any { it.stage == Stage.READY_AT_PASS } -> n.tapPass()
                 else -> n.parties.filter { it.stage == Stage.READY_TO_ORDER }.minByOrNull { it.stageSince }?.table?.let { n.tapTable(it) } ?: n
-            }.advance(0.05f)
+            }.advance(0.05f).drinksServed()
             if (n.waitingAtDoor.isNotEmpty() && !n.hasFreeTable && n.dirtyTables.isNotEmpty()) seen = true
         }
         assertTrue(seen)
@@ -446,7 +446,7 @@ class ServiceNightTest {
         val small = start.copy(restaurant = start.restaurant.copy(tables = 2))
         var n = open(small)
         while (!n.finished) {
-            n = busyPlayer(n).advance(0.05f)
+            n = busyPlayer(n).advance(0.05f).drinksServed()
             assertTrue(n.parties.all { it.table == null || it.table!! < 2 })
         }
         assertEquals(setOf(0, 1), n.player.tables)
@@ -464,7 +464,7 @@ class ServiceNightTest {
     private fun waitFor(night: ServiceNight, condition: (ServiceNight) -> Boolean): ServiceNight {
         var n = night
         var guard = 0
-        while (!condition(n) && guard++ < 20_000) n = n.advance(0.05f)
+        while (!condition(n) && guard++ < 20_000) n = n.advance(0.05f).drinksServed()
         return n
     }
 
@@ -536,7 +536,7 @@ class ServiceNightTest {
                 me.tickets.isNotEmpty() -> n.tapChef()
                 n.parties.any { it.stage == Stage.READY_AT_PASS } && me.freeHands > 0 -> n.tapPlate(n.parties.first { it.stage == Stage.READY_AT_PASS }.id)
                 else -> n.parties.filter { it.stage == Stage.READY_TO_ORDER }.minByOrNull { it.stageSince }?.table?.let { n.tapTable(it) } ?: n
-            }.advance(0.05f)
+            }.advance(0.05f).drinksServed()
         }
         assertTrue(n.dirtyTables.isNotEmpty())
         assertTrue(!n.finished)
@@ -554,13 +554,13 @@ class ServiceNightTest {
     }
 
     @Test
-    fun `guests read the menu for a few seconds after sitting down before they're ready to order`() {
+    fun `guests look at the drinks for a moment after sitting down before they're ready to order`() {
         var n = open()
         n = waitFor(n) { night -> night.parties.any { it.stage == Stage.DECIDING } }
         val party = n.parties.first { it.stage == Stage.DECIDING }
         val satAt = n.time
         n = waitFor(n) { night -> night.parties.first { it.id == party.id }.stage == Stage.READY_TO_ORDER }
-        assertTrue(n.time - satAt >= 2.4f)
+        assertTrue(n.time - satAt >= 1.4f)
     }
 
     @Test

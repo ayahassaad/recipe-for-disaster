@@ -44,7 +44,7 @@ class ChefMoodTest {
                     ?: (if (me.dirtyDishes.isNotEmpty()) n.tapDishStation() else n.dirtyTables.firstOrNull()?.let { n.tapTable(it) })
                     ?: n
             }
-            n = n.advance(0.05f)
+            n = n.advance(0.05f).drinksServed()
         }
         return n
     }
