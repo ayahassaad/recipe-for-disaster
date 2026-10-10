@@ -267,6 +267,11 @@ fun NightScene(
                                         // A fresh plate steams for the first few seconds.
                                         if (eating && party.orders.getOrNull(g) != null && time - party.stageSince < 3.5f) drawSteam(eatingPlate, clock, guest)
                                         val guestBob = if (eating) abs(sin(clock * 6f + guest)) * 0.4f else 0f
+                                        // Once their drinks have come, each place has its glass, going down as the evening goes on.
+                                        val drink = drinkFor(party, g, guest)
+                                        val sipping = party.stage == Stage.DRINKING && ((clock * 0.45f + guest * 0.31f) % 1f) < 0.3f
+                                        val glassAt = Point(c.x + (if (g == 0) -5.6f else 5.6f), c.y - 3.4f)
+                                        drinkLevel(party, time)?.let { level -> if (!sipping) drawDrink(glassAt, drink, level) }
                                         // A child sits up on a booster cushion, so they can see over the table.
                                         val child = party.family && g == 1
                                         if (child) box(seat.x - 3f, seat.y + 0.6f, 6f, 2.4f, Color(0xFFE85D75), radius = 1f)
@@ -274,10 +279,13 @@ fun NightScene(
                                         if (g == 0) party.special?.let { drawSpecialLook(seat, it, clock, guestBob) }
                                         // Reading the menu while deciding; now and then someone checks their phone while the food comes.
                                         // Once they've waited a good while, they keep looking at their watch instead.
-                                        val waitingStage = party.stage == Stage.READY_TO_ORDER || party.stage in Stage.ORDER_TAKEN..Stage.CARRIED
+                                        val waitingStage = party.stage == Stage.READY_TO_ORDER || party.stage == Stage.WANTS_DRINKS || party.stage == Stage.DRINKS_ORDERED ||
+                                            party.stage in Stage.ORDER_TAKEN..Stage.CARRIED
                                         when {
                                             waitingStage && waitedFraction >= WATCH_FROM && ((clock * 0.35f + guest * 0.5f) % 1f) < 0.45f -> drawWatchCheck(seat, clock, Palette.guestColors[guest % Palette.guestColors.size])
-                                            party.stage == Stage.DECIDING || party.stage == Stage.READY_TO_ORDER -> drawMenuCard(seat, clock + guest)
+                                            // Now and then a sip, with the glass up at their mouth; the rest of the time they read the menu.
+                                            sipping -> drawSip(if (child) Point(seat.x, seat.y - 1.2f) else seat, drink, child)
+                                            party.stage in Stage.DECIDING..Stage.READY_TO_ORDER -> drawMenuCard(seat, clock + guest)
                                             party.stage in Stage.ORDER_TAKEN..Stage.CARRIED && waitedFraction < 0.6f &&
                                                 ((clock * 0.2f + guest * 0.37f) % 1f) < 0.4f -> drawPhone(seat, clock)
                                         }
@@ -573,6 +581,65 @@ private fun Pen.drawTableNumber(text: TextMeasurer, table: Point, number: Int, c
     box(card, color, radius = 0.6f)
     box(Rect(card.left + 0.5f, card.top + 0.5f, card.right - 0.5f, card.bottom - 0.5f), Color.White, radius = 0.4f)
     centeredText(text, number.toString(), card.center, size = 3.2f, color = color, bold = true)
+}
+
+/** What each guest drinks: children have lemonade; grown-ups red wine, beer or sparkling water. */
+private enum class Drink { WINE, BEER, WATER, LEMONADE }
+
+private fun drinkFor(party: ServiceNight.Party, seatIndex: Int, guest: Int): Drink =
+    if (party.family && seatIndex == 1) Drink.LEMONADE else listOf(Drink.WINE, Drink.BEER, Drink.WATER)[guest % 3]
+
+/** How full the glasses are (1 just poured), or null before the drinks have come. */
+private fun drinkLevel(party: ServiceNight.Party, time: Float): Float? = when {
+    party.sippedFor <= 0f -> null
+    party.stage == Stage.DRINKING -> 1f - 0.4f * ((time - party.stageSince) / party.sippedFor).coerceIn(0f, 1f)
+    party.stage == Stage.EATING -> 0.55f - 0.35f * ((time - party.stageSince) / 6f).coerceIn(0f, 1f)
+    party.stage in Stage.READY_TO_ORDER..Stage.CARRIED -> 0.55f
+    else -> null
+}
+
+/** A drink standing on the table, filled to [level]. */
+private fun Pen.drawDrink(at: Point, drink: Drink, level: Float) {
+    val glass = Color(0xAAE3F1F8)
+    val rim = Color(0x887A8C96)
+    when (drink) {
+        Drink.WINE -> {
+            oval(at.x, at.y + 1.9f, 1f, 0.35f, rim) // foot
+            line(at.x, at.y + 0.6f, at.x, at.y + 1.9f, rim, 0.25f)
+            dot(at.x, at.y - 0.4f, 1.2f, glass)
+            if (level > 0f) dot(at.x, at.y - 0.1f, 0.9f * level.coerceAtLeast(0.35f), Color(0xFFB0303C))
+            ring(at.x, at.y - 0.4f, 1.2f, rim, 0.18f)
+        }
+        Drink.BEER -> {
+            box(at.x - 1f, at.y - 1.6f, 2f, 3.2f, glass, radius = 0.35f)
+            val h = 2.8f * level
+            box(at.x - 0.85f, at.y + 1.4f - h, 1.7f, h, Color(0xFFE2A93B), radius = 0.3f)
+            if (level > 0.5f) box(at.x - 0.85f, at.y + 1.4f - h - 0.5f, 1.7f, 0.6f, Color(0xFFFFF7E6), radius = 0.3f) // froth
+            ring(at.x + 1.3f, at.y, 0.6f, rim, 0.25f) // handle
+        }
+        Drink.WATER, Drink.LEMONADE -> {
+            val liquid = if (drink == Drink.WATER) Color(0xFFBFE3F2) else Color(0xFFF6E27A)
+            box(at.x - 0.9f, at.y - 1.4f, 1.8f, 2.8f, glass, radius = 0.3f)
+            val h = 2.4f * level
+            box(at.x - 0.75f, at.y + 1.2f - h, 1.5f, h, liquid, radius = 0.25f)
+            if (drink == Drink.LEMONADE) {
+                line(at.x + 0.3f, at.y - 2.6f, at.x - 0.1f, at.y + 0.6f, Color(0xFFE85D75), 0.3f) // straw
+                dot(at.x - 0.9f, at.y - 1.3f, 0.55f, Color(0xFFF2C230)) // a slice of lemon
+            } else {
+                for (k in 0..2) dot(at.x - 0.3f + k * 0.3f, at.y + 0.6f - k * 0.6f, 0.15f, Color(0xCCFFFFFF)) // bubbles
+            }
+        }
+    }
+}
+
+/** A guest taking a sip: hand and glass up at their mouth. */
+private fun Pen.drawSip(seat: Point, drink: Drink, child: Boolean) {
+    val s = if (child) 0.68f else 1f
+    val at = Point(seat.x + 1.2f * s, seat.y - 2.4f * s)
+    with(around(at, s)) {
+        drawDrink(at, drink, 0.7f)
+        dot(at.x + 1f, at.y + 0.8f, 0.8f, Palette.face)
+    }
 }
 
 /** A wine glass for a speech bubble, empty or with something red in it. */
