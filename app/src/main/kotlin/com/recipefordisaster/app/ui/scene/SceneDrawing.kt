@@ -222,6 +222,7 @@ internal fun Pen.drawRoom(cleanliness: Int, doorOpen: Float, time: Float, name: 
     if (cleanliness < 45) drawRat(Point(88f, 132f), time)
 
     drawCounter()
+    drawBar(text)
     drawPlant(Point(5f, 50f), time)
     drawPlant(Point(95f, 50f), time)
     drawPlant(Point(95f, 131f), time)
@@ -266,6 +267,41 @@ private val STAIN_SPOTS = listOf(
     Point(12f, 78f), Point(36f, 104f), Point(84f, 80f), Point(62f, 130f),
     Point(18f, 106f), Point(66f, 52f), Point(30f, 134f), Point(88f, 110f),
 )
+
+/**
+ * The bar: the stretch of counter between the chef and the tip jar, in darker polished wood with a
+ * brass rail, two beer taps, a bottle of wine and glasses waiting upside down. Built into the counter
+ * so the dining room stays as open as it was.
+ */
+private fun Pen.drawBar(text: TextMeasurer?) {
+    val b = SceneLayout.bar
+    val c = SceneLayout.counter
+    box(b.left, c.top, b.width, c.height, Color(0xFF6B3A24), radius = 0.8f)
+    box(b.left, c.top, b.width, 2.2f, Color(0xFF85492D), radius = 0.8f)
+    line(b.left + 0.4f, c.bottom - 0.5f, b.right - 0.4f, c.bottom - 0.5f, Palette.gold, 0.35f) // brass rail
+    // Drip tray and two taps.
+    box(b.left + 1f, c.top + 0.6f, 5.4f, 1.4f, Palette.steelDark, radius = 0.3f)
+    for (k in 0..1) {
+        val x = b.left + 2.2f + k * 3f
+        line(x, c.top + 0.8f, x, c.top - 2.6f, Palette.steel, 0.7f)
+        box(x - 0.55f, c.top - 5.4f, 1.1f, 3f, if (k == 0) Color(0xFF2B2B2B) else Palette.serverRed, radius = 0.5f)
+        dot(x, c.top - 5.4f, 0.55f, Palette.gold)
+    }
+    // A bottle of red.
+    val bx = b.left + 8f
+    box(bx - 0.8f, c.top - 3.4f, 1.6f, 3.8f, Color(0xFF3D1A22), radius = 0.5f)
+    box(bx - 0.3f, c.top - 4.8f, 0.6f, 1.6f, Color(0xFF3D1A22), radius = 0.2f)
+    box(bx - 0.7f, c.top - 2.2f, 1.4f, 1.1f, Color(0xFFF2E9DC), radius = 0.2f)
+    // Glasses upside down on a cloth, ready to be filled.
+    box(bx + 1.6f, c.top + 0.9f, 3.4f, 1.1f, Color(0xFFF2E9DC), radius = 0.3f)
+    for (k in 0..1) {
+        val gx = bx + 2.4f + k * 1.7f
+        box(gx - 0.75f, c.top - 1.2f, 1.5f, 2.4f, Color(0xCCE3F1F8), radius = 0.4f)
+        outline(Rect(gx - 0.75f, c.top - 1.2f, gx + 0.75f, c.top + 1.2f), Color(0x667A8C96), radius = 0.4f, width = 0.18f)
+        line(gx - 0.35f, c.top - 0.9f, gx - 0.35f, c.top + 0.8f, Color(0xCCFFFFFF), 0.2f)
+    }
+    if (text != null) centeredText(text, "BAR", Point(b.center.x, c.bottom - 1.9f), size = 1.9f, color = Palette.gold, bold = true)
+}
 
 private fun Pen.drawCounter() {
     val c = SceneLayout.counter

@@ -44,6 +44,9 @@ object SceneLayout {
     val counter = Rect(4f, KITCHEN_BOTTOM, 96f, 44f)
     val pickup = ServiceFloor.pass.toPoint()
 
+    /** The bar: the stretch of counter between the chef and the tip jar, where drinks are poured. */
+    val bar = Rect(23f, 34f, 36f, KITCHEN_BOTTOM + 6f)
+
     // Dining room: the tables come from ServiceFloor.layout, since how many there are changes as the restaurant grows.
 
     /** A sidewalk-style menu board by the front door, out of everyone's way. */
