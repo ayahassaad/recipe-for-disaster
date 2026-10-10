@@ -40,6 +40,11 @@ data class NightLabels(
     val plate: (table: Int) -> String = { "" },
     val wantsToOrder: String,
     val waitingForFood: String,
+    /** The bar, where drinks are poured, and the table states around drinks. */
+    val bar: String = "",
+    val wantsDrinks: String = "",
+    val waitingForDrinks: String = "",
+    val drinking: String = "",
     val deciding: String = "",
     val foodReady: String,
     val eating: String,
@@ -100,6 +105,8 @@ fun NightScene(
     onTapMess: (Int) -> Unit,
     onTapFridge: () -> Unit = {},
     onTapChaos: () -> Unit = {},
+    /** The bar: pour the drinks you've taken orders for. */
+    onTapBar: () -> Unit = {},
     modifier: Modifier = Modifier,
     /** Something to point at with a pulsing ring, for players still learning what to tap. */
     focus: NightFocus? = null,
@@ -471,6 +478,9 @@ fun NightScene(
                 Stage.READY_AT_PASS -> labels.foodReady
                 Stage.EATING -> labels.eating
                 Stage.DECIDING -> labels.deciding
+                Stage.WANTS_DRINKS -> labels.wantsDrinks
+                Stage.DRINKS_ORDERED -> labels.waitingForDrinks
+                Stage.DRINKING -> labels.drinking
                 else -> if (t in night.dirtyTables) labels.needsClearing else labels.empty
             }
             TapArea(rect, unit, origin, labels.table(t + 1, state)) { onTapTable(t) }
@@ -478,6 +488,8 @@ fun NightScene(
         // The chef's end of the kitchen hands in orders; each plate on the counter is its own tap.
         TapArea(Rect(0f, 0f, 54f, SceneLayout.counter.bottom + 2f), unit, origin, labels.counter, onTapCounter)
         TapArea(Rect(78f, 0f, SceneLayout.WIDTH, SceneLayout.counter.bottom + 2f), unit, origin, labels.dishStation, onTapDishStation)
+        // The bar sits in the chef's end of the counter, so its tap goes on top.
+        TapArea(Rect(SceneLayout.bar.left, SceneLayout.bar.top, SceneLayout.bar.right, SceneLayout.counter.bottom + 2f), unit, origin, labels.bar, onTapBar)
         readyPlates(night).forEachIndexed { i, party ->
             val at = plateSpot(i)
             TapArea(Rect(at.x - 3.4f, at.y - 6f, at.x + 4f, at.y + 3f), unit, origin, labels.plate((party.table ?: 0) + 1)) { onTapPlate(party.id) }

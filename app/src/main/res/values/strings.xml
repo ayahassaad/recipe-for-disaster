@@ -89,6 +89,10 @@
     <string name="night_counter">Chef: hand in your orders</string>
     <string name="night_wants_to_order">wants to order</string>
     <string name="night_deciding">reading the menu</string>
+    <string name="night_bar">Bar: pour the drinks</string>
+    <string name="night_wants_drinks">would like drinks</string>
+    <string name="night_waiting_drinks">waiting for drinks</string>
+    <string name="night_drinking">having a drink and reading the menu</string>
     <string name="night_waiting_food">waiting for food</string>
     <string name="night_food_ready">food ready at the counter</string>
     <string name="night_eating">eating</string>
