@@ -22,6 +22,8 @@ data class DailyFinancials(
     val eventCashDelta: Long = 0,
     /** Tips guests left for quick service (already included in [revenue]). */
     val tips: Long = 0,
+    /** What guests paid for drinks (already included in [revenue]). */
+    val drinks: Long = 0,
 ) {
     val expenses: Long
         get() = wages + ingredientCosts + rent + utilities + maintenance + upgrades + miscellaneous

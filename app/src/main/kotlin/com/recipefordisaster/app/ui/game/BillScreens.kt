@@ -84,7 +84,8 @@ internal fun BillReceipt(report: DayReport, modifier: Modifier = Modifier) {
         ReceiptLine(stringResource(R.string.bill_reputation), (if (change > 0) "+" else "") + change)
         Dashes()
         val oneOff = report.morningSpending.staffing + report.morningSpending.cleaning + report.morningSpending.menu
-        ReceiptLine(stringResource(R.string.bill_earned), signedCoins(books.revenue - books.tips))
+        ReceiptLine(stringResource(R.string.bill_earned), signedCoins(books.revenue - books.tips - books.drinks))
+        if (books.drinks > 0) ReceiptLine(stringResource(R.string.bill_drinks), signedCoins(books.drinks))
         if (books.tips > 0) ReceiptLine(stringResource(R.string.bill_tips), signedCoins(books.tips))
         ReceiptLine(stringResource(R.string.bill_wages), signedCoins(-books.wages))
         ReceiptLine(stringResource(R.string.bill_premises), signedCoins(-(books.rent + books.utilities + books.maintenance + books.miscellaneous - oneOff)))

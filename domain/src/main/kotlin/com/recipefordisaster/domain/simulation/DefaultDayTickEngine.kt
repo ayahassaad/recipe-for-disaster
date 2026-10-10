@@ -149,7 +149,12 @@ class DefaultDayTickEngine(
         ).let {
             // A failed inspection comes with a fine.
             val fine = if (serviceResult.specialVisits.any { v -> v.guest == SpecialGuest.INSPECTOR && !v.pleased }) INSPECTION_FINE else 0L
-            it.copy(revenue = it.revenue + serviceResult.tips, tips = serviceResult.tips, miscellaneous = it.miscellaneous + fine)
+            it.copy(
+                revenue = it.revenue + serviceResult.tips + serviceResult.drinks,
+                tips = serviceResult.tips,
+                drinks = serviceResult.drinks,
+                miscellaneous = it.miscellaneous + fine,
+            )
         }
 
         val newCash = start.restaurant.cash + financials.profitOrLoss

@@ -102,6 +102,26 @@ class DrinksTest {
         assertTrue(fed.map { it.satisfaction }.average() >= 55)
         assertTrue(n.tips > 0)
     }
+    @Test
+    fun `guests pay for their drinks when they're served, and it reaches the day's books`() {
+        val setup = engine.openService(start, PlayerDecisions(), SeededRandomSource(1L))
+        var n = ServiceNight.open(setup, SeededRandomSource(2L))
+        var guard = 0
+        while (!n.finished && guard++ < 20_000) n = DrinksPlayer.play(n).advance(0.05f)
+        assertTrue(n.drinkTakings > 0)
+        // Everyone who got as far as drinking paid for a drink.
+        val served = n.parties.filter { it.sippedFor > 0f }
+        assertEquals(served.sumOf { n.drinksPrice(it) }, n.drinkTakings)
+        val books = engine.closeService(setup, n.result(), SeededRandomSource(3L)).newState.ledger.history.last()
+        assertEquals(n.drinkTakings, books.drinks)
+    }
+
+    @Test
+    fun `a child's drink costs less`() {
+        val party = ServiceNight.Party(id = 0, guests = listOf(0, 1), preferences = listOf(emptyList(), emptyList()), arriveAt = 0f, patience = 10f)
+        val n = open()
+        assertTrue(n.drinksPrice(party.copy(family = true)) < n.drinksPrice(party))
+    }
 }
 
 /** A quick player who looks after the drinks as well as the food. */

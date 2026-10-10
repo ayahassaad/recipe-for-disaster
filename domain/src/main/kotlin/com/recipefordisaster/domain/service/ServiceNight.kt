@@ -93,6 +93,8 @@ data class ServiceNight(
     val chefLuck: Float = 0f,
     /** When the chef last burnt something (for the puff of smoke). */
     val lastBurnAt: Float = -100f,
+    /** Coins taken for drinks so far tonight (paid as they're served). */
+    val drinkTakings: Long = 0,
 ) {
 
     /** What a guest was waiting for when they gave up. */
@@ -327,7 +329,10 @@ data class ServiceNight(
     val player: Waiter get() = waiters.first { it.isPlayer }
 
     /** Coins taken so far tonight. */
-    val takings: Long get() = results.values.sumOf { it.dish?.sellingPrice ?: 0 } + tips
+    val takings: Long get() = results.values.sumOf { it.dish?.sellingPrice ?: 0 } + tips + drinkTakings
+
+    /** What a party's round of drinks costs: a child's lemonade is cheaper. */
+    fun drinksPrice(party: Party): Long = party.guests.indices.sumOf { g -> if (party.family && g == 1) CHILD_DRINK_PRICE else DRINK_PRICE }
 
     /** Tips left so far tonight. */
     val tips: Long get() = parties.sumOf { it.tip }
@@ -760,7 +765,7 @@ data class ServiceNight(
     private fun serveDrinks(partyId: Int, waiterId: String): ServiceNight {
         val party = parties.first { it.id == partyId }
         val sip = SIP_MIN + (party.id * 0.618f % 1f) * (SIP_MAX - SIP_MIN)
-        return copy(waiters = waiters.map { if (it.id == waiterId) it.copy(hands = it.hands - HandItem.Drinks(partyId)) else it })
+        return copy(waiters = waiters.map { if (it.id == waiterId) it.copy(hands = it.hands - HandItem.Drinks(partyId)) else it }, drinkTakings = drinkTakings + drinksPrice(party))
             .updateParty(partyId) { it.copy(stage = Stage.DRINKING, stageSince = time, until = time + sip, sippedFor = sip, heldBy = null) }
     }
 
@@ -1029,6 +1034,7 @@ data class ServiceNight(
             fridgeBrokeTonight = fridgeBrokeTonight,
             fridgeLeftBroken = fridgeBroken,
             tips = tips,
+            drinks = drinkTakings,
         )
     }
 
@@ -1111,6 +1117,10 @@ data class ServiceNight(
         /** How long a party sips their drinks (and reads the menu) before they're ready to order food. */
         private const val SIP_MIN = DECIDE_MIN + 1.5f
         private const val SIP_MAX = DECIDE_MAX + 1.5f
+
+        /** What a drink costs, and a child's. */
+        private const val DRINK_PRICE = 3L
+        private const val CHILD_DRINK_PRICE = 2L
 
         /** Seconds to pour one table's round at the bar. */
         private const val POUR = 1.5f

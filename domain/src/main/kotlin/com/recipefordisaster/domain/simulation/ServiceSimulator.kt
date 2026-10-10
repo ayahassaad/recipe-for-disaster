@@ -62,6 +62,8 @@ object ServiceSimulator {
         val fridgeLeftBroken: Boolean = false,
         /** Tips left for quick service tonight. */
         val tips: Long = 0,
+        /** What guests paid for drinks tonight. */
+        val drinks: Long = 0,
         /** How tonight's special guests found it. */
         val specialVisits: List<com.recipefordisaster.domain.service.SpecialVisit> = emptyList(),
     ) {
