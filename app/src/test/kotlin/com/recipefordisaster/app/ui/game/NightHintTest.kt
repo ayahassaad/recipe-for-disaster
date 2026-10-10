@@ -74,4 +74,25 @@ class NightHintTest {
         assertEquals(NightHint.CookingFor(3), NightHint.of(withParty(Stage.COOKING, 3)))
         assertEquals(NightHint.Deciding(1), NightHint.of(withParty(Stage.DECIDING, 1)))
     }
+
+    @Test
+    fun `a table that would like drinks gets a hint to take their order`() {
+        assertEquals(NightHint.TakeDrinks(3), NightHint.of(withParty(Stage.WANTS_DRINKS, 3)))
+        assertEquals(com.recipefordisaster.app.ui.scene.NightFocus.Table(3), NightHint.TakeDrinks(3).focus(night))
+    }
+
+    @Test
+    fun `with drinks orders on the notepad, the hint says to pour them at the bar`() {
+        val ordered = withParty(Stage.DRINKS_ORDERED, 2)
+        val withOrder = ordered.copy(waiters = ordered.waiters.map { if (it.isPlayer) it.copy(drinkOrders = listOf(ordered.parties.first().id)) else it })
+        assertEquals(NightHint.PourDrinks, NightHint.of(withOrder))
+        assertEquals(com.recipefordisaster.app.ui.scene.NightFocus.Bar, NightHint.PourDrinks.focus(withOrder))
+    }
+
+    @Test
+    fun `carrying drinks, the hint says which table they're for`() {
+        val ordered = withParty(Stage.DRINKS_ORDERED, 5)
+        val carrying = ordered.copy(waiters = ordered.waiters.map { if (it.isPlayer) it.copy(hands = listOf(ServiceNight.HandItem.Drinks(ordered.parties.first().id))) else it })
+        assertEquals(NightHint.ServeDrinks(5), NightHint.of(carrying))
+    }
 }

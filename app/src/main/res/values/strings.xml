@@ -43,6 +43,11 @@
     <string name="hint_ready">All ready. Open the doors!</string>
     <string name="tonight_takings">Tonight %1$s</string>
     <string name="hint_take_order">Table %1$d wants to order. Tap the table.</string>
+    <string name="hint_take_drinks">Table %1$d would like drinks. Tap the table.</string>
+    <string name="hint_pour_drinks">Tap the bar to pour the drinks.</string>
+    <string name="hint_pouring">Pouring the drinks…</string>
+    <string name="hint_serve_drinks">Take the drinks to table %1$d. Tap the table.</string>
+    <string name="hint_drinking">Table %1$d is having a drink and reading the menu…</string>
     <string name="hint_hand_in">Take the order to the chef. Tap the chef.</string>
     <string name="hint_pick_up">Table %1$d\'s food is ready. Tap the plate.</string>
     <string name="hint_serve">Take the food to table %1$d. Tap the table.</string>

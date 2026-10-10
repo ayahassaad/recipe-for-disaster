@@ -315,6 +315,7 @@ fun NightScene(
                             is NightFocus.Plate -> (readyPlates(night).indexOfFirst { it.id == f.partyId }.takeIf { it >= 0 }?.let { plateSpot(it) } ?: return@let) to 4.5f
                             NightFocus.DishStation -> Point(87f, SceneLayout.counter.top + 1f) to 9f
                             NightFocus.Fridge -> SceneLayout.fridge.center to 10f
+                            NightFocus.Bar -> SceneLayout.bar.center to 8f
                             NightFocus.Chaos -> (if (night.activeChaos?.kind == ChaosKind.PAN_FIRE) SceneLayout.stove.center else night.chaosSpot()?.toPoint() ?: return@let) to 9f
                             NightFocus.MopBucket -> SceneLayout.mopBucket.center to 9f
                             is NightFocus.Spill -> (night.messes.firstOrNull { it.id == f.messId }?.at?.toPoint() ?: return@let) to 7f
@@ -993,6 +994,7 @@ sealed interface NightFocus {
     data object Chaos : NightFocus
     data object MopBucket : NightFocus
     data class Spill(val messId: Int) : NightFocus
+    data object Bar : NightFocus
 }
 
 /**
