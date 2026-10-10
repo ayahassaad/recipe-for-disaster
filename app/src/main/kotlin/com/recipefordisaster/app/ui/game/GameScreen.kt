@@ -916,7 +916,10 @@ private fun soundsFor(before: ServiceNight, after: ServiceNight): com.recipeford
         count(after, ServiceNight.Stage.READY_AT_PASS) > count(before, ServiceNight.Stage.READY_AT_PASS) -> com.recipefordisaster.app.ui.sound.Sfx.BELL
         after.catKnockAt != before.catKnockAt -> com.recipefordisaster.app.ui.sound.Sfx.CLANK
         (before.activeChaos != null && after.activeChaos == null) || (before.fridgeBroken && !after.fridgeBroken) -> com.recipefordisaster.app.ui.sound.Sfx.CLANK
+        afterMe.errand is ServiceNight.Errand.Pour && beforeMe.errand !is ServiceNight.Errand.Pour -> com.recipefordisaster.app.ui.sound.Sfx.POUR
         afterMe.plates.size > beforeMe.plates.size -> com.recipefordisaster.app.ui.sound.Sfx.CLINK
+        // Glasses set down at a table.
+        count(after, ServiceNight.Stage.DRINKING) > count(before, ServiceNight.Stage.DRINKING) -> com.recipefordisaster.app.ui.sound.Sfx.CLINK
         beforeMe.tickets.isNotEmpty() && afterMe.tickets.isEmpty() -> com.recipefordisaster.app.ui.sound.Sfx.PAPER
         afterMe.tickets.size > beforeMe.tickets.size -> com.recipefordisaster.app.ui.sound.Sfx.PAPER
         afterMe.errand == ServiceNight.Errand.Wash && beforeMe.errand != ServiceNight.Errand.Wash -> com.recipefordisaster.app.ui.sound.Sfx.SPLASH

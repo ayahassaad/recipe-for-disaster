@@ -19,6 +19,7 @@ enum class Sfx(val res: Int) {
     CLANK(R.raw.sfx_clank),
     FANFARE(R.raw.sfx_fanfare),
     MEOW(R.raw.sfx_meow),
+    POUR(R.raw.sfx_pour),
 }
 
 /**
