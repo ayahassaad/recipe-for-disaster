@@ -76,6 +76,7 @@ internal fun BillReceipt(report: DayReport, modifier: Modifier = Modifier) {
                 ReceiptNote(stringResource(R.string.bill_gave_up, summary.gaveUpWaiting))
             } else {
                 split[ServiceNight.WaitedFor.TABLE]?.let { ReceiptNote(stringResource(R.string.bill_gave_up_table, it)) }
+                split[ServiceNight.WaitedFor.DRINKS]?.let { ReceiptNote(stringResource(R.string.bill_gave_up_drinks, it)) }
                 split[ServiceNight.WaitedFor.ORDER]?.let { ReceiptNote(stringResource(R.string.bill_gave_up_order, it)) }
                 split[ServiceNight.WaitedFor.FOOD]?.let { ReceiptNote(stringResource(R.string.bill_gave_up_food, it)) }
             }

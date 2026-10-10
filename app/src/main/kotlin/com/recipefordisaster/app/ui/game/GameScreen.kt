@@ -741,6 +741,7 @@ private fun lostTip(report: DayReport): String? {
     val s = report.summary
     val reasons = buildMap {
         report.gaveUp[ServiceNight.WaitedFor.TABLE]?.let { put(R.string.tip_table, it) }
+        report.gaveUp[ServiceNight.WaitedFor.DRINKS]?.let { put(R.string.tip_drinks, it) }
         report.gaveUp[ServiceNight.WaitedFor.ORDER]?.let { put(R.string.tip_order, it) }
         report.gaveUp[ServiceNight.WaitedFor.FOOD]?.let { put(R.string.tip_food, it) }
         if (report.gaveUp.isEmpty() && s.gaveUpWaiting > 0) put(R.string.tip_order, s.gaveUpWaiting)
