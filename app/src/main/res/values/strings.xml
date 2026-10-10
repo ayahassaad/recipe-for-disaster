@@ -22,7 +22,7 @@
     <string name="intro_step1_title">Morning</string>
     <string name="intro_step1">Anything with a red ! needs you. Tap it to sort it out.</string>
     <string name="intro_step2_title">Service</string>
-    <string name="intro_step2">Open the doors and serve. Tap where the green ring points: it shows you each step as it comes up.</string>
+    <string name="intro_step2">Open the doors and serve. Guests have a drink first: take their order, pour it at the bar, carry it over. Then they order food. Tap where the green ring points: it shows you each step as it comes up.</string>
     <string name="intro_step3_title">The bill</string>
     <string name="intro_step3">See how you did, then on to the next day.</string>
     <string name="intro_goal">Keep your money above zero and your guests happy. How many days can you last?</string>
