@@ -364,14 +364,19 @@ fun NightScene(
                             apron = if (waiter.isPlayer) playerLook.apronColor else helperColor[waiter.id],
                             look = if (waiter.isPlayer) playerLook else null,
                             // While washing up, the arms are drawn holding the plate instead.
-                            armsBusy = waiter.errand == ServiceNight.Errand.Wash || waiter.errand == ServiceNight.Errand.HandleChaos,
+                            armsBusy = waiter.errand == ServiceNight.Errand.Wash || waiter.errand == ServiceNight.Errand.HandleChaos || waiter.errand is ServiceNight.Errand.Pour,
                         )
                         // What's in each hand (left, then right), and a notepad for tickets not yet handed in.
                         waiter.hands.forEachIndexed { k, item ->
                             val hand = Point(at.x + (if (k == 0) -4.6f else 4.6f), at.y + 2.6f)
                             when (item) {
                                 is ServiceNight.HandItem.DirtyDishes -> drawDirtyStack(hand)
-                                is ServiceNight.HandItem.Drinks -> {}
+                                is ServiceNight.HandItem.Drinks -> {
+                                    val party = night.parties.firstOrNull { it.id == item.partyId }
+                                    drawDrinksTray(hand, party)
+                                    // The table number travels with the drinks, as with a plate.
+                                    party?.table?.let { table -> drawNumberFlag(text, Point(hand.x, hand.y - 1f), table + 1) }
+                                }
                                 ServiceNight.HandItem.Mop -> drawMop(hand, if (k == 0) -1f else 1f, mopping = waiter.errand is ServiceNight.Errand.Mopping, clock = clock)
                                 is ServiceNight.HandItem.Plate -> {
                                     // A little hop as it's picked up.
@@ -456,6 +461,14 @@ fun NightScene(
                     night.waiters.filter { it.errand == ServiceNight.Errand.FixFridge }.forEach { w ->
                         val progress = ((night.time - w.routeStart) / (w.routeEnd - w.routeStart).coerceAtLeast(0.01f)).coerceIn(0f, 1f)
                         drawFixingFridge(w.position(night.time).toPoint().let { Point(it.x, it.y - 2f) }, progress, clock)
+                    }
+
+                    // Anyone at the bar pouring drinks: a bottle tipped over a glass that fills as they go.
+                    night.waiters.filter { it.errand is ServiceNight.Errand.Pour }.forEach { w ->
+                        val progress = ((night.time - w.routeStart) / (w.routeEnd - w.routeStart).coerceAtLeast(0.01f)).coerceIn(0f, 1f)
+                        val rounds = (w.errand as ServiceNight.Errand.Pour).partyIds.size
+                        val sleeve = Color(0xFF2B2B2B)
+                        drawPouring(w.position(night.time).toPoint().let { Point(it.x, it.y - 2f) }, progress, rounds, clock, sleeve, if (w.isPlayer) playerLook.skinColor else Palette.face)
                     }
 
                     // Anyone washing up, scrubbing away at the sink (drawn over them, since their hands are in it).
@@ -639,6 +652,44 @@ private fun Pen.drawSip(seat: Point, drink: Drink, child: Boolean) {
     with(around(at, s)) {
         drawDrink(at, drink, 0.7f)
         dot(at.x + 1f, at.y + 0.8f, 0.8f, Palette.face)
+    }
+}
+
+/**
+ * Pouring at the bar: a glass held at chest height in one hand, a bottle tipped over it in the other,
+ * a stream running into it. Each round fills a glass in turn; a ring beside them shows how long is left.
+ */
+private fun Pen.drawPouring(at: Point, progress: Float, rounds: Int, clock: Float, sleeve: Color, skin: Color) {
+    val round = (progress * rounds).coerceAtMost(rounds - 0.001f)
+    val fill = round % 1f
+    val glass = Point(at.x - 1.6f, at.y + 2.6f)
+    // Left arm holding the glass, right arm up with the bottle.
+    line(at.x - 4.3f, at.y + 0.2f, glass.x - 1f, glass.y + 0.6f, sleeve, 1.6f)
+    dot(glass.x - 1f, glass.y + 0.6f, 0.85f, skin)
+    drawDrink(glass, Drink.WINE, fill)
+    val tip = Point(glass.x + 0.6f, glass.y - 3.2f)
+    val bottleEnd = Point(at.x + 5.2f, at.y - 3.6f + sin(clock * 3f) * 0.2f)
+    line(at.x + 4.3f, at.y + 0.2f, bottleEnd.x - 0.4f, bottleEnd.y + 1.6f, sleeve, 1.6f)
+    line(bottleEnd.x, bottleEnd.y, tip.x, tip.y, Color(0xFF3D1A22), 1.4f) // the bottle, tipped
+    line(tip.x + 0.4f, tip.y - 0.2f, tip.x, tip.y, Color(0xFF3D1A22), 0.6f)
+    dot(bottleEnd.x - 0.4f, bottleEnd.y + 1.6f, 0.85f, skin)
+    // The stream, wobbling slightly.
+    line(tip.x, tip.y, glass.x + sin(clock * 20f) * 0.1f, glass.y - 0.6f, Color(0xFFB0303C), 0.3f)
+    // Glasses already poured, lined up on the counter behind.
+    for (k in 0 until round.toInt()) drawDrink(Point(SceneLayout.bar.left + 4f + k * 2.4f, SceneLayout.counter.top + 1.6f), Drink.WINE, 1f)
+    val ringAt = Point(at.x + 8.5f, at.y + 1f)
+    dot(ringAt, 3.4f, Color(0xEEFFFFFF))
+    drawProgressRing(ringAt, progress)
+}
+
+/** A round of drinks on a little tray, carried in one hand. */
+private fun Pen.drawDrinksTray(hand: Point, party: ServiceNight.Party?) {
+    oval(hand.x, hand.y + 0.6f, 2.8f, 0.9f, Color(0x33000000))
+    oval(hand.x, hand.y + 0.3f, 2.8f, 0.9f, Palette.steel)
+    val count = (party?.guests?.size ?: 1).coerceIn(1, 2)
+    for (g in 0 until count) {
+        val drink = party?.let { drinkFor(it, g, it.guests[g]) } ?: Drink.WINE
+        drawDrink(Point(hand.x - 1.1f + g * 2.2f, hand.y - 1.4f), drink, 1f)
     }
 }
 
