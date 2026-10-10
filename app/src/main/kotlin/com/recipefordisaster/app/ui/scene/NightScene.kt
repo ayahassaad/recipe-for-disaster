@@ -575,12 +575,31 @@ private fun Pen.drawTableNumber(text: TextMeasurer, table: Point, number: Int, c
     centeredText(text, number.toString(), card.center, size = 3.2f, color = color, bold = true)
 }
 
+/** A wine glass for a speech bubble, empty or with something red in it. */
+private fun Pen.drawBubbleGlass(at: Point, full: Boolean) {
+    val bowl = Color(0xFF7A8C96)
+    if (full) {
+        shape(Color(0xFFB0303C)) {
+            moveTo(at.x - 1.3f, at.y - 1.2f)
+            quadTo(at.x, at.y + 1.6f, at.x + 1.3f, at.y - 1.2f)
+            close()
+        }
+    }
+    shape(bowl, stroke = 0.35f) {
+        moveTo(at.x - 1.6f, at.y - 2.6f)
+        quadTo(at.x - 1.8f, at.y + 1.2f, at.x, at.y + 1.2f)
+        quadTo(at.x + 1.8f, at.y + 1.2f, at.x + 1.6f, at.y - 2.6f)
+    }
+    line(at.x, at.y + 1.2f, at.x, at.y + 2.8f, bowl, 0.35f)
+    line(at.x - 1.1f, at.y + 2.9f, at.x + 1.1f, at.y + 2.9f, bowl, 0.4f)
+}
+
 /** The speech bubble over a table: "?" to order, a plate while they wait for food, with a patience bar underneath. */
 private fun Pen.drawTableBubble(text: TextMeasurer, table: Point, stage: Stage, waited: Float, clock: Float) {
-    // No bubble while they eat, or while they're still reading the menu.
-    if (stage == Stage.EATING || stage == Stage.DECIDING) return
+    // No bubble while they eat, while they're still choosing, or while they sip their drinks.
+    if (stage == Stage.EATING || stage == Stage.DECIDING || stage == Stage.DRINKING) return
     val c = Point(table.x, table.y - 13.5f)
-    val wobble = if (stage == Stage.READY_TO_ORDER) sin(clock * 5f) * 0.4f else 0f
+    val wobble = if (stage == Stage.READY_TO_ORDER || stage == Stage.WANTS_DRINKS) sin(clock * 5f) * 0.4f else 0f
     // Bubble with a little tail.
     shape(Color(0x33000000)) { moveTo(c.x - 1.4f, c.y + 3.2f); lineTo(c.x + 1.4f, c.y + 3.2f); lineTo(c.x, c.y + 6f); close() }
     dot(c.x, c.y + wobble + 0.3f, 4.6f, Color(0x33000000))
@@ -588,6 +607,13 @@ private fun Pen.drawTableBubble(text: TextMeasurer, table: Point, stage: Stage, 
     shape(Color.White) { moveTo(c.x - 1.2f, c.y + 3.6f); lineTo(c.x + 1.2f, c.y + 3.6f); lineTo(c.x, c.y + 5.6f); close() }
     when (stage) {
         Stage.READY_TO_ORDER -> centeredText(text, "?", Point(c.x, c.y + wobble), size = 5.4f, color = Palette.alert, bold = true)
+        // A glass and a "?": they'd like to order drinks.
+        Stage.WANTS_DRINKS -> {
+            drawBubbleGlass(Point(c.x - 1.4f, c.y + wobble), full = false)
+            centeredText(text, "?", Point(c.x + 2f, c.y + wobble - 0.2f), size = 4f, color = Palette.alert, bold = true)
+        }
+        // A full glass: waiting for the drinks to come.
+        Stage.DRINKS_ORDERED -> drawBubbleGlass(Point(c.x, c.y), full = true)
         Stage.READY_AT_PASS -> {
             drawPlate(Point(c.x, c.y))
             dot(c.x + 3.2f, c.y - 3.2f, 1.3f, Palette.gold) // a little "ding"
