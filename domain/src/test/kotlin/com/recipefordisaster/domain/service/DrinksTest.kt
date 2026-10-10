@@ -122,6 +122,15 @@ class DrinksTest {
         val n = open()
         assertTrue(n.drinksPrice(party.copy(family = true)) < n.drinksPrice(party))
     }
+
+    @Test
+    fun `a hired server takes, pours and brings drinks for tables left waiting`() {
+        val server = start.applicants.first().copy(role = com.recipefordisaster.domain.employee.Role.SERVER)
+        val n = waitFor(open(start.copy(employees = start.employees + server))) { night -> night.parties.any { it.stage == Stage.DRINKING } }
+        val drinking = n.parties.first { it.stage == Stage.DRINKING }
+        assertTrue(drinking.sippedFor > 0f)
+        assertTrue(n.player.drinkOrders.isEmpty())
+    }
 }
 
 /** A quick player who looks after the drinks as well as the food. */

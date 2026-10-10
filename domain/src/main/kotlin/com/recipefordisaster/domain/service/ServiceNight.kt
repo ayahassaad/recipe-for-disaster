@@ -943,8 +943,8 @@ data class ServiceNight(
 
     /**
      * Hired staff, whenever they're free. Food runners deliver what they're
-     * carrying or fetch plates that have waited too long; dishwashers clear
-     * dirty tables and wash up.
+     * carrying, fetch plates that have waited too long, and see to tables
+     * left waiting for drinks; dishwashers clear dirty tables and wash up.
      */
     private fun directStaff(): ServiceNight {
         var night = this
@@ -968,12 +968,18 @@ data class ServiceNight(
                     }
                 }
                 else -> {
-                    // Food first; when there's none to run, servers clear tables that have sat dirty a while.
+                    // Food first, then drinks; when there's none to run, servers clear tables that have sat dirty a while.
                     val claimed = night.waiters.flatMap { listOfNotNull(it.errand) + it.queue }.filterIsInstance<Errand.VisitTable>().map { it.table }.toSet()
                     val stale = night.dirtyTables.firstOrNull { it !in claimed && time - (night.dirtiedAt[it] ?: time) >= RUNNER_CLEAR_DELAY }
+                    // A table that's been waiting a while for someone to take its drinks order.
+                    val thirsty = night.parties.filter { it.stage == Stage.WANTS_DRINKS && it.table !in claimed && time - it.stageSince >= RUNNER_DELAY }
+                        .minByOrNull { it.stageSince }?.table
                     when {
                         waiter.plates.isNotEmpty() -> night.parties.first { it.id == waiter.plates.first() }.table?.let { Errand.Serve(it) }
+                        waiter.drinks.isNotEmpty() -> night.parties.first { it.id == waiter.drinks.first() }.table?.let { Errand.Serve(it) }
+                        waiter.drinkOrders.isNotEmpty() && waiter.freeHands > 0 -> Errand.VisitBar
                         night.parties.any { it.stage == Stage.READY_AT_PASS && time - it.stageSince >= RUNNER_DELAY } && waiter.freeHands > 0 -> Errand.VisitPass
+                        thirsty != null && waiter.freeHands > 0 -> Errand.VisitTable(thirsty)
                         waiter.dirtyDishes.isNotEmpty() -> Errand.VisitDishStation
                         stale != null && waiter.freeHands > 0 -> Errand.VisitTable(stale)
                         else -> null
