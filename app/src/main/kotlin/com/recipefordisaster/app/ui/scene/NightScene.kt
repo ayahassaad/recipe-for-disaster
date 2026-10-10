@@ -402,6 +402,18 @@ fun NightScene(
                                 centeredText(text, (table + 1).toString(), Point(nx + 1.7f, ny + 1.4f), size = 2.2f, color = Palette.ink, bold = true)
                             }
                         }
+                        // Drinks orders on their own pale blue notes, each with a little glass, fanned out on the other side.
+                        waiter.drinkOrders.forEachIndexed { k, partyId ->
+                            val nx = at.x - 6.8f - k * 2.6f
+                            val ny = at.y - 2.4f - k * 1.2f
+                            box(nx, ny, 3.4f, 4.4f, Color(0xFFE6F2FA), radius = 0.3f)
+                            shape(Color(0xFF7A8C96), stroke = 0.2f) {
+                                moveTo(nx + 0.9f, ny + 2.6f); quadTo(nx + 1.7f, ny + 4f, nx + 2.5f, ny + 2.6f)
+                            }
+                            night.parties.firstOrNull { it.id == partyId }?.table?.let { table ->
+                                centeredText(text, (table + 1).toString(), Point(nx + 1.7f, ny + 1.4f), size = 2.2f, color = Palette.ink, bold = true)
+                            }
+                        }
                         if (waiter.isPlayer) {
                             // Standing at the chef, the marker would sit on the chef's face: put it beside you instead.
                             // Same at the dish station, where it would cover the DISHES sign: put it on the left.
