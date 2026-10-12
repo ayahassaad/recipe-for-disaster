@@ -3,6 +3,9 @@ package com.recipefordisaster.domain.service
 import com.recipefordisaster.domain.employee.Employee
 import com.recipefordisaster.domain.employee.EmployeeStatus
 import com.recipefordisaster.domain.employee.Role
+import com.recipefordisaster.domain.progression.Feature
+import com.recipefordisaster.domain.progression.Progression
+import com.recipefordisaster.domain.simulation.GameState
 import kotlinx.serialization.Serializable
 
 /**
@@ -25,7 +28,13 @@ enum class ChefMood {
         const val HAPPY_MORALE = 75
         const val HAPPY_STRESS = 50
 
-        /** Tonight's mood in the kitchen; with no cooks on shift it's just a normal night. */
+        /**
+         * Tonight's mood in the kitchen. The cooks' moods only start to show from day twenty; before
+         * that, and with no cooks on shift, it's just a normal night.
+         */
+        fun of(state: GameState): ChefMood = if (Progression.has(state, Feature.CHEF_MOODS)) of(state.employees) else NORMAL
+
+        /** The mood the cooks are in, going by their morale and stress. */
         fun of(employees: List<Employee>): ChefMood {
             val cooks = employees.filter { it.status == EmployeeStatus.ACTIVE && it.role == Role.COOK }
             if (cooks.isEmpty()) return NORMAL

@@ -1339,7 +1339,7 @@ data class ServiceNight(
             return ServiceNight(
                 time = 0f,
                 parties = withFamilies,
-                chefMood = ChefMood.of(state.employees),
+                chefMood = ChefMood.of(state),
                 pickiness = dials.pickiness,
                 chefLuck = chefLuck,
                 waiters = waiters,

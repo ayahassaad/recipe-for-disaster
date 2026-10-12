@@ -14,7 +14,7 @@ import org.junit.Test
 class ChefMoodTest {
 
     private val engine = DefaultDayTickEngine(EventEngine(emptyList()))
-    private val start: GameState = NewGameFactory.create(seed = 11L).let { it.copy(day = 5, restaurant = it.restaurant.copy(tables = 6)) }
+    private val start: GameState = NewGameFactory.create(seed = 11L).let { it.copy(day = 25, restaurant = it.restaurant.copy(tables = 6)) }
 
     private fun withCooks(morale: Int, stress: Int) =
         start.copy(employees = start.employees.map { if (it.role == Role.COOK) it.copy(morale = morale, stress = stress) else it })
@@ -29,6 +29,12 @@ class ChefMoodTest {
         assertEquals(ChefMood.GRUMPY, open(withCooks(morale = 80, stress = 80)).chefMood)
         assertEquals(ChefMood.HAPPY, open(withCooks(morale = 85, stress = 20)).chefMood)
         assertEquals(ChefMood.NORMAL, ChefMood.of(emptyList()))
+    }
+
+    @Test
+    fun `the cooks' moods only start to show from day twenty`() {
+        assertEquals(ChefMood.NORMAL, open(withCooks(morale = 30, stress = 20).copy(day = 19)).chefMood)
+        assertEquals(ChefMood.GRUMPY, open(withCooks(morale = 30, stress = 20).copy(day = 20)).chefMood)
     }
 
     /** Plays the night with a quick player who serves everyone as fast as they can. */
