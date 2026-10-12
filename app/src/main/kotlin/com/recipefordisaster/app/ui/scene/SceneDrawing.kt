@@ -776,6 +776,13 @@ internal fun Pen.drawPerson(
     val shade = top.copy(red = top.red * 0.82f, green = top.green * 0.82f, blue = top.blue * 0.82f)
     // Waiting staff have black sleeves to match the waistcoat; everyone else's match their top.
     val sleeve = if (outfit == Outfit.SERVER) Color(0xFF2B2B2B) else shade
+    // Where the head goes, and the hair: long hair hangs down behind the shoulders, so it goes in first.
+    val hx = at.x
+    val hy = y - 4f + if (slumped) 1f else 0f
+    val hair = look?.hairColor ?: Palette.hairColors[variant % Palette.hairColors.size]
+    val style = look?.style ?: if (outfit == Outfit.GUEST) variant % 5 else 0
+    if (!backTurned) drawHairBehind(style, hx, hy, hair)
+
     // Arms and hands first, so the body overlaps the tops of the sleeves.
     val armSwing = step * 0.6f
     val hand = if (outfit == Outfit.WASHER) Color(0xFFF2C230) else skin
@@ -844,11 +851,6 @@ internal fun Pen.drawPerson(
     }
 
     // Head.
-    val hx = at.x
-    val hy = y - 4f + if (slumped) 1f else 0f
-    val hair = look?.hairColor ?: Palette.hairColors[variant % Palette.hairColors.size]
-    val style = look?.style ?: if (outfit == Outfit.GUEST) variant % 5 else 0
-    drawHairBehind(style, hx, hy, hair)
     dot(hx, hy, 3.4f, if (angry) Color(0xFFF2B19C) else skin)
     if (backTurned) {
         drawHairFromBehind(style, hx, hy, hair)

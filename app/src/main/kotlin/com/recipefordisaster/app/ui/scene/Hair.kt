@@ -35,7 +35,7 @@ internal fun shineOf(hair: Color) = Color(hair.red + (1f - hair.red) * 0.3f, hai
 
 /** Hair that hangs down behind the head (long hair), drawn before the face. */
 internal fun Pen.drawHairBehind(style: Int, hx: Float, hy: Float, hair: Color) {
-    if (style == 2) box(hx - 3.8f, hy - 2.4f, 7.6f, 6.2f, hair, radius = 2.4f)
+    if (style == 2) HairPen(this, hx, hy).longHairBehind(hair)
 }
 
 /** Hair on top of the head, seen from the front, in one of the [style]s. */
@@ -43,12 +43,7 @@ internal fun Pen.drawHair(style: Int, hx: Float, hy: Float, hair: Color) {
     val h = HairPen(this, hx, hy)
     when (style) {
         0 -> h.sideParting(hair)
-        2 -> shape(hair) { // side parting
-            moveTo(hx - 3.4f, hy - 0.2f)
-            quadTo(hx - 3.2f, hy - 4.2f, hx + 0.6f, hy - 3.6f)
-            quadTo(hx + 3.6f, hy - 3.4f, hx + 3.4f, hy - 0.2f)
-            quadTo(hx + 1f, hy - 2.2f, hx - 3.4f, hy - 0.2f)
-        }
+        2 -> h.longHair(hair)
         1 -> h.curls(hair)
         3 -> { // bun
             dot(hx, hy - 3.8f, 1.5f, hair)
@@ -103,6 +98,30 @@ private fun HairPen.curls(hair: Color) {
         strand(shade, 1.8f) { m(x - 4f, y + 2f); q(x - 4f, y - 4f, x + 3f, y - 3f) }
     }
     CURLS.filterIndexed { i, _ -> i % 3 == 1 }.forEach { (x, y, _) -> blob(x - 3f, y - 4f, 2.2f, shine) }
+}
+
+/** Long hair falling down behind the shoulders, in shadow, with a couple of strands. */
+private fun HairPen.longHairBehind(hair: Color) {
+    fill(shadeOf(hair)) {
+        m(-37f, -10f); c(-46f, 18f, -46f, 48f, -38f, 66f); c(-30f, 62f, -22f, 64f, -14f, 68f); l(14f, 68f)
+        c(22f, 64f, 30f, 62f, 38f, 66f); c(46f, 48f, 46f, 18f, 37f, -10f); close()
+    }
+    strand(hair, 2.4f) { m(-36f, 20f); c(-38f, 38f, -36f, 52f, -32f, 62f) }
+    strand(hair, 2.4f) { m(36f, 20f); c(38f, 38f, 36f, 52f, 32f, 62f) }
+}
+
+/** Parted in the middle and framing the face, with a shine down one side. */
+private fun HairPen.longHair(hair: Color) {
+    val shade = shadeOf(hair)
+    fill(hair) {
+        m(0f, -45f); c(-27f, -45f, -41f, -26f, -39f, 4f); c(-38f, 18f, -36f, 28f, -31f, 36f); c(-31f, 16f, -28f, -5f, -18f, -18f)
+        c(-10f, -27f, -4f, -31f, 0f, -35f); c(4f, -31f, 10f, -27f, 18f, -18f); c(28f, -5f, 31f, 16f, 31f, 36f)
+        c(36f, 28f, 38f, 18f, 39f, 4f); c(41f, -26f, 27f, -45f, 0f, -45f); close()
+    }
+    strand(shade, 2f) { m(0f, -44f); l(0f, -34f) } // the parting
+    strand(shineOf(hair), 2.2f) { m(-6f, -40f); c(-16f, -36f, -26f, -24f, -31f, -6f) }
+    strand(shade, 1.8f) { m(6f, -40f); c(16f, -36f, 26f, -24f, 31f, -6f) }
+    strand(shade, 1.8f) { m(-34f, 0f); c(-34f, 14f, -33f, 24f, -31f, 32f) }
 }
 
 /** The back of someone's head, for a guest walking out with their back to us. */
