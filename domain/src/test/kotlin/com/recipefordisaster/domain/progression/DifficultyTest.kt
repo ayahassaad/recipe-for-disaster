@@ -48,4 +48,29 @@ class DifficultyTest {
             assertTrue(on(day).chaosChance < on(day - 1).chaosChance)
         }
     }
+
+    private fun withNights(profits: List<Long>, satisfaction: Int) = start.copy(
+        day = 20,
+        recentSatisfaction = satisfaction,
+        ledger = start.ledger.copy(
+            history = profits.mapIndexed { i, profit ->
+                com.recipefordisaster.domain.economy.DailyFinancials(
+                    day = 17 + i, revenue = 200 + profit, wages = 200, ingredientCosts = 0, rent = 0, utilities = 0, maintenance = 0, upgrades = 0, miscellaneous = 0,
+                )
+            },
+        ),
+    )
+
+    @Test
+    fun `a restaurant having a hard time gets a little breathing room, and one cruising along a little more to do`() {
+        val fine = Difficulty.dials(withNights(listOf(10, -5, 10), satisfaction = 60))
+        val struggling = Difficulty.dials(withNights(listOf(-20, -30, 10), satisfaction = 60))
+        val sinking = Difficulty.dials(withNights(listOf(-20, -30, -10), satisfaction = 40))
+        val cruising = Difficulty.dials(withNights(listOf(40, 50, 60), satisfaction = 85))
+        assertTrue(struggling.patience > fine.patience)
+        assertTrue(sinking.patience > struggling.patience)
+        assertTrue(cruising.patience < fine.patience)
+        // Unhappy guests count too, even when the money's fine.
+        assertTrue(Difficulty.dials(withNights(listOf(10, 10, 10), satisfaction = 30)).patience > fine.patience)
+    }
 }

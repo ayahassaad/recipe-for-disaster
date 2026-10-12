@@ -35,10 +35,28 @@ object Difficulty {
     /** Whether tonight is one of the quieter nights. */
     fun breather(state: GameState): Boolean = state.day % BREATHER_EVERY == 0
 
-    /** How far along the run is, from 0 (the first night) to 1 (as hard as it gets), eased off on a quieter night. */
+    /**
+     * How far along the run is, from 0 (the first night) to 1 (as hard as it gets): eased off on a
+     * quieter night, and quietly following how the restaurant's doing (see [adapting]).
+     */
     fun pressure(state: GameState): Float {
         val along = ((state.day - 1).toFloat() / (FULL_DAY - 1)).coerceIn(0f, 1f)
-        return (along - if (breather(state)) BREATHER_EASE else 0f).coerceIn(0f, 1f)
+        return (along - (if (breather(state)) BREATHER_EASE else 0f) - adapting(state)).coerceIn(0f, 1f)
+    }
+
+    /**
+     * After a run of bad nights (losing money, unhappy guests) things ease off a little until the
+     * restaurant finds its feet; when it's cruising, they move on a little sooner. Positive is easier.
+     */
+    fun adapting(state: GameState): Float {
+        val recent = state.ledger.history.takeLast(3)
+        val losses = recent.count { it.profitOrLoss < 0 }
+        return when {
+            losses >= 3 -> 0.15f
+            losses >= 2 || state.recentSatisfaction < 45 -> 0.08f
+            recent.size == 3 && losses == 0 && state.recentSatisfaction >= 75 -> -0.05f
+            else -> 0f
+        }
     }
 
     fun dials(state: GameState): Dials {
