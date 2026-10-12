@@ -564,8 +564,11 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
                 onTapChaos = { night = night.tapChaos() },
                 onTapBar = { night = night.tapBar() },
                 modifier = Modifier.fillMaxSize(),
-                // For the first few nights, point at what the hint is talking about.
-                focus = if (session.setup.original.day <= GUIDED_DAYS) NightHint.of(night).focus(night) else null,
+                // For the first few nights, point at what the hint is talking about; and later, at whatever is still new.
+                focus = NightHint.of(night).let { hint ->
+                    val newThing = hint.feature()?.let { com.recipefordisaster.domain.progression.Progression.isNew(session.setup.original, it) } == true
+                    if (session.setup.original.day <= GUIDED_DAYS || newThing) hint.focus(night) else null
+                },
                 playerLook = com.recipefordisaster.app.ui.player.PlayerLooks.get(androidx.compose.ui.platform.LocalContext.current).look,
             )
             // Everyone fed tonight: confetti!

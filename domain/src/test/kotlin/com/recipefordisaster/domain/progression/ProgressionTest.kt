@@ -52,4 +52,12 @@ class ProgressionTest {
         assertEquals(emptySet<Feature>(), start.featuresMetEarly)
         assertEquals(listOf(Feature.DRINKS), Progression.arrivingOn(start, 6))
     }
+
+    @Test
+    fun `a feature counts as new for its first few nights`() {
+        assertFalse(Progression.isNew(start.copy(day = 5), Feature.DRINKS))
+        assertTrue(Progression.isNew(start.copy(day = 6), Feature.DRINKS))
+        assertTrue(Progression.isNew(start.copy(day = 8), Feature.DRINKS))
+        assertFalse(Progression.isNew(start.copy(day = 9), Feature.DRINKS))
+    }
 }

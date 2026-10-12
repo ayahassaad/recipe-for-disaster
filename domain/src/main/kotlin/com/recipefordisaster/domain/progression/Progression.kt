@@ -52,6 +52,13 @@ object Progression {
         else -> ((state.day - feature.day + 1).toFloat() / RAMP_DAYS).coerceIn(0f, 1f)
     }
 
+    /** Nights a new feature counts as new: the player gets pointed at it while they learn it. */
+    const val NEW_FOR_DAYS = 3
+
+    /** Whether [feature] is still new to this restaurant (it arrived in the last few nights). */
+    fun isNew(state: GameState, feature: Feature): Boolean =
+        feature !in metEarly(state) && state.day >= feature.day && state.day < feature.day + NEW_FOR_DAYS
+
     /** The features that arrive on exactly [day] (for a new game; ones already met don't count). */
     fun arrivingOn(state: GameState, day: Int): List<Feature> = Feature.entries.filter { it.day == day && it !in metEarly(state) }
 

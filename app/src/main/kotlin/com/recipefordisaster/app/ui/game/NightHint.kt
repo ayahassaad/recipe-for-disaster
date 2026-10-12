@@ -61,6 +61,21 @@ sealed interface NightHint {
     /** Someone has just sat down and is choosing. */
     data class Deciding(val table: Int) : NightHint
 
+    /** The newer part of the game this hint is about, if any, so the ring can point at it while it's new. */
+    fun feature(): com.recipefordisaster.domain.progression.Feature? = when (this) {
+        is TakeDrinks, PourDrinks, Pouring, is ServeDrinks, is Drinking -> com.recipefordisaster.domain.progression.Feature.DRINKS
+        MopSpill, GetMop, PutMopBack, Mopping -> com.recipefordisaster.domain.progression.Feature.SPILLS
+        FixFridge, FixingFridge, FridgeStruggling -> com.recipefordisaster.domain.progression.Feature.FRIDGE_BREAKS
+        is CatKnocked -> com.recipefordisaster.domain.progression.Feature.CAT
+        is Chaos -> when (kind) {
+            com.recipefordisaster.domain.service.ChaosKind.RAT -> com.recipefordisaster.domain.progression.Feature.RAT
+            com.recipefordisaster.domain.service.ChaosKind.DOG -> com.recipefordisaster.domain.progression.Feature.DOG
+            com.recipefordisaster.domain.service.ChaosKind.PAN_FIRE -> com.recipefordisaster.domain.progression.Feature.PAN_FIRE
+            com.recipefordisaster.domain.service.ChaosKind.POWER_CUT -> com.recipefordisaster.domain.progression.Feature.POWER_CUT
+        }
+        else -> null
+    }
+
     /** Where in the restaurant this hint means, for the "tap here" ring; null if it isn't about one place. */
     fun focus(night: ServiceNight): NightFocus? = when (this) {
         is Serve -> NightFocus.Table(table)
