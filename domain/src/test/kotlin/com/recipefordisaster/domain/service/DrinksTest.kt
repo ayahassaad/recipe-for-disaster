@@ -14,7 +14,8 @@ import org.junit.Test
 class DrinksTest {
 
     private val engine = DefaultDayTickEngine(EventEngine(emptyList()))
-    private val start: GameState = NewGameFactory.create(seed = 11L).let { it.copy(restaurant = it.restaurant.copy(tables = 6)) }
+    /** A restaurant a while in, once everybody has a drink first. */
+    private val start: GameState = NewGameFactory.create(seed = 11L).let { it.copy(day = 11, restaurant = it.restaurant.copy(tables = 6)) }
 
     private fun open(state: GameState = start, seed: Long = 1L): ServiceNight =
         ServiceNight.open(engine.openService(state, PlayerDecisions(), SeededRandomSource(seed)), SeededRandomSource(seed + 1))
@@ -130,6 +131,21 @@ class DrinksTest {
         val drinking = n.parties.first { it.stage == Stage.DRINKING }
         assertTrue(drinking.sippedFor > 0f)
         assertTrue(n.player.drinkOrders.isEmpty())
+    }
+
+    @Test
+    fun `nobody has a drink until the bar opens on day six, then a few do, then everyone`() {
+        fun share(day: Int) = open(start.copy(day = day)).parties.let { ps -> ps.count { it.wantsDrinks }.toFloat() / ps.size }
+        assertEquals(0f, share(5), 0.001f)
+        assertTrue(share(6) > 0f && share(6) < 0.5f)
+        assertTrue(share(8) > share(6))
+        assertEquals(1f, share(10), 0.001f)
+    }
+
+    @Test
+    fun `before the bar opens, guests go straight to ordering food`() {
+        val n = waitFor(open(start.copy(day = 3))) { night -> night.parties.any { it.stage == Stage.READY_TO_ORDER } }
+        assertTrue(n.parties.none { it.stage == Stage.WANTS_DRINKS })
     }
 }
 

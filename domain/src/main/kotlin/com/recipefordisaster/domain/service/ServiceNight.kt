@@ -179,6 +179,8 @@ data class ServiceNight(
         val drinksOrderedAt: Float = 0f,
         /** How long they sat sipping their drinks: time spent enjoying a drink isn't time spent waiting. */
         val sippedFor: Float = 0f,
+        /** Whether they'll have a drink before their food (before the bar opens, nobody does). */
+        val wantsDrinks: Boolean = true,
     ) {
         val seated: Boolean get() = stage in Stage.DECIDING..Stage.LEAVING_ANGRY
         val occupiesTable: Boolean get() = table != null && stage in Stage.WALKING_TO_TABLE..Stage.LEAVING_ANGRY
@@ -603,12 +605,17 @@ data class ServiceNight(
         // Parties that have reached their table are ready to order.
         // Parties that have reached their table read the menu for a few seconds first...
         night.parties.filter { it.stage == Stage.WALKING_TO_TABLE && time >= it.until }.forEach { party ->
-            val reading = DRINKS_LIST_MIN + (party.id * 0.618f % 1f) * (DRINKS_LIST_MAX - DRINKS_LIST_MIN)
+            // A quick look at the drinks, or (if they're not having one) a proper read of the menu.
+            val reading = if (party.wantsDrinks) {
+                DRINKS_LIST_MIN + (party.id * 0.618f % 1f) * (DRINKS_LIST_MAX - DRINKS_LIST_MIN)
+            } else {
+                DECIDE_MIN + (party.id * 0.618f % 1f) * (DECIDE_MAX - DECIDE_MIN)
+            }
             night = night.updateParty(party.id) { it.copy(stage = Stage.DECIDING, stageSince = time, seatedAt = time, until = time + reading) }
         }
-        // ...and then they'd like a drink...
+        // ...and then they'd like a drink (or, if they're not having one, they're ready to order food)...
         night.parties.filter { it.stage == Stage.DECIDING && time >= it.until }.forEach { party ->
-            night = night.updateParty(party.id) { it.copy(stage = Stage.WANTS_DRINKS, stageSince = time) }
+            night = night.updateParty(party.id) { it.copy(stage = if (party.wantsDrinks) Stage.WANTS_DRINKS else Stage.READY_TO_ORDER, stageSince = time) }
         }
         // ...and once they've had a good sip and read the menu, they're ready to order food.
         night.parties.filter { it.stage == Stage.DRINKING && time >= it.until }.forEach { party ->
@@ -1206,6 +1213,8 @@ data class ServiceNight(
             val tableCount = state.restaurant.tables.coerceIn(1, ServiceFloor.MAX_TABLES)
             val pace = kotlin.math.sqrt(ServiceFloor.TABLE_COUNT.toFloat() / tableCount)
             var nextArrival = 1.5f
+            // Once the bar opens, a few parties have a drink first; within a few nights, everyone does.
+            val drinksShare = Progression.strength(state, Feature.DRINKS)
             val parties = groups.mapIndexed { index, guests ->
                 val arriveAt = nextArrival
                 nextArrival += (ARRIVAL_GAP + rng.nextFloat() * ARRIVAL_JITTER) * pace * dials.arrivalGap
@@ -1216,6 +1225,7 @@ data class ServiceNight(
                     arriveAt = arriveAt,
                     // The first nights are gentler: guests are more forgiving while you learn the ropes.
                     patience = (guests.map { customers[it].patience }.average().toFloat() / MINUTES_PER_SECOND + 12f) * dials.patience,
+                    wantsDrinks = (index * 0.618f + 0.3f) % 1f < drinksShare,
                 )
             }
 
