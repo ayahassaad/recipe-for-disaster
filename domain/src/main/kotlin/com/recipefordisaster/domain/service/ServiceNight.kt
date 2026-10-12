@@ -1081,7 +1081,6 @@ data class ServiceNight(
         private const val RUNNER_DELAY = 3f
 
         /** The cat: comes from this day, walks between spots (each leg this long, the first part walking). */
-        private const val CAT_FROM_DAY = 3
         private const val CAT_LEG = 9f
         private const val CAT_WALKING = 0.5f
         private const val CAT_JOY = 6
@@ -1318,6 +1317,8 @@ data class ServiceNight(
 
             // Which plates a grumpy chef burns or a happy one makes special (rolled last of all).
             val chefLuck = rng.nextFloat()
+            // The cat moves in on day eight: at first it only drops by now and then, and soon it's there every night.
+            val catTonight = rng.nextFloat() < Progression.strength(state, Feature.CAT)
 
             return ServiceNight(
                 time = 0f,
@@ -1338,7 +1339,7 @@ data class ServiceNight(
                 tableCount = tableCount,
                 fridgeBreaksAt = fridgeBreaksAt,
                 chaos = chaos,
-                cat = state.day >= CAT_FROM_DAY,
+                cat = catTonight,
                 fridgeBroken = fridgeBrokenAtOpen,
                 hosted = state.employees.any { it.status == EmployeeStatus.ACTIVE && it.role == Role.HOST },
             )

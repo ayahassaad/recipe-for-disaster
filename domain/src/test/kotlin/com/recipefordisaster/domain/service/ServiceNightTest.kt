@@ -687,9 +687,8 @@ class ServiceNightTest {
     }
 
     @Test
-    fun `the cat comes from the third night, and knocks a forgotten plate off the counter`() {
-        assertTrue(!open(start.copy(day = 1)).cat)
-        val noRunners = start.copy(day = 4, employees = start.employees.filter { it.role == com.recipefordisaster.domain.employee.Role.COOK })
+    fun `the cat knocks a forgotten plate off the counter`() {
+        val noRunners = start.copy(day = 13, employees = start.employees.filter { it.role == com.recipefordisaster.domain.employee.Role.COOK })
         var n = waitFor(open(noRunners)) { night -> night.parties.any { it.stage == Stage.READY_TO_ORDER } }
         assertTrue(n.cat)
         val party = n.parties.first { it.stage == Stage.READY_TO_ORDER }
@@ -698,6 +697,15 @@ class ServiceNightTest {
         // Leave the plate on the counter: sooner or later the cat gets it, and the chef makes it again.
         n = waitFor(n) { it.catKnockTable == party.table }
         assertEquals(party.table, n.catKnockTable)
+    }
+
+    @Test
+    fun `the cat moves in on day eight, dropping by now and then at first and soon every night`() {
+        fun nights(day: Int) = (1L..40L).count { seed -> open(start.copy(day = day), seed).cat }
+        assertEquals(0, nights(7))
+        assertTrue(nights(8) in 1..20)
+        assertTrue(nights(10) > nights(8))
+        assertEquals(40, nights(12))
     }
 
     @Test
@@ -712,7 +720,7 @@ class ServiceNightTest {
     @Test
     fun `the cat keeps to the floor and never walks over a table`() {
         for (tables in listOf(2, 6, 9)) {
-            var n = open(start.copy(day = 4, restaurant = start.restaurant.copy(tables = tables)))
+            var n = open(start.copy(day = 13, restaurant = start.restaurant.copy(tables = tables)))
             val layout = n.layout
             repeat(2_000) {
                 n = n.copy(time = n.time + 0.1f)
