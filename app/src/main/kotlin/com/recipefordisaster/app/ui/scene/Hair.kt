@@ -1,7 +1,6 @@
 package com.recipefordisaster.app.ui.scene
 
 import androidx.compose.ui.graphics.Color
-import kotlin.math.abs
 
 /**
  * Hair, for guests, waiters and the player. Each style is drawn in "hair units": a tenth of a scene
@@ -50,7 +49,7 @@ internal fun Pen.drawHair(style: Int, hx: Float, hy: Float, hair: Color) {
             quadTo(hx + 3.6f, hy - 3.4f, hx + 3.4f, hy - 0.2f)
             quadTo(hx + 1f, hy - 2.2f, hx - 3.4f, hy - 0.2f)
         }
-        1 -> for (k in -2..2) dot(hx + k * 1.4f, hy - 2.8f + abs(k) * 0.5f, 1.2f, hair) // curls
+        1 -> h.curls(hair)
         3 -> { // bun
             dot(hx, hy - 3.8f, 1.5f, hair)
             shape(hair) {
@@ -86,6 +85,24 @@ private fun HairPen.sideParting(hair: Color) {
     strand(hair, 1.8f) { m(-4f, -36f); c(8f, -32f, 18f, -24f, 24f, -15f) }
     strand(shade, 2f) { m(-24f, -30f); c(-28f, -22f, -31f, -12f, -33f, -2f) }
     strand(shine, 2.4f) { m(-25f, -32f); c(-19f, -37f, -11f, -39f, -3f, -39f) }
+}
+
+/** Where each curl sits on a curly head, and how big it is: all round the top and down the sides. */
+private val CURLS = listOf(
+    Triple(-30f, -4f, 10f), Triple(-34f, -16f, 10f), Triple(-30f, -29f, 11f), Triple(-19f, -38f, 11f), Triple(-6f, -43f, 11f),
+    Triple(7f, -43f, 11f), Triple(20f, -38f, 11f), Triple(30f, -29f, 11f), Triple(34f, -16f, 10f), Triple(30f, -4f, 10f),
+    Triple(-12f, -32f, 9f), Triple(12f, -32f, 9f), Triple(0f, -36f, 9f), Triple(-22f, -24f, 8f), Triple(22f, -24f, 8f),
+)
+
+/** A full head of curls, each with a little curl mark, and the odd glint of shine. */
+private fun HairPen.curls(hair: Color) {
+    val shade = shadeOf(hair)
+    val shine = shineOf(hair)
+    CURLS.forEach { (x, y, r) -> blob(x, y, r, hair) }
+    CURLS.filterIndexed { i, _ -> i % 2 == 0 }.forEach { (x, y, _) ->
+        strand(shade, 1.8f) { m(x - 4f, y + 2f); q(x - 4f, y - 4f, x + 3f, y - 3f) }
+    }
+    CURLS.filterIndexed { i, _ -> i % 3 == 1 }.forEach { (x, y, _) -> blob(x - 3f, y - 4f, 2.2f, shine) }
 }
 
 /** The back of someone's head, for a guest walking out with their back to us. */
