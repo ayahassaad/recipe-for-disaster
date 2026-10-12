@@ -1207,7 +1207,7 @@ data class ServiceNight(
             var nextArrival = 1.5f
             val parties = groups.mapIndexed { index, guests ->
                 val arriveAt = nextArrival
-                nextArrival += (ARRIVAL_GAP + rng.nextFloat() * ARRIVAL_JITTER) * pace
+                nextArrival += (ARRIVAL_GAP + rng.nextFloat() * ARRIVAL_JITTER) * pace * dials.arrivalGap
                 Party(
                     id = index,
                     guests = guests,

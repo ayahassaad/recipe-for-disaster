@@ -434,6 +434,13 @@ class ServiceNightTest {
     }
 
     @Test
+    fun `guests come in a little faster as the run goes on`() {
+        fun gap(day: Int) = open(start.copy(day = day)).parties.let { (it[1].arriveAt - it[0].arriveAt) }
+        val gaps = listOf(1, 10, 20, 30, 40).map { gap(it) }
+        assertEquals(gaps.sortedDescending(), gaps)
+    }
+
+    @Test
     fun `guests get a little less patient as the run goes on`() {
         // The same guests, on later and later nights (avoiding the quieter seventh nights).
         val patience = listOf(1, 10, 20, 30, 40).map { day -> open(start.copy(day = day)).parties.first().patience }
@@ -462,7 +469,8 @@ class ServiceNightTest {
 
     @Test
     fun `a full room of nine tables plays a full night`() {
-        val big = start.copy(restaurant = start.restaurant.copy(tables = 9, reputation = 80))
+        // Nine tables are bought later in a run, when guests come in thick and fast.
+        val big = start.copy(day = 20, restaurant = start.restaurant.copy(tables = 9, reputation = 80))
         val n = play(open(big), ::busyPlayer)
         assertTrue(n.finished)
         assertTrue(n.parties.mapNotNull { it.table }.any { it >= 6 })
