@@ -1096,9 +1096,13 @@ data class ServiceNight(
         /** Seconds to chase out the rat, put out the fire, lead the dog out or flip the fuses. */
         private const val HANDLE_CHAOS = 3f
 
-        /** Chaos can happen from this day on, on about this share of nights. */
-        private const val CHAOS_FROM_DAY = 4
-        private const val CHAOS_CHANCE = 0.45f
+        /** When each kind of trouble first turns up: the rat, then the dog, the pan fire and the power cut. */
+        private fun featureOf(kind: ChaosKind) = when (kind) {
+            ChaosKind.RAT -> Feature.RAT
+            ChaosKind.DOG -> Feature.DOG
+            ChaosKind.PAN_FIRE -> Feature.PAN_FIRE
+            ChaosKind.POWER_CUT -> Feature.POWER_CUT
+        }
 
         /** A special guest counts as pleased at this satisfaction or more. */
         private const val SPECIAL_PLEASED = 65
@@ -1302,8 +1306,11 @@ data class ServiceNight(
             }
 
             // Some nights, something goes wrong (rolled last, after everything else about the night).
-            val chaos = if (state.day >= CHAOS_FROM_DAY && rng.nextFloat() < CHAOS_CHANCE) {
-                val kind = ChaosKind.entries[rng.nextInt(ChaosKind.entries.size)]
+            // Disasters start on day fifteen, one kind at a time, and get a little more likely as the run goes on.
+            val chaosKinds = ChaosKind.entries.filter { Progression.has(state, featureOf(it)) }
+            val chaosChance = dials.chaosChance * Progression.strength(state, Feature.RAT)
+            val chaos = if (chaosKinds.isNotEmpty() && rng.nextFloat() < chaosChance) {
+                val kind = chaosKinds[rng.nextInt(chaosKinds.size)]
                 val startsAt = 30f + rng.nextFloat() * 50f
                 val at = when (kind) {
                     ChaosKind.RAT -> FloorPoint(50f, 106f)

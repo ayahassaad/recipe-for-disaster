@@ -655,9 +655,14 @@ class ServiceNightTest {
         open(start.copy(day = 6)).copy(chaos = Chaos(kind, at, startsAt = 5f))
 
     @Test
-    fun `chaos happens on some nights after the first few, never early on`() {
-        assertTrue((1L..40L).any { open(start.copy(day = 6), it).chaos != null })
-        assertTrue((1L..40L).none { open(start.copy(day = 2), it).chaos != null })
+    fun `disasters start on day fifteen, one kind at a time, and get more likely as the run goes on`() {
+        fun nights(day: Int) = (1L..100L).mapNotNull { open(start.copy(day = day), it).chaos?.kind }
+        assertTrue(nights(14).isEmpty())
+        assertEquals(setOf(ChaosKind.RAT), nights(16).toSet())
+        assertEquals(setOf(ChaosKind.RAT, ChaosKind.DOG), nights(19).toSet())
+        assertEquals(setOf(ChaosKind.RAT, ChaosKind.DOG, ChaosKind.PAN_FIRE), nights(22).toSet())
+        assertEquals(ChaosKind.entries.toSet(), nights(30).toSet())
+        assertTrue(nights(40).size > nights(16).size)
     }
 
     @Test
