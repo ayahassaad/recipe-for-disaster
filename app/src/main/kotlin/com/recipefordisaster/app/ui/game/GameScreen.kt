@@ -283,6 +283,9 @@ private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, onMe
         val collapsing = tired?.takeIf { it.stress >= MorningAdvisor.COLLAPSE_STRESS }
         val onlyCook = remember(morning) { MorningAdvisor.onlyCookExhausted(morning) }
         val urgent = noFood || collapsing != null
+        // Something new turning up tonight, or one of the quieter nights.
+        val newTonight = remember(morning) { com.recipefordisaster.domain.progression.Progression.arrivingOn(morning, morning.day).firstOrNull() }
+        val quietNight = remember(morning) { com.recipefordisaster.domain.progression.Difficulty.breather(morning) }
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
             Text(
                 text = when {
@@ -290,6 +293,8 @@ private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, onMe
                     collapsing != null && onlyCook -> stringResource(R.string.hint_collapsing_only_cook, collapsing.name)
                     collapsing != null -> stringResource(R.string.hint_collapsing, collapsing.name)
                     tired != null -> stringResource(R.string.hint_tired, tired.name)
+                    newTonight != null -> stringResource(R.string.new_tonight, stringResource(featureLine(newTonight)))
+                    model.alerts.isEmpty() && quietNight -> stringResource(R.string.hint_quiet_night)
                     model.alerts.isEmpty() -> stringResource(R.string.hint_ready)
                     else -> stringResource(R.string.hint_alerts)
                 },

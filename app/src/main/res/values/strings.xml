@@ -304,6 +304,8 @@
     <string name="sound_music">Music</string>
     <string name="vibration">Vibration</string>
     <string name="tomorrow">Tomorrow: %1$s</string>
+    <string name="new_tonight">New tonight: %1$s</string>
+    <string name="hint_quiet_night">A quieter night tonight. Catch your breath!</string>
     <string name="feature_spills">guests start spilling things. Grab the mop!</string>
     <string name="feature_drinks">guests will want a drink first. Pour them at the bar!</string>
     <string name="feature_cat">a cat might wander in. Guests love a visit!</string>
