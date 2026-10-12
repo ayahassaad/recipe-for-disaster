@@ -65,7 +65,7 @@ internal class Pen(private val scope: DrawScope, val unit: Float, private val or
     fun oval(cx: Float, cy: Float, rx: Float, ry: Float, color: Color) =
         drawOval(color, topLeft = p(cx - rx, cy - ry), size = Size(u(rx * 2), u(ry * 2)))
 
-    /** A path in scene units: build it with [moveTo] / [lineTo] / [quadTo] on the [Shape]. */
+    /** A path in scene units: build it with [moveTo] / [lineTo] / [quadTo] / [cubicTo] on the [Shape]. */
     fun shape(color: Color, stroke: Float? = null, build: Shape.() -> Unit) {
         val shape = Shape(this).apply(build)
         if (stroke == null) drawPath(shape.path, color) else drawPath(shape.path, color, style = Stroke(u(stroke), cap = StrokeCap.Round))
@@ -76,6 +76,12 @@ internal class Pen(private val scope: DrawScope, val unit: Float, private val or
         fun moveTo(x: Float, y: Float) { val o = pen.p(x, y); path.moveTo(o.x, o.y) }
         fun lineTo(x: Float, y: Float) { val o = pen.p(x, y); path.lineTo(o.x, o.y) }
         fun quadTo(cx: Float, cy: Float, x: Float, y: Float) { val c = pen.p(cx, cy); val o = pen.p(x, y); path.quadraticTo(c.x, c.y, o.x, o.y) }
+        fun cubicTo(x1: Float, y1: Float, x2: Float, y2: Float, x: Float, y: Float) {
+            val a = pen.p(x1, y1)
+            val b = pen.p(x2, y2)
+            val o = pen.p(x, y)
+            path.cubicTo(a.x, a.y, b.x, b.y, o.x, o.y)
+        }
         fun close() = path.close()
     }
 }
@@ -842,40 +848,13 @@ internal fun Pen.drawPerson(
     val hy = y - 4f + if (slumped) 1f else 0f
     val hair = look?.hairColor ?: Palette.hairColors[variant % Palette.hairColors.size]
     val style = look?.style ?: if (outfit == Outfit.GUEST) variant % 5 else 0
-    if (style == 2) box(hx - 3.8f, hy - 2.4f, 7.6f, 6.2f, hair, radius = 2.4f) // long hair behind the head
+    drawHairBehind(style, hx, hy, hair)
     dot(hx, hy, 3.4f, if (angry) Color(0xFFF2B19C) else skin)
     if (backTurned) {
-        dot(hx, hy, 3.4f, hair)
-        if (style == 3) dot(hx, hy - 3f, 1.4f, hair)
+        drawHairFromBehind(style, hx, hy, hair)
     } else {
         // Hair on top, in one of a few styles (staff keep theirs under a hat or cap).
-        if (outfit == Outfit.GUEST || outfit == Outfit.SERVER) {
-            when (style) {
-                0, 2 -> shape(hair) { // side parting
-                    moveTo(hx - 3.4f, hy - 0.2f)
-                    quadTo(hx - 3.2f, hy - 4.2f, hx + 0.6f, hy - 3.6f)
-                    quadTo(hx + 3.6f, hy - 3.4f, hx + 3.4f, hy - 0.2f)
-                    quadTo(hx + 1f, hy - 2.2f, hx - 3.4f, hy - 0.2f)
-                }
-                1 -> for (k in -2..2) dot(hx + k * 1.4f, hy - 2.8f + abs(k) * 0.5f, 1.2f, hair) // curls
-                3 -> { // bun
-                    dot(hx, hy - 3.8f, 1.5f, hair)
-                    shape(hair) {
-                        moveTo(hx - 3.3f, hy - 0.6f)
-                        quadTo(hx, hy - 4.6f, hx + 3.3f, hy - 0.6f)
-                        quadTo(hx, hy - 2.4f, hx - 3.3f, hy - 0.6f)
-                    }
-                }
-                else -> { // short crop with a little quiff
-                    shape(hair) {
-                        moveTo(hx - 3.2f, hy - 1f)
-                        quadTo(hx, hy - 4.6f, hx + 3.2f, hy - 1f)
-                        quadTo(hx, hy - 2.6f, hx - 3.2f, hy - 1f)
-                    }
-                    dot(hx + 1.2f, hy - 3.4f, 0.9f, hair)
-                }
-            }
-        }
+        if (outfit == Outfit.GUEST || outfit == Outfit.SERVER) drawHair(style, hx, hy, hair)
         // Face: eyes with a highlight, rosy cheeks, mouth.
         val eyeY = hy + 0.2f
         for (side in listOf(-1f, 1f)) {
