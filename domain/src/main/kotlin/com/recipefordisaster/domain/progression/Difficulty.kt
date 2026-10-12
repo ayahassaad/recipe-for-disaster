@@ -28,8 +28,18 @@ object Difficulty {
     private const val CHAOS_START = 0.15f
     private const val CHAOS_FULL = 0.45f
 
-    /** How far along the run is, from 0 (the first night) to 1 (as hard as it gets). */
-    fun pressure(state: GameState): Float = ((state.day - 1).toFloat() / (FULL_DAY - 1)).coerceIn(0f, 1f)
+    /** Every this many days there's a quieter night, so it gets harder in waves rather than a straight climb. */
+    const val BREATHER_EVERY = 7
+    private const val BREATHER_EASE = 0.1f
+
+    /** Whether tonight is one of the quieter nights. */
+    fun breather(state: GameState): Boolean = state.day % BREATHER_EVERY == 0
+
+    /** How far along the run is, from 0 (the first night) to 1 (as hard as it gets), eased off on a quieter night. */
+    fun pressure(state: GameState): Float {
+        val along = ((state.day - 1).toFloat() / (FULL_DAY - 1)).coerceIn(0f, 1f)
+        return (along - if (breather(state)) BREATHER_EASE else 0f).coerceIn(0f, 1f)
+    }
 
     fun dials(state: GameState): Dials {
         val p = pressure(state)
@@ -37,7 +47,8 @@ object Difficulty {
         return Dials(
             patience = lerp(1.25f, 0.85f, p),
             arrivalGap = lerp(1.25f, 0.85f, p),
-            chaosChance = CHAOS_START + (CHAOS_FULL - CHAOS_START) * chaosAlong,
+            // Something going wrong is half as likely on a quieter night.
+            chaosChance = (CHAOS_START + (CHAOS_FULL - CHAOS_START) * chaosAlong) * (if (breather(state)) 0.5f else 1f),
             maxSpills = when {
                 state.day < 10 -> 1
                 state.day < 30 -> 2
