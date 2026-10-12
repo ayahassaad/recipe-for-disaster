@@ -13,6 +13,8 @@ import com.recipefordisaster.domain.menu.Dish
 import com.recipefordisaster.domain.menu.DishId
 import com.recipefordisaster.domain.menu.violates
 import com.recipefordisaster.domain.progression.Difficulty
+import com.recipefordisaster.domain.progression.Feature
+import com.recipefordisaster.domain.progression.Progression
 import com.recipefordisaster.domain.simulation.KitchenModel
 import com.recipefordisaster.domain.simulation.RandomSource
 import com.recipefordisaster.domain.simulation.ServiceSetup
@@ -1140,9 +1142,6 @@ data class ServiceNight(
         /** A quick round of drinks takes about this long, so it doesn't count against the food being slow. */
         private const val DRINKS_ALLOWANCE = 8f
 
-        /** No spills for the first few nights: there's enough to learn already. */
-        private const val QUIET_FLOOR_DAYS = 2
-
         /** How long a table sits dirty before a server with nothing else to do clears it. */
         private const val RUNNER_CLEAR_DELAY = 6f
         private const val GUEST_SPEED = 32f
@@ -1224,7 +1223,12 @@ data class ServiceNight(
             // first guests are settling in: each happens a little after one of the later parties arrives,
             // at one of the open spots between tables.
             val later = parties.drop(parties.size / 4)
-            val spillCount = if (later.isEmpty() || state.day <= QUIET_FLOOR_DAYS) 0 else (parties.size / 6 + (if (state.restaurant.cleanliness < 50) 1 else 0)).coerceAtMost(ServiceFloor.spillSpots.size)
+            // Spills start a few nights in, rare at first; there can be a few more of them as the run goes on.
+            val spillsSettled = Progression.strength(state, Feature.SPILLS)
+            val spillCount = if (later.isEmpty() || spillsSettled <= 0f) 0 else {
+                val usual = (parties.size / 6 + (if (state.restaurant.cleanliness < 50) 1 else 0)).coerceAtMost(dials.maxSpills)
+                kotlin.math.ceil(usual * spillsSettled).toInt().coerceAtMost(ServiceFloor.spillSpots.size)
+            }
             val spots = ServiceFloor.spillSpots.shuffledWith(rng)
             val messes = (0 until spillCount).map { k ->
                 val after = later[rng.nextInt(later.size)].arriveAt

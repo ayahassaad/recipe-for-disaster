@@ -406,6 +406,15 @@ class ServiceNightTest {
     }
 
     @Test
+    fun `spills start on day three, and there can be a few more of them later on`() {
+        fun most(day: Int) = (1L..20L).maxOf { seed -> open(noWashers.copy(day = day, restaurant = noWashers.restaurant.copy(cleanliness = 30)), seed).messes.size }
+        assertEquals(0, most(2))
+        assertTrue(most(3) in 1..1)
+        assertTrue(most(9) <= 1)
+        assertTrue(most(35) > most(9))
+    }
+
+    @Test
     fun `a server with no food to run clears tables that have sat dirty a while`() {
         val noHelpers = start.copy(employees = start.employees.filter { it.role == com.recipefordisaster.domain.employee.Role.COOK })
         val withServer = start.copy(employees = start.employees + listOf(aServer))
