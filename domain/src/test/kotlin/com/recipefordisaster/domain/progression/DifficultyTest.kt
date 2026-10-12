@@ -81,4 +81,14 @@ class DifficultyTest {
         assertTrue(picky(80) > picky(70))
         assertTrue(picky(95) > picky(80))
     }
+
+    @Test
+    fun `small overnight troubles can happen any time, bigger ones ease in later`() {
+        fun share(day: Int, severity: com.recipefordisaster.domain.event.Severity) = Difficulty.overnightShare(start.copy(day = day), severity)
+        assertEquals(1f, share(3, com.recipefordisaster.domain.event.Severity.MINOR), 0.001f)
+        assertEquals(0f, share(4, com.recipefordisaster.domain.event.Severity.MODERATE), 0.001f)
+        assertTrue(share(5, com.recipefordisaster.domain.event.Severity.MODERATE) in 0.01f..0.5f)
+        assertEquals(0f, share(8, com.recipefordisaster.domain.event.Severity.SEVERE), 0.001f)
+        assertEquals(1f, share(20, com.recipefordisaster.domain.event.Severity.SEVERE), 0.001f)
+    }
 }

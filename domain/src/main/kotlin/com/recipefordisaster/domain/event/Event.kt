@@ -105,7 +105,8 @@ class EventEngine(
         val eligible = availableRules(state)
         if (eligible.isEmpty()) return null
 
-        val weights = eligible.map { it.weight(state).coerceAtLeast(0f) }
+        // Bigger overnight troubles come in gradually as the run goes on (see Difficulty.overnightShare).
+        val weights = eligible.map { it.weight(state).coerceAtLeast(0f) * com.recipefordisaster.domain.progression.Difficulty.overnightShare(state, it.severity) }
         val totalWeight = weights.sum()
         if (totalWeight <= 0f) return null
 

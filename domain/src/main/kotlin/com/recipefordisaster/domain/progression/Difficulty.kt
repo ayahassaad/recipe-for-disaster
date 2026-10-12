@@ -76,6 +76,25 @@ object Difficulty {
         )
     }
 
+    /** When moderate and serious overnight events start, each easing in over [Progression.RAMP_DAYS] days. */
+    private const val MODERATE_EVENTS_FROM = 5
+    private const val SERIOUS_EVENTS_FROM = 9
+
+    /**
+     * How much of its usual chance an overnight event of this [severity] has today: small things can
+     * happen from the start, moderate ones ease in from day five and serious ones from day nine.
+     */
+    fun overnightShare(state: GameState, severity: com.recipefordisaster.domain.event.Severity): Float {
+        val from = when (severity) {
+            com.recipefordisaster.domain.event.Severity.TRIVIAL, com.recipefordisaster.domain.event.Severity.MINOR -> return 1f
+            com.recipefordisaster.domain.event.Severity.MODERATE -> MODERATE_EVENTS_FROM
+            else -> SERIOUS_EVENTS_FROM
+        }
+        // A game that already knew about disasters before they came in gradually keeps having them.
+        if (Progression.has(state, Feature.RAT) && state.day < Feature.RAT.day) return 1f
+        return ((state.day - from + 1).toFloat() / Progression.RAMP_DAYS).coerceIn(0f, 1f)
+    }
+
     /** A well-known restaurant draws guests who expect a lot: a little pickier at four stars, more at four and a half. */
     private fun starPickiness(reputation: Int) = when {
         reputation >= 90 -> 4
