@@ -45,14 +45,7 @@ internal fun Pen.drawHair(style: Int, hx: Float, hy: Float, hair: Color) {
         0 -> h.sideParting(hair)
         2 -> h.longHair(hair)
         1 -> h.curls(hair)
-        3 -> { // bun
-            dot(hx, hy - 3.8f, 1.5f, hair)
-            shape(hair) {
-                moveTo(hx - 3.3f, hy - 0.6f)
-                quadTo(hx, hy - 4.6f, hx + 3.3f, hy - 0.6f)
-                quadTo(hx, hy - 2.4f, hx - 3.3f, hy - 0.6f)
-            }
-        }
+        3 -> h.bun(hair)
         else -> { // short crop with a little quiff
             shape(hair) {
                 moveTo(hx - 3.2f, hy - 1f)
@@ -122,6 +115,26 @@ private fun HairPen.longHair(hair: Color) {
     strand(shineOf(hair), 2.2f) { m(-6f, -40f); c(-16f, -36f, -26f, -24f, -31f, -6f) }
     strand(shade, 1.8f) { m(6f, -40f); c(16f, -36f, 26f, -24f, 31f, -6f) }
     strand(shade, 1.8f) { m(-34f, 0f); c(-34f, 14f, -33f, 24f, -31f, 32f) }
+}
+
+/** The pink of the band holding a bun in place. */
+private val HAIR_TIE = Color(0xFFE85D75)
+
+/** Pulled back smoothly into a bun on top, held with a hair tie, the comb lines running up to it. */
+private fun HairPen.bun(hair: Color) {
+    val shade = shadeOf(hair)
+    val shine = shineOf(hair)
+    blob(0f, -49f, 14f, hair)
+    strand(shade, 2f) { m(-8f, -52f); c(-4f, -60f, 6f, -58f, 7f, -50f); c(8f, -43f, -2f, -41f, -5f, -46f) } // wound round
+    blob(-4f, -55f, 2.6f, shine)
+    fill(hair) {
+        m(-35f, 4f); c(-38f, -32f, -18f, -44f, 0f, -44f); c(18f, -44f, 38f, -32f, 35f, 4f)
+        c(31f, -12f, 18f, -21f, 0f, -22f); c(-18f, -21f, -31f, -12f, -35f, 4f); close()
+    }
+    box(-9f, -39f, 18f, 5f, 2.5f, HAIR_TIE)
+    strand(shade, 1.8f) { m(-28f, -12f); c(-22f, -26f, -12f, -34f, -4f, -38f) }
+    strand(shade, 1.8f) { m(28f, -12f); c(22f, -26f, 12f, -34f, 4f, -38f) }
+    strand(shine, 2f) { m(-16f, -24f); c(-12f, -30f, -8f, -34f, -3f, -37f) }
 }
 
 /** The back of someone's head, for a guest walking out with their back to us. */
