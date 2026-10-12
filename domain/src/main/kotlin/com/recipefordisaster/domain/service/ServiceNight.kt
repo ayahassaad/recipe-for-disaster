@@ -100,6 +100,8 @@ data class ServiceNight(
     val drinkTakings: Long = 0,
     /** Points off every guest's enjoyment tonight: guests expect more as the run goes on. */
     val pickiness: Int = 0,
+    /** A second thing going wrong later tonight, once the first is sorted (rolled when the doors open). */
+    val laterChaos: Chaos? = null,
 ) {
 
     /** What a guest was waiting for when they gave up. */
@@ -529,8 +531,11 @@ data class ServiceNight(
         return night
     }
 
-    /** Chaos that sorts itself out after a while (the lights come back, the rat wanders off). */
+    /** Chaos that sorts itself out after a while (the lights come back, the rat wanders off), and a second lot later on. */
     private fun chaosStep(): ServiceNight {
+        // Once the first trouble is over, the second one (if there is one) is next.
+        val next = laterChaos
+        if (next != null && chaos?.resolved == true && time >= next.startsAt) return copy(chaos = next, laterChaos = null)
         val c = activeChaos ?: return this
         val limit = c.lastsAtMost ?: return this
         return if (time - c.startsAt >= limit) copy(chaos = c.copy(resolved = true)) else this
@@ -1096,6 +1101,9 @@ data class ServiceNight(
         /** Seconds to chase out the rat, put out the fire, lead the dog out or flip the fuses. */
         private const val HANDLE_CHAOS = 3f
 
+        /** Once two disasters a night are possible, about this share of nights with one get a second. */
+        private const val DOUBLE_TROUBLE_CHANCE = 0.35f
+
         /** When each kind of trouble first turns up: the rat, then the dog, the pan fire and the power cut. */
         private fun featureOf(kind: ChaosKind) = when (kind) {
             ChaosKind.RAT -> Feature.RAT
@@ -1308,16 +1316,16 @@ data class ServiceNight(
             // Disasters start on day fifteen, one kind at a time, and get a little more likely as the run goes on.
             val chaosKinds = ChaosKind.entries.filter { Progression.has(state, featureOf(it)) }
             val chaosChance = dials.chaosChance * Progression.strength(state, Feature.RAT)
+            fun chaosAt(kind: ChaosKind) = when (kind) {
+                ChaosKind.RAT -> FloorPoint(50f, 106f)
+                ChaosKind.DOG -> ServiceFloor.layout(tableCount).stand(rng.nextInt(tableCount)).let { FloorPoint(it.x, it.y - 2f) }
+                ChaosKind.PAN_FIRE -> FloorPoint(40f, 17f)
+                ChaosKind.POWER_CUT -> ServiceFloor.fuseBox
+            }
             val chaos = if (chaosKinds.isNotEmpty() && rng.nextFloat() < chaosChance) {
                 val kind = chaosKinds[rng.nextInt(chaosKinds.size)]
                 val startsAt = 30f + rng.nextFloat() * 50f
-                val at = when (kind) {
-                    ChaosKind.RAT -> FloorPoint(50f, 106f)
-                    ChaosKind.DOG -> ServiceFloor.layout(tableCount).stand(rng.nextInt(tableCount)).let { FloorPoint(it.x, it.y - 2f) }
-                    ChaosKind.PAN_FIRE -> FloorPoint(40f, 17f)
-                    ChaosKind.POWER_CUT -> ServiceFloor.fuseBox
-                }
-                Chaos(kind, at, startsAt)
+                Chaos(kind, chaosAt(kind), startsAt)
             } else {
                 null
             }
@@ -1335,6 +1343,14 @@ data class ServiceNight(
             val chefLuck = rng.nextFloat()
             // The cat moves in on day eight: at first it only drops by now and then, and soon it's there every night.
             val catTonight = rng.nextFloat() < Progression.strength(state, Feature.CAT)
+            // From day twenty-six, now and then a second thing goes wrong later in the night (rolled last of all).
+            val otherKinds = chaosKinds.filter { it != chaos?.kind }
+            val laterChaos = if (chaos != null && otherKinds.isNotEmpty() && rng.nextFloat() < DOUBLE_TROUBLE_CHANCE * Progression.strength(state, Feature.DOUBLE_TROUBLE)) {
+                val kind = otherKinds[rng.nextInt(otherKinds.size)]
+                Chaos(kind, chaosAt(kind), chaos.startsAt + 40f + rng.nextFloat() * 30f)
+            } else {
+                null
+            }
 
             return ServiceNight(
                 time = 0f,
@@ -1356,6 +1372,7 @@ data class ServiceNight(
                 fridgeBreaksAt = fridgeBreaksAt,
                 chaos = chaos,
                 cat = catTonight,
+                laterChaos = laterChaos,
                 fridgeBroken = fridgeBrokenAtOpen,
                 hosted = state.employees.any { it.status == EmployeeStatus.ACTIVE && it.role == Role.HOST },
             )

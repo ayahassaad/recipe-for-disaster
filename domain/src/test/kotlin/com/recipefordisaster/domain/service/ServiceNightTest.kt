@@ -694,6 +694,21 @@ class ServiceNightTest {
     }
 
     @Test
+    fun `from day twenty-six, some nights a second thing goes wrong once the first is sorted`() {
+        assertTrue((1L..100L).none { open(start.copy(day = 25), it).laterChaos != null })
+        // (One where guests are still coming in when the second is due, so the night's still going.)
+        val night = (1L..300L).map { open(start.copy(day = 35), it) }.first { n -> n.laterChaos.let { it != null && it.startsAt < n.parties.maxOf { p -> p.arriveAt } } }
+        val first = night.chaos!!
+        val second = night.laterChaos!!
+        assertTrue(second.kind != first.kind && second.startsAt > first.startsAt)
+        // Sort the first one out, and the second turns up when its time comes.
+        var n = waitFor(night) { it.activeChaos != null }
+        n = n.copy(chaos = n.chaos!!.copy(resolved = true))
+        n = waitFor(n) { it.activeChaos != null || it.time > second.startsAt + 5f }
+        assertEquals(second.kind, n.activeChaos?.kind)
+    }
+
+    @Test
     fun `the cat knocks a forgotten plate off the counter`() {
         val noRunners = start.copy(day = 13, employees = start.employees.filter { it.role == com.recipefordisaster.domain.employee.Role.COOK })
         var n = waitFor(open(noRunners)) { night -> night.parties.any { it.stage == Stage.READY_TO_ORDER } }
