@@ -1107,8 +1107,7 @@ data class ServiceNight(
         private const val SPECIALS_FROM_DAY = 3
         private const val SPECIAL_CHANCE = 0.4f
 
-        /** Families start coming in from this day, and this share of the parties of two are one. */
-        private const val FAMILIES_FROM_DAY = 2
+        /** Once families are coming in, this share of the parties of two are one. */
         private const val FAMILY_CHANCE = 0.25f
 
         /** The share of plates a grumpy chef burns. */
@@ -1308,9 +1307,11 @@ data class ServiceNight(
                 null
             }
 
-            // Some parties of two are a grown-up out with a child (rolled after everything else).
-            val withFamilies = if (state.day >= FAMILIES_FROM_DAY) {
-                specialParties.map { p -> if (p.guests.size == 2 && p.special == null && rng.nextFloat() < FAMILY_CHANCE) p.copy(family = true) else p }
+            // From day ten, some parties of two are a grown-up out with a child: only the odd one at first
+            // (rolled after everything else).
+            val familyChance = FAMILY_CHANCE * Progression.strength(state, Feature.FAMILIES)
+            val withFamilies = if (familyChance > 0f) {
+                specialParties.map { p -> if (p.guests.size == 2 && p.special == null && rng.nextFloat() < familyChance) p.copy(family = true) else p }
             } else {
                 specialParties
             }
