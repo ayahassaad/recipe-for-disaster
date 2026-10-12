@@ -234,6 +234,8 @@ fun GameScreen(
                     report = uiState.report,
                     gameOver = gameOver,
                     newTable = uiState.state.restaurant.tables > uiState.report.startOfService.restaurant.tables,
+                    // What's new tomorrow, so it doesn't come as a surprise.
+                    tomorrow = com.recipefordisaster.domain.progression.Progression.arrivingOn(uiState.state, uiState.state.day),
                     onContinue = actions.onNextMorning,
                     onMenu = onMenu,
                     modifier = modifier,
@@ -700,7 +702,15 @@ private fun nightLabels(): NightLabels {
 /** After the night: the restaurant quiet again, the receipt over it, and on to the next day. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ResultsPlay(report: DayReport, gameOver: Boolean, newTable: Boolean, onContinue: () -> Unit, onMenu: () -> Unit, modifier: Modifier = Modifier) {
+private fun ResultsPlay(
+    report: DayReport,
+    gameOver: Boolean,
+    newTable: Boolean,
+    onContinue: () -> Unit,
+    onMenu: () -> Unit,
+    modifier: Modifier = Modifier,
+    tomorrow: List<com.recipefordisaster.domain.progression.Feature> = emptyList(),
+) {
     var showBill by remember { mutableStateOf(false) }
     val event = report.event
     val baseModel = remember(report) { sceneModelFor(report.startOfService, emptyList(), hiringOpen = false) }
@@ -730,6 +740,7 @@ private fun ResultsPlay(report: DayReport, gameOver: Boolean, newTable: Boolean,
                 report = report,
                 onShowBill = { showBill = true },
                 newTable = newTable,
+                tomorrow = if (gameOver) emptyList() else tomorrow,
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
@@ -765,7 +776,14 @@ private fun lostTip(report: DayReport): String? {
 
 /** The receipt that slides up over the restaurant once the last guest has left. */
 @Composable
-private fun EndOfNightPanel(visible: Boolean, report: DayReport, onShowBill: () -> Unit, newTable: Boolean = false, modifier: Modifier = Modifier) {
+private fun EndOfNightPanel(
+    visible: Boolean,
+    report: DayReport,
+    onShowBill: () -> Unit,
+    newTable: Boolean = false,
+    modifier: Modifier = Modifier,
+    tomorrow: List<com.recipefordisaster.domain.progression.Feature> = emptyList(),
+) {
     val event = report.event
     val profit = report.books.profitOrLoss
     AnimatedVisibility(
@@ -810,6 +828,16 @@ private fun EndOfNightPanel(visible: Boolean, report: DayReport, onShowBill: () 
             }
             if (report.burnt > 0) {
                 Text(pluralStringResource(R.plurals.chef_burnt, report.burnt, report.burnt), style = MaterialTheme.typography.bodyMedium, color = DisasterRed, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
+            }
+            // Something new tomorrow.
+            tomorrow.forEach { feature ->
+                Text(
+                    stringResource(R.string.tomorrow, stringResource(featureLine(feature))),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = com.recipefordisaster.app.ui.theme.WoodBrown,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                )
             }
             if (newTable) {
                 Text(stringResource(R.string.new_table_tomorrow), style = MaterialTheme.typography.titleMedium, color = LeafGreen, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
