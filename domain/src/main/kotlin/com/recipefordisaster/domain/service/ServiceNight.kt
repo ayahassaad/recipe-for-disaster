@@ -12,6 +12,7 @@ import com.recipefordisaster.domain.inventory.InventoryState
 import com.recipefordisaster.domain.menu.Dish
 import com.recipefordisaster.domain.menu.DishId
 import com.recipefordisaster.domain.menu.violates
+import com.recipefordisaster.domain.progression.Difficulty
 import com.recipefordisaster.domain.simulation.KitchenModel
 import com.recipefordisaster.domain.simulation.RandomSource
 import com.recipefordisaster.domain.simulation.ServiceSetup
@@ -1137,9 +1138,6 @@ data class ServiceNight(
         /** A quick round of drinks takes about this long, so it doesn't count against the food being slow. */
         private const val DRINKS_ALLOWANCE = 8f
 
-        /** Guests' patience on the very first night, while the player learns. */
-        private const val FIRST_NIGHT_PATIENCE = 1.3f
-
         /** No spills for the first few nights: there's enough to learn already. */
         private const val QUIET_FLOOR_DAYS = 2
 
@@ -1192,6 +1190,8 @@ data class ServiceNight(
             val state = setup.morning.state
             val customers = setup.arrivals
             val menu = state.menu.filter { it.available }
+            // How hard tonight is: guests a little less patient, and coming a little faster, as the run goes on.
+            val dials = Difficulty.dials(state)
 
             // Parties of one or two (mostly two). They arrive roughly every seven or eight seconds in a
             // six-table room; a smaller room gets them more slowly, a bigger one faster, so every table gets used.
@@ -1213,8 +1213,8 @@ data class ServiceNight(
                     guests = guests,
                     preferences = guests.map { g -> rankDishes(customers[g], menu, rng) },
                     arriveAt = arriveAt,
-                    // The very first night is gentler: guests are a bit more forgiving while you learn the ropes.
-                    patience = (guests.map { customers[it].patience }.average().toFloat() / MINUTES_PER_SECOND + 12f) * (if (state.day <= 1) FIRST_NIGHT_PATIENCE else 1f),
+                    // The first nights are gentler: guests are more forgiving while you learn the ropes.
+                    patience = (guests.map { customers[it].patience }.average().toFloat() / MINUTES_PER_SECOND + 12f) * dials.patience,
                 )
             }
 

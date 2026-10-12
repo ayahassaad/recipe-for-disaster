@@ -434,6 +434,14 @@ class ServiceNightTest {
     }
 
     @Test
+    fun `guests get a little less patient as the run goes on`() {
+        // The same guests, on later and later nights (avoiding the quieter seventh nights).
+        val patience = listOf(1, 10, 20, 30, 40).map { day -> open(start.copy(day = day)).parties.first().patience }
+        assertEquals(patience.sortedDescending(), patience)
+        assertTrue(patience.first() > patience.last() * 1.3f)
+    }
+
+    @Test
     fun `everyone who gave up is recorded with what they were waiting for`() {
         val n = play(open())
         val gaveUp = n.result().outcomes.count { it.missedReason == MissedMealReason.TIRED_OF_WAITING }
