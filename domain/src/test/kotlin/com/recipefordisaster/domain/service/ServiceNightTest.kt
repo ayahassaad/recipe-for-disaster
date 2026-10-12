@@ -619,10 +619,12 @@ class ServiceNightTest {
     }
 
     @Test
-    fun `special guests turn up on some nights after the first few`() {
-        val nights = (1L..40L).map { open(start.copy(day = 5), it) }
-        assertTrue(nights.any { n -> n.parties.any { it.special != null } })
-        assertTrue((1L..40L).none { seed -> open(start.copy(day = 1), seed).parties.any { it.special != null } })
+    fun `special guests come one kind at a time, the celebrity first`() {
+        fun kinds(day: Int) = (1L..60L).flatMap { seed -> open(start.copy(day = day), seed).parties.mapNotNull { it.special } }.toSet()
+        assertEquals(emptySet<SpecialGuest>(), kinds(11))
+        assertEquals(setOf(SpecialGuest.CELEBRITY), kinds(12))
+        assertEquals(setOf(SpecialGuest.CELEBRITY, SpecialGuest.CRITIC), kinds(16))
+        assertEquals(SpecialGuest.entries.toSet(), kinds(30))
     }
 
     @Test

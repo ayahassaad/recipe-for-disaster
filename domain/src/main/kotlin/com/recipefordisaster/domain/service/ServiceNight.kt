@@ -1103,9 +1103,15 @@ data class ServiceNight(
         /** A special guest counts as pleased at this satisfaction or more. */
         private const val SPECIAL_PLEASED = 65
 
-        /** Special guests start turning up from this day, on about this share of nights. */
-        private const val SPECIALS_FROM_DAY = 3
+        /** Once special guests are coming, one turns up on about this share of nights. */
         private const val SPECIAL_CHANCE = 0.4f
+
+        /** When each kind of special guest starts coming: the celebrity (the easy one) first. */
+        private fun featureOf(guest: SpecialGuest) = when (guest) {
+            SpecialGuest.CELEBRITY -> Feature.CELEBRITY
+            SpecialGuest.CRITIC -> Feature.CRITIC
+            SpecialGuest.INSPECTOR -> Feature.INSPECTOR
+        }
 
         /** Once families are coming in, this share of the parties of two are one. */
         private const val FAMILY_CHANCE = 0.25f
@@ -1283,9 +1289,12 @@ data class ServiceNight(
                 null
             }
 
-            // Now and then a special guest comes in (rolled last, so it doesn't change anything else about the night).
-            val specialParties = if (state.day >= SPECIALS_FROM_DAY && parties.size > 3 && rng.nextFloat() < SPECIAL_CHANCE) {
-                val who = SpecialGuest.entries[rng.nextInt(SpecialGuest.entries.size)]
+            // Now and then a special guest comes in (rolled last, so it doesn't change anything else about the night):
+            // the celebrity from day twelve, the critic from fourteen, the inspector from twenty-three, rarely at first.
+            val specialKinds = SpecialGuest.entries.filter { Progression.has(state, featureOf(it)) }
+            val specialChance = SPECIAL_CHANCE * Progression.strength(state, Feature.CELEBRITY)
+            val specialParties = if (specialKinds.isNotEmpty() && parties.size > 3 && rng.nextFloat() < specialChance) {
+                val who = specialKinds[rng.nextInt(specialKinds.size)]
                 val index = 2 + rng.nextInt(parties.size - 2)
                 parties.mapIndexed { k, p -> if (k == index) p.copy(special = who) else p }
             } else {
