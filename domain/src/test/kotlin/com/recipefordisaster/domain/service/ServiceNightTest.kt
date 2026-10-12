@@ -434,6 +434,20 @@ class ServiceNightTest {
     }
 
     @Test
+    fun `guests expect more later in a run, so the same meal pleases them a little less`() {
+        val early = open(start.copy(day = 2))
+        val late = open(start.copy(day = 40))
+        assertEquals(0, early.pickiness)
+        assertTrue(late.pickiness > 0)
+        // Serve the same guests the same way, with only the pickiness different.
+        val a = play(early, ::busyPlayer)
+        val b = play(early.copy(pickiness = late.pickiness), ::busyPlayer)
+        val fed = a.result().outcomes.filter { it.dish != null }.map { it.satisfaction }.average()
+        val fussier = b.result().outcomes.filter { it.dish != null }.map { it.satisfaction }.average()
+        assertTrue(fussier < fed)
+    }
+
+    @Test
     fun `guests come in a little faster as the run goes on`() {
         fun gap(day: Int) = open(start.copy(day = day)).parties.let { (it[1].arriveAt - it[0].arriveAt) }
         val gaps = listOf(1, 10, 20, 30, 40).map { gap(it) }

@@ -96,6 +96,8 @@ data class ServiceNight(
     val lastBurnAt: Float = -100f,
     /** Coins taken for drinks so far tonight (paid as they're served). */
     val drinkTakings: Long = 0,
+    /** Points off every guest's enjoyment tonight: guests expect more as the run goes on. */
+    val pickiness: Int = 0,
 ) {
 
     /** What a guest was waiting for when they gave up. */
@@ -734,7 +736,7 @@ data class ServiceNight(
                         // ...while a visit from the cat makes their evening.
                         (if (party.table in night.catVisited) CAT_JOY else 0)
                     val treat = if (party.chefsSpecial) CHEFS_SPECIAL_JOY else 0
-                    val satisfaction = (ServiceSimulator.resolveSatisfaction(customer, dish, waitedMinutes, kitchenQualityBonus) - mess + treat).coerceIn(0, 100)
+                    val satisfaction = (ServiceSimulator.resolveSatisfaction(customer, dish, waitedMinutes, kitchenQualityBonus) - mess + treat - night.pickiness).coerceIn(0, 100)
                         results = results + (guest to CustomerServiceOutcome(customer, dish, satisfaction, waitedMinutes))
                     }
                     // They leave their dirty plates behind; the table needs clearing before anyone else can sit there.
@@ -1307,6 +1309,7 @@ data class ServiceNight(
                 time = 0f,
                 parties = withFamilies,
                 chefMood = ChefMood.of(state.employees),
+                pickiness = dials.pickiness,
                 chefLuck = chefLuck,
                 waiters = waiters,
                 inventory = state.inventory,
