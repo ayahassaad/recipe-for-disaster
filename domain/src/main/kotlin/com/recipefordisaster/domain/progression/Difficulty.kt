@@ -72,8 +72,15 @@ object Difficulty {
                 state.day < 30 -> 2
                 else -> 3
             },
-            pickiness = (8 * p).toInt(),
+            pickiness = (8 * p).toInt() + starPickiness(state.restaurant.reputation),
         )
+    }
+
+    /** A well-known restaurant draws guests who expect a lot: a little pickier at four stars, more at four and a half. */
+    private fun starPickiness(reputation: Int) = when {
+        reputation >= 90 -> 4
+        reputation >= 80 -> 2
+        else -> 0
     }
 
     private fun lerp(from: Float, to: Float, t: Float) = from + (to - from) * t

@@ -73,4 +73,12 @@ class DifficultyTest {
         // Unhappy guests count too, even when the money's fine.
         assertTrue(Difficulty.dials(withNights(listOf(10, 10, 10), satisfaction = 30)).patience > fine.patience)
     }
+
+    @Test
+    fun `a restaurant with more stars draws pickier guests`() {
+        fun picky(reputation: Int) = Difficulty.dials(start.copy(day = 20, restaurant = start.restaurant.copy(reputation = reputation))).pickiness
+        assertEquals(picky(50), picky(70))
+        assertTrue(picky(80) > picky(70))
+        assertTrue(picky(95) > picky(80))
+    }
 }
