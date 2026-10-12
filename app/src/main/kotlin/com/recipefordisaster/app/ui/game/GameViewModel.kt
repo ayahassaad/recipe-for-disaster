@@ -142,7 +142,8 @@ class GameViewModel(
             when (val result = gameRepository.load()) {
                 is SaveLoadResult.Success -> {
                     // Saves from before the fridge existed get one.
-                    val state = com.recipefordisaster.domain.equipment.Fridge.ensure(result.state).let { s ->
+                    // Saves from before new things arrived one at a time keep whatever they'd already met.
+                    val state = com.recipefordisaster.domain.progression.Progression.ensure(com.recipefordisaster.domain.equipment.Fridge.ensure(result.state)).let { s ->
                         // Older saves may be missing a kind of applicant: there's always one of each to hire now.
                         s.copy(
                             applicants = com.recipefordisaster.domain.employee.StaffingMarket.withEveryBasicRole(s.applicants, com.recipefordisaster.domain.simulation.SeededRandomSource(s.seed + s.day), s.day),

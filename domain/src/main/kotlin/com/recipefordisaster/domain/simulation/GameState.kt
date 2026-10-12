@@ -59,6 +59,12 @@ data class GameState(
     val pendingDemandModifierPercent: Int = 0,
     /** Follow-up rule IDs an earlier event scheduled; [com.recipefordisaster.domain.event.EventEngine] fires these first. */
     val scheduledFollowUps: Set<String> = emptySet(),
+    /**
+     * Features this game met before new things arrived one at a time, so it keeps them (see
+     * [com.recipefordisaster.domain.progression.Progression]). Empty for a new game; null in a save
+     * from before then, until it's loaded.
+     */
+    val featuresMetEarly: Set<com.recipefordisaster.domain.progression.Feature>? = null,
 )
 
 @Serializable

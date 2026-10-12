@@ -69,6 +69,8 @@ object NewGameFactory {
         return GameState(
             seed = seed,
             day = 1,
+            // A new game meets everything as it comes, one thing at a time.
+            featuresMetEarly = emptySet(),
             restaurant = Restaurant(
                 cash = 1_500,
                 reputation = 50,
