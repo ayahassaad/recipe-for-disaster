@@ -1180,8 +1180,6 @@ data class ServiceNight(
         private const val FRIDGE_SPOIL_EVERY = 10f
         private const val FRIDGE_SPOIL = 0.1
 
-        /** A worn fridge can break during service from this day on. */
-        private const val FRIDGE_BREAKS_FROM_DAY = 4
 
         /** Satisfaction each guest loses per spill on the floor when they finish eating, counting up to [MAX_MESS_PENALTIES]. */
         private const val MESS_PENALTY = 6
@@ -1286,8 +1284,9 @@ data class ServiceNight(
             // One that's already broken stays broken until someone fixes it.
             val fridge = Fridge.of(state)
             val fridgeBrokenAtOpen = fridge != null && EquipmentOperations.isBroken(fridge)
-            val fridgeBreaksAt = if (fridge != null && !fridgeBrokenAtOpen && Fridge.isWorn(fridge) && state.day >= FRIDGE_BREAKS_FROM_DAY) {
-                val chance = 0.25f + 0.5f * (Fridge.WORN - fridge.condition) / Fridge.WORN.toFloat()
+            // (A fridge can only give up mid-service from day seventeen, and rarely on the first few of those nights.)
+            val fridgeBreaksAt = if (fridge != null && !fridgeBrokenAtOpen && Fridge.isWorn(fridge) && Progression.has(state, Feature.FRIDGE_BREAKS)) {
+                val chance = (0.25f + 0.5f * (Fridge.WORN - fridge.condition) / Fridge.WORN.toFloat()) * Progression.strength(state, Feature.FRIDGE_BREAKS)
                 if (rng.nextFloat() < chance) 35f + rng.nextFloat() * 60f else null
             } else {
                 null

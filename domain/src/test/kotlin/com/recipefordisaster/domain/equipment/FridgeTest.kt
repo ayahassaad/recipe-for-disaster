@@ -21,7 +21,7 @@ import org.junit.Test
 class FridgeTest {
 
     private val engine = DefaultDayTickEngine(EventEngine(emptyList()))
-    private val start: GameState = NewGameFactory.create(seed = 11L).let { it.copy(day = 6, restaurant = it.restaurant.copy(tables = 6)) }
+    private val start: GameState = NewGameFactory.create(seed = 11L).let { it.copy(day = 25, restaurant = it.restaurant.copy(tables = 6)) }
 
     private fun withFridge(state: GameState, condition: Int) =
         state.copy(equipment = state.equipment.map { if (Fridge.isFridge(it)) it.copy(condition = condition) else it })
@@ -45,6 +45,15 @@ class FridgeTest {
         assertNotNull(Fridge.of(NewGameFactory.create(seed = 3L)))
         val old = start.copy(equipment = start.equipment.filterNot { Fridge.isFridge(it) })
         assertNotNull(Fridge.of(Fridge.ensure(old)))
+    }
+
+    @Test
+    fun `a worn fridge can only give up mid-service from day seventeen`() {
+        val worn = withFridge(start, 10)
+        assertTrue((1L..40L).none { open(worn.copy(day = 16), it).fridgeBreaksAt != null })
+        val first = (1L..40L).count { open(worn.copy(day = 17), it).fridgeBreaksAt != null }
+        val settled = (1L..40L).count { open(worn.copy(day = 25), it).fridgeBreaksAt != null }
+        assertTrue(first in 1 until settled)
     }
 
     @Test
