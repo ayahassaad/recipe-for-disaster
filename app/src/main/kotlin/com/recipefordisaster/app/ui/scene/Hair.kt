@@ -46,14 +46,7 @@ internal fun Pen.drawHair(style: Int, hx: Float, hy: Float, hair: Color) {
         2 -> h.longHair(hair)
         1 -> h.curls(hair)
         3 -> h.bun(hair)
-        else -> { // short crop with a little quiff
-            shape(hair) {
-                moveTo(hx - 3.2f, hy - 1f)
-                quadTo(hx, hy - 4.6f, hx + 3.2f, hy - 1f)
-                quadTo(hx, hy - 2.6f, hx - 3.2f, hy - 1f)
-            }
-            dot(hx + 1.2f, hy - 3.4f, 0.9f, hair)
-        }
+        else -> h.shortCrop(hair)
     }
 }
 
@@ -135,6 +128,23 @@ private fun HairPen.bun(hair: Color) {
     strand(shade, 1.8f) { m(-28f, -12f); c(-22f, -26f, -12f, -34f, -4f, -38f) }
     strand(shade, 1.8f) { m(28f, -12f); c(22f, -26f, 12f, -34f, 4f, -38f) }
     strand(shine, 2f) { m(-16f, -24f); c(-12f, -30f, -8f, -34f, -3f, -37f) }
+}
+
+/** Short and textured: a spiky fringe, short sides with sideburns, and a shine on top. */
+private fun HairPen.shortCrop(hair: Color) {
+    val shade = shadeOf(hair)
+    fill(hair) {
+        m(-35f, 0f); c(-39f, -30f, -20f, -43f, 0f, -43f); c(20f, -43f, 39f, -30f, 35f, 0f)
+        // The fringe, in little spikes across the forehead.
+        l(31f, -7f); l(27f, -18f); l(20f, -14f); l(15f, -22f); l(8f, -16f); l(2f, -23f); l(-5f, -17f)
+        l(-11f, -24f); l(-17f, -17f); l(-23f, -22f); l(-27f, -14f); l(-31f, -7f); close()
+    }
+    box(-35f, -8f, 4f, 9f, 2f, hair) // sideburns
+    box(31f, -8f, 4f, 9f, 2f, hair)
+    listOf(-20f to -28f, -10f to -32f, 0f to -33f, 10f to -31f, 20f to -27f, -15f to -23f, 5f to -25f).forEach { (x, y) ->
+        strand(shade, 1.6f) { m(x, y); l(x + 3f, y - 5f) }
+    }
+    strand(shineOf(hair), 2.2f) { m(-21f, -33f); c(-13f, -38f, -4f, -39f, 4f, -38f) }
 }
 
 /** The back of someone's head, for a guest walking out with their back to us. */
