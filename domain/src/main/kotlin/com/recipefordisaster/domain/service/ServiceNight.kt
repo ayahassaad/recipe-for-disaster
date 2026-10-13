@@ -1325,8 +1325,11 @@ data class ServiceNight(
                 ChaosKind.PAN_FIRE -> FloorPoint(40f, 17f)
                 ChaosKind.POWER_CUT -> ServiceFloor.fuseBox
             }
-            val chaos = if (chaosKinds.isNotEmpty() && rng.nextFloat() < chaosChance) {
-                val kind = chaosKinds[rng.nextInt(chaosKinds.size)]
+            // The day each kind of trouble is first expected, it's sure to happen (the receipt warned you).
+            val debutTrouble = chaosKinds.firstOrNull { Progression.debutsToday(state, featureOf(it)) }
+            val chaosRoll = rng.nextFloat()
+            val chaos = if (chaosKinds.isNotEmpty() && (chaosRoll < chaosChance || debutTrouble != null)) {
+                val kind = debutTrouble ?: chaosKinds[rng.nextInt(chaosKinds.size)]
                 val startsAt = 30f + rng.nextFloat() * 50f
                 Chaos(kind, chaosAt(kind), startsAt)
             } else {

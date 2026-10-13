@@ -662,6 +662,13 @@ class ServiceNightTest {
         open(start.copy(day = 6)).copy(chaos = Chaos(kind, at, startsAt = 5f))
 
     @Test
+    fun `each kind of trouble is sure to happen on the day it's first expected`() {
+        mapOf(15 to ChaosKind.RAT, 18 to ChaosKind.DOG, 21 to ChaosKind.PAN_FIRE, 24 to ChaosKind.POWER_CUT).forEach { (day, kind) ->
+            (1L..20L).forEach { seed -> assertEquals("day $day", kind, open(start.copy(day = day), seed).chaos?.kind) }
+        }
+    }
+
+    @Test
     fun `disasters start on day fifteen, one kind at a time, and get more likely as the run goes on`() {
         fun nights(day: Int) = (1L..100L).mapNotNull { open(start.copy(day = day), it).chaos?.kind }
         assertTrue(nights(14).isEmpty())
