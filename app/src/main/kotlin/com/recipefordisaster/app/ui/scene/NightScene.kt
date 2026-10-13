@@ -264,12 +264,13 @@ fun NightScene(
                                         val eating = party.stage == Stage.EATING
                                         val mood = if (eating) 80 else (75 - waitedFraction * 70).toInt()
                                         // The food goes on the plate already laid at their place, not on a second plate.
-                                        if (eating && party.orders.getOrNull(g) != null) drawFood(Point(c.x + (if (g == 0) -4.2f else 4.2f), c.y))
+                                        val eaten = if (eating) ((time - party.stageSince) / EAT_SECONDS).coerceIn(0f, 1f) else 0f
+                                        if (eating && party.orders.getOrNull(g) != null) drawFood(Point(c.x + (if (g == 0) -4.2f else 4.2f), c.y), left = 1f - eaten)
                                         if (eating && party.chefsSpecial && party.orders.getOrNull(g) != null) drawSpecialStar(Point(c.x + (if (g == 0) -4.2f else 4.2f), c.y))
                                         val eatingPlate = Point(c.x + (if (g == 0) -4.2f else 4.2f), c.y)
                                         // A fresh plate steams for the first few seconds.
                                         if (eating && party.orders.getOrNull(g) != null && time - party.stageSince < 3.5f) drawSteam(eatingPlate, clock, guest)
-                                        val guestBob = if (eating) abs(sin(clock * 6f + guest)) * 0.4f else 0f
+                                        val guestBob = if (eating) abs(sin(clock * 3f + guest)) * 0.2f else 0f
                                         // Once their drinks have come, each place has its glass, going down as the evening goes on.
                                         val drink = drinkFor(party, g, guest)
                                         val sipping = party.stage == Stage.DRINKING && ((clock * 0.45f + guest * 0.31f) % 1f) < 0.3f
@@ -284,6 +285,7 @@ fun NightScene(
                                         val waitingStage = party.stage == Stage.READY_TO_ORDER || party.stage == Stage.WANTS_DRINKS || party.stage == Stage.DRINKS_ORDERED ||
                                             party.stage in Stage.ORDER_TAKEN..Stage.CARRIED
                                         val hands = when {
+                                            eating && party.orders.getOrNull(g) != null -> Hands.EAT
                                             waitingStage && waitedFraction >= WATCH_FROM && ((clock * 0.35f + guest * 0.5f) % 1f) < 0.45f -> Hands.WATCH
                                             // Now and then a sip, with the glass up at their mouth; the rest of the time they read the menu.
                                             sipping -> Hands.SIP
@@ -303,6 +305,7 @@ fun NightScene(
                                             Hands.SIP -> handsPen.drawSip(sitAt, drink, sleeve)
                                             Hands.MENU -> handsPen.drawMenuCard(sitAt, clock + guest, sleeve)
                                             Hands.PHONE -> handsPen.drawPhone(sitAt, clock, sleeve)
+                                            Hands.EAT -> handsPen.drawEating(sitAt, towardsTable = if (g == 0) 1f else -1f, clock + guest * 0.37f, sleeve)
                                             Hands.NONE -> {}
                                         }
                                     }
@@ -687,6 +690,30 @@ private fun Pen.drawDrink(at: Point, drink: Drink, level: Float) {
             }
         }
     }
+}
+
+/** About how long guests take over their food (ServiceNight's eating time), for the plate emptying. */
+private const val EAT_SECONDS = 6f
+
+/**
+ * Eating: a fork going from the plate (on the table side, [towardsTable] is +1 for the table on their
+ * right) up to their mouth and back, with a bite on it on the way up; the other hand rests on the table.
+ */
+private fun Pen.drawEating(seat: Point, towardsTable: Float, clock: Float, sleeve: Color) {
+    val t = (clock * 0.8f) % 1f
+    val up = when {
+        t < 0.4f -> t / 0.4f
+        t < 0.55f -> 1f
+        else -> 1f - (t - 0.55f) / 0.45f
+    }
+    val plate = Point(seat.x + towardsTable * 5.4f, seat.y + 2.6f)
+    val mouth = Point(seat.x + towardsTable * 1.4f, seat.y - 1.4f)
+    val hand = plate.lerp(mouth, up)
+    drawArmsTo(seat, if (towardsTable > 0) Point(seat.x - 3.6f, seat.y + 4.4f) else hand, if (towardsTable > 0) hand else Point(seat.x + 3.6f, seat.y + 4.4f), sleeve)
+    // The fork, pointing up and in towards the mouth, a bite on the end until it's eaten.
+    val tip = Point(hand.x - towardsTable * 1.2f, hand.y - 1.4f)
+    line(hand.x, hand.y, tip.x, tip.y, Palette.steelDark, 0.3f)
+    if (t < 0.5f) dot(tip, 0.55f, Color(0xFFC8762F))
 }
 
 /** A guest taking a sip: one hand bringing the glass up to their mouth, the other resting on the table. */
@@ -1225,10 +1252,10 @@ private fun doorOpenness(night: ServiceNight): Float {
 
 /** What a seated guest's hands are busy with. The ones in [WITH_ARMS] draw the guest's arms doing it. */
 private enum class Hands {
-    NONE, MENU, PHONE, WATCH, SIP;
+    NONE, MENU, PHONE, WATCH, SIP, EAT;
 
     companion object {
-        val WITH_ARMS = setOf(MENU, PHONE, WATCH, SIP)
+        val WITH_ARMS = setOf(MENU, PHONE, WATCH, SIP, EAT)
     }
 }
 
