@@ -134,7 +134,7 @@ fun NightScene(
                 with(pen) {
                     val time = night.time
                     val cooking = night.parties.any { it.stage == Stage.COOKING }
-                    drawRoom(model.cleanliness, doorOpen = doorOpenness(night), time = clock, name = model.name, text = text, aisles = layout.aisles)
+                    drawRoom(model.cleanliness, doorOpen = doorOpenness(night), time = clock, name = model.name, text = text, aisles = layout.aisles, bar = model.barOpen)
                     drawOven(model.ovenCondition, clock, onFire = false, level = model.ovenLevel)
                     drawStove(cooking, clock)
                     drawFridge(model.fridgeCondition, broken = night.fridgeBroken, struggling = night.fridgeStruggling, level = model.fridgeLevel, time = clock)
@@ -523,7 +523,7 @@ fun NightScene(
         TapArea(Rect(0f, 0f, 54f, SceneLayout.counter.bottom + 2f), unit, origin, labels.counter, onTapCounter)
         TapArea(Rect(78f, 0f, SceneLayout.WIDTH, SceneLayout.counter.bottom + 2f), unit, origin, labels.dishStation, onTapDishStation)
         // The bar sits in the chef's end of the counter, so its tap goes on top.
-        TapArea(Rect(SceneLayout.bar.left, SceneLayout.bar.top, SceneLayout.bar.right, SceneLayout.counter.bottom + 2f), unit, origin, labels.bar, onTapBar)
+        if (model.barOpen) TapArea(Rect(SceneLayout.bar.left, SceneLayout.bar.top, SceneLayout.bar.right, SceneLayout.counter.bottom + 2f), unit, origin, labels.bar, onTapBar)
         readyPlates(night).forEachIndexed { i, party ->
             val at = plateSpot(i)
             TapArea(Rect(at.x - 3.4f, at.y - 6f, at.x + 4f, at.y + 3f), unit, origin, labels.plate((party.table ?: 0) + 1)) { onTapPlate(party.id) }

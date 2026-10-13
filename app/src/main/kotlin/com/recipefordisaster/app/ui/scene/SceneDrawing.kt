@@ -170,7 +170,16 @@ internal fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSurround(origi
 }
 
 /** The room. [doorOpen] is how far the front doors are open: 0 shut, 1 wide open. */
-internal fun Pen.drawRoom(cleanliness: Int, doorOpen: Float, time: Float, name: String = "", text: TextMeasurer? = null, aisles: List<Float> = listOf(50f)) {
+internal fun Pen.drawRoom(
+    cleanliness: Int,
+    doorOpen: Float,
+    time: Float,
+    name: String = "",
+    text: TextMeasurer? = null,
+    aisles: List<Float> = listOf(50f),
+    /** Whether the bar is open yet (it only goes in once drinks arrive). */
+    bar: Boolean = true,
+) {
     drawRect(Palette.wall, topLeft = p(0f, 0f), size = Size(u(SceneLayout.WIDTH), u(SceneLayout.HEIGHT)))
 
     // Kitchen: square tiles with grout lines, and a tiled splashback along the back wall.
@@ -228,7 +237,7 @@ internal fun Pen.drawRoom(cleanliness: Int, doorOpen: Float, time: Float, name: 
     if (cleanliness < 45) drawRat(Point(88f, 132f), time)
 
     drawCounter()
-    drawBar(text)
+    if (bar) drawBar(text)
     drawPlant(Point(5f, 50f), time)
     drawPlant(Point(95f, 50f), time)
     drawPlant(Point(95f, 131f), time)
