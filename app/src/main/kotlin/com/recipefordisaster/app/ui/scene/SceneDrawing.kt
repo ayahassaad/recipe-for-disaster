@@ -917,8 +917,11 @@ internal fun Pen.drawPerson(
  */
 enum class PlayerPose { WAVING, CHEERING, GLUM }
 
-/** Where the player stands when the restaurant is shut: in the open floor between the first two rows of tables. */
-internal val PLAYER_IDLE_SPOT = Point(50f, 79f)
+/**
+ * Where the player stands when the restaurant is shut: on the carpet in an aisle, between the first two
+ * rows of tables, clear of every table and chair however many there are.
+ */
+internal fun playerIdleSpot(layout: TableLayout) = Point(layout.aisles.first(), 80.5f)
 
 /** The player, in their own look, standing about while the restaurant is shut. */
 internal fun Pen.drawIdlePlayer(at: Point, look: PlayerLook, pose: PlayerPose, time: Float) {

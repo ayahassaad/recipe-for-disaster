@@ -173,7 +173,7 @@ fun RestaurantScene(
                 }
 
                 // You: ready for the day, or after service, pleased or fed up with how it went.
-                playerLook?.let { drawIdlePlayer(PLAYER_IDLE_SPOT, it, playerPose, time) }
+                playerLook?.let { drawIdlePlayer(playerIdleSpot(ServiceFloor.layout(model.tableCount)), it, playerPose, time) }
 
                 // In the morning the sun streams in; after closing it's late: the evening light, with the candles still lit.
                 if (evening <= 0f) drawMorningSun(time)
