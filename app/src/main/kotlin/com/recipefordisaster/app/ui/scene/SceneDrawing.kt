@@ -991,23 +991,35 @@ internal fun Pen.drawMorningSun(time: Float) {
     }
 }
 
+/** How far the lamps are on, 0 (daylight, still off) to 1 (late evening, fully lit). */
+private fun lampsOn(dark: Float) = ((dark - LAMPS_FROM) / (1f - LAMPS_FROM)).coerceIn(0f, 1f)
+
 /**
- * As it gets dark the lamps come on: a candle on each table and a warm pool of light around it, and
- * the kitchen lights over the counter. Drawn over [drawEveningLight], so they glow.
+ * As it gets dark the lamps come on: a warm pool of light around each table and along the counter.
+ * Drawn on the floor and furniture, under everyone, so the light never covers a face.
  */
-internal fun Pen.drawLamps(dark: Float, layout: TableLayout, time: Float) {
-    val on = ((dark - LAMPS_FROM) / (1f - LAMPS_FROM)).coerceIn(0f, 1f)
+internal fun Pen.drawLampGlow(dark: Float, layout: TableLayout) {
+    val on = lampsOn(dark)
     if (on <= 0f) return
-    // Kitchen lights along the counter.
     for (x in listOf(20f, 50f, 80f)) {
-        dot(x, SceneLayout.counter.top + 1f, 13f, Color(0xFFFFD27A).copy(alpha = 0.09f * on))
-        dot(x, SceneLayout.counter.top + 1f, 7f, Color(0xFFFFD27A).copy(alpha = 0.08f * on))
+        dot(x, SceneLayout.counter.top + 3f, 11f, Color(0xFFFFD27A).copy(alpha = 0.14f * on))
     }
+    layout.tables.forEach { t ->
+        val table = Point(t.x, t.y)
+        with(around(table, layout.scale)) {
+            dot(table, 11f, Color(0xFFFFC860).copy(alpha = 0.18f * on))
+            dot(table, 6.5f, Color(0xFFFFC860).copy(alpha = 0.14f * on))
+        }
+    }
+}
+
+/** A candle on each table, lit as it gets dark. Drawn over [drawEveningLight], so the flames glow. */
+internal fun Pen.drawLamps(dark: Float, layout: TableLayout, time: Float) {
+    val on = lampsOn(dark)
+    if (on <= 0f) return
     layout.tables.forEachIndexed { k, t ->
         val table = Point(t.x, t.y)
         with(around(table, layout.scale)) {
-            dot(table, 11f, Color(0xFFFFC860).copy(alpha = 0.12f * on))
-            dot(table, 6.5f, Color(0xFFFFC860).copy(alpha = 0.1f * on))
             // The candle, in a little holder, with a flickering flame.
             val c = Point(table.x, table.y + 3.4f)
             dot(c.x, c.y + 0.6f, 0.9f, Color(0xFF7A5A3A))

@@ -141,6 +141,9 @@ fun NightScene(
                     if (night.fridgeBroken) drawAlert(text, Point(SceneLayout.fridge.right - 1f, SceneLayout.fridge.top + 1f), clock)
                     drawPantry(model.pantryFullness, model.pantryJars)
                     drawTables(layout)
+                    // Pools of lamplight on the tables as the evening draws in (under everyone, so faces stay clear).
+                    val evening = eveningOf(time, night.parties.maxOfOrNull { it.arriveAt } ?: 0f)
+                    if (night.activeChaos?.kind != ChaosKind.POWER_CUT) drawLampGlow(evening, layout)
                     drawMenuBoard(text, labels.menu)
                     // The mop stays in the bucket unless someone's carrying it.
                     if (model.mopOut) drawMopBucket(withMop = night.waiters.none { it.holdingMop })
@@ -494,7 +497,6 @@ fun NightScene(
 
                     // The evening drawing in as the night goes on (not while the lights are out: that's dark enough).
                     if (night.activeChaos?.kind != ChaosKind.POWER_CUT) {
-                        val evening = eveningOf(time, night.parties.maxOfOrNull { it.arriveAt } ?: 0f)
                         drawEveningLight(evening)
                         drawLamps(evening, layout, clock)
                     }

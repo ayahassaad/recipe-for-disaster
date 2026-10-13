@@ -152,6 +152,7 @@ fun RestaurantScene(
                 drawDishStation(text, labels.dishSign)
                 drawPantry(model.pantryFullness, model.pantryJars)
                 drawTables(ServiceFloor.layout(model.tableCount))
+                drawLampGlow(evening, ServiceFloor.layout(model.tableCount))
                 drawMenuBoard(text, labels.menu)
                 if (model.mopOut) drawMopBucket()
                 if (model.hiring) drawHiringSign(text, labels.hiring)
