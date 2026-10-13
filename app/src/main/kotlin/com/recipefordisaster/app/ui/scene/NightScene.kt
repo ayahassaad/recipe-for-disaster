@@ -1410,13 +1410,36 @@ private fun Pen.drawSpecialLook(at: Point, special: com.recipefordisaster.domain
             dot(at.x - 0.2f, hy - 4f, 0.35f, Color(0xFF2B2B2B))
         }
         com.recipefordisaster.domain.service.SpecialGuest.CELEBRITY -> {
+            // Hard to miss: a shimmering gold ring around them, and cameras flashing as they go.
+            val shimmer = 0.5f + 0.5f * sin(clock * 4f)
+            ring(at.x, at.y - 1f, 7.4f, Palette.gold.copy(alpha = 0.35f + 0.35f * shimmer), 0.6f)
+            ring(at.x, at.y - 1f, 8.6f, Palette.gold.copy(alpha = 0.2f * shimmer), 0.35f)
+            for (k in 0..2) {
+                val phase = (clock * 0.9f + k * 0.37f) % 1f
+                if (phase < 0.12f) {
+                    val a = k * 2.1f + clock
+                    val f = Point(at.x + kotlin.math.cos(a) * 8f, at.y - 3f + kotlin.math.sin(a) * 6f)
+                    val burst = 1f - phase / 0.12f
+                    dot(f, 1.8f * burst + 0.4f, Color.White.copy(alpha = 0.85f * burst))
+                    for (r in 0 until 4) {
+                        val ra = r * PI_F / 2 + PI_F / 4
+                        line(f.x, f.y, f.x + kotlin.math.cos(ra) * 2.6f * burst, f.y + kotlin.math.sin(ra) * 2.6f * burst, Color.White.copy(alpha = burst), 0.25f)
+                    }
+                }
+            }
+            // Little sparkles circling round.
+            for (k in 0..3) {
+                val a = clock * 1.5f + k * PI_F / 2
+                dot(at.x + kotlin.math.cos(a) * 6f, at.y - 2f + kotlin.math.sin(a) * 4f, 0.45f, Color(0xFFFFF3B0))
+            }
             glasses(Color(0xFFE5B85C), Color(0xFF6A3E8C))
-            // A gold star twinkling over their head.
+            // A big gold star twinkling over their head.
             val twinkle = 1f + 0.15f * sin(clock * 5f)
-            val c = Point(at.x, hy - 7f)
+            val c = Point(at.x, hy - 7.5f)
+            dot(c, 3.6f, Palette.gold.copy(alpha = 0.25f))
             shape(Palette.gold) {
                 for (k in 0 until 10) {
-                    val r = (if (k % 2 == 0) 2f else 0.85f) * twinkle
+                    val r = (if (k % 2 == 0) 2.8f else 1.2f) * twinkle
                     val a = -PI_F / 2 + k * PI_F / 5
                     val x = c.x + kotlin.math.cos(a) * r
                     val y = c.y + kotlin.math.sin(a) * r
