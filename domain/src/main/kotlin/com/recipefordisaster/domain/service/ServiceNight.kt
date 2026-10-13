@@ -1304,8 +1304,11 @@ data class ServiceNight(
             // the celebrity from day twelve, the critic from fourteen, the inspector from twenty-three, rarely at first.
             val specialKinds = SpecialGuest.entries.filter { Progression.has(state, featureOf(it)) }
             val specialChance = SPECIAL_CHANCE * Progression.strength(state, Feature.CELEBRITY)
-            val specialParties = if (specialKinds.isNotEmpty() && parties.size > 3 && rng.nextFloat() < specialChance) {
-                val who = specialKinds[rng.nextInt(specialKinds.size)]
+            // On the day a kind of special guest is first expected, they're sure to come.
+            val debutGuest = specialKinds.firstOrNull { Progression.debutsToday(state, featureOf(it)) }
+            val specialRoll = rng.nextFloat()
+            val specialParties = if (specialKinds.isNotEmpty() && parties.size > 3 && (specialRoll < specialChance || debutGuest != null)) {
+                val who = debutGuest ?: specialKinds[rng.nextInt(specialKinds.size)]
                 val index = 2 + rng.nextInt(parties.size - 2)
                 parties.mapIndexed { k, p -> if (k == index) p.copy(special = who) else p }
             } else {

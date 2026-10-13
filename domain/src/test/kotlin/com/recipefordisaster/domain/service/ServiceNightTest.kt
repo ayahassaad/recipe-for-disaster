@@ -619,10 +619,17 @@ class ServiceNightTest {
     }
 
     @Test
+    fun `each kind of special guest is sure to come on the day they're first expected`() {
+        mapOf(12 to SpecialGuest.CELEBRITY, 14 to SpecialGuest.CRITIC, 23 to SpecialGuest.INSPECTOR).forEach { (day, guest) ->
+            (1L..20L).forEach { seed -> assertTrue("$guest on day $day", open(start.copy(day = day), seed).parties.any { it.special == guest }) }
+        }
+    }
+
+    @Test
     fun `special guests come one kind at a time, the celebrity first`() {
         fun kinds(day: Int) = (1L..60L).flatMap { seed -> open(start.copy(day = day), seed).parties.mapNotNull { it.special } }.toSet()
         assertEquals(emptySet<SpecialGuest>(), kinds(11))
-        assertEquals(setOf(SpecialGuest.CELEBRITY), kinds(12))
+        assertEquals(setOf(SpecialGuest.CELEBRITY), kinds(13))
         assertEquals(setOf(SpecialGuest.CELEBRITY, SpecialGuest.CRITIC), kinds(16))
         assertEquals(SpecialGuest.entries.toSet(), kinds(30))
     }
