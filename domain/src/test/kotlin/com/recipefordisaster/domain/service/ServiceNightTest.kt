@@ -50,6 +50,17 @@ class ServiceNightTest {
     }
 
     @Test
+    fun `everyone you hire works at night, however many there are`() {
+        fun hire(role: com.recipefordisaster.domain.employee.Role, n: Int) = start.applicants.first().let { a -> (1..n).map { a.copy(id = com.recipefordisaster.domain.employee.EmployeeId("${role.name}$it"), role = role) } }
+        val crowd = start.copy(employees = start.employees + hire(com.recipefordisaster.domain.employee.Role.SERVER, 3) + hire(com.recipefordisaster.domain.employee.Role.DISHWASHER, 3))
+        val n = open(crowd)
+        assertEquals(3, n.waiters.count { it.kind == ServiceNight.Kind.RUNNER })
+        assertEquals(3, n.waiters.count { it.kind == ServiceNight.Kind.DISHWASHER })
+        // Each waits in a spot of their own.
+        assertEquals(n.waiters.size, n.waiters.map { it.restSpot }.toSet().size)
+    }
+
+    @Test
     fun `every guest gets exactly one result by the end of the night`() {
         val night = play(open(), ::busyPlayer)
         val result = night.result()

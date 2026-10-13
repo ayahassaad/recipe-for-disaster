@@ -67,14 +67,14 @@ internal val HelperColors = listOf(
 )
 
 /**
- * Each hired helper's colour, by id: servers, dishwashers and bussers (two
- * of each), then the host — the same people, in the same order, that work the floor at night —
+ * Each hired helper's colour, by id: servers, dishwashers and bussers,
+ * then the host — the same people, in the same order, that work the floor at night —
  * so someone wears the same colour in the morning as during service.
  */
 internal fun helperColors(staff: List<StaffFigure>): Map<String, Color> {
-    val helpers = staff.filter { it.role == StaffRole.SERVER || it.role == StaffRole.MANAGER }.take(2) +
-        staff.filter { it.role == StaffRole.DISHWASHER }.take(2) +
-        staff.filter { it.role == StaffRole.BUSSER }.take(2) +
+    val helpers = staff.filter { it.role == StaffRole.SERVER || it.role == StaffRole.MANAGER } +
+        staff.filter { it.role == StaffRole.DISHWASHER } +
+        staff.filter { it.role == StaffRole.BUSSER } +
         staff.filter { it.role == StaffRole.HOST }.take(1)
     return helpers.mapIndexed { k, figure -> figure.id.value to HelperColors[k % HelperColors.size] }.toMap()
 }

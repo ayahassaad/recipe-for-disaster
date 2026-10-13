@@ -1288,28 +1288,27 @@ data class ServiceNight(
                 Mess(id = k, at = spots[k], appearsAt = after + 12f + rng.nextFloat() * 10f)
             }
 
-            // Every table is the player's. Up to two hired servers help out as food runners.
-            val servers = state.employees.filter { it.status == EmployeeStatus.ACTIVE && (it.role == Role.SERVER || it.role == Role.MANAGER) }
-            val helpers = servers.take(2)
+            // Every table is the player's. Everyone hired works: servers run food, dishwashers and bussers clear up.
+            val helpers = state.employees.filter { it.status == EmployeeStatus.ACTIVE && (it.role == Role.SERVER || it.role == Role.MANAGER) }
             val allTables = (0 until tableCount).toSet()
             val waiters = listOf(
                 Waiter(PLAYER_ID, isPlayer = true, tables = allTables, speed = PLAYER_SPEED, restSpot = ServiceFloor.pass,
                     route = listOf(FloorPoint(ServiceFloor.pass.x, ServiceFloor.pass.y + 3f)), routeStart = 0f, routeEnd = 0f, errand = null),
             ) + helpers.mapIndexed { k, employee ->
                 // Out at the ends of the counter, so they never stand in front of a table's speech bubble.
-                val rest = FloorPoint(if (k == 0) 10f else 90f, ServiceFloor.pass.y + 1f)
+                val rest = FloorPoint(restSpot(SERVER_REST, k), ServiceFloor.pass.y + 1f)
                 val pace = (EmployeePerformance.effectiveServiceSpeed(employee) / 50.0).toFloat().coerceIn(0.6f, 1.3f)
                 Waiter(employee.id.value, isPlayer = false, tables = allTables, speed = STAFF_SPEED * pace, restSpot = rest,
                     route = listOf(rest), routeStart = 0f, routeEnd = 0f, errand = null)
-            } + state.employees.filter { it.status == EmployeeStatus.ACTIVE && it.role == Role.DISHWASHER }.take(2).mapIndexed { k, employee ->
+            } + state.employees.filter { it.status == EmployeeStatus.ACTIVE && it.role == Role.DISHWASHER }.mapIndexed { k, employee ->
                 // Dishwashers wait by the dish station and come out to clear tables.
-                val rest = FloorPoint(78f - k * 8f, ServiceFloor.pass.y + 1f)
+                val rest = FloorPoint(restSpot(DISHWASHER_REST, k), ServiceFloor.pass.y + 1f)
                 val pace = (EmployeePerformance.effectiveServiceSpeed(employee) / 50.0).toFloat().coerceIn(0.6f, 1.3f)
                 Waiter(employee.id.value, isPlayer = false, tables = allTables, speed = STAFF_SPEED * pace, restSpot = rest,
                     route = listOf(rest), routeStart = 0f, routeEnd = 0f, errand = null, kind = Kind.DISHWASHER)
-            } + state.employees.filter { it.status == EmployeeStatus.ACTIVE && it.role == Role.BUSSER }.take(2).mapIndexed { k, employee ->
+            } + state.employees.filter { it.status == EmployeeStatus.ACTIVE && it.role == Role.BUSSER }.mapIndexed { k, employee ->
                 // Bussers wait at the left end of the counter, quick on their feet.
-                val rest = FloorPoint(30f - k * 8f, ServiceFloor.pass.y + 1f)
+                val rest = FloorPoint(restSpot(BUSSER_REST, k), ServiceFloor.pass.y + 1f)
                 val pace = (EmployeePerformance.effectiveServiceSpeed(employee) / 50.0).toFloat().coerceIn(0.6f, 1.3f)
                 Waiter(employee.id.value, isPlayer = false, tables = allTables, speed = STAFF_SPEED * 1.15f * pace, restSpot = rest,
                     route = listOf(rest), routeStart = 0f, routeEnd = 0f, errand = null, kind = Kind.BUSSER)
@@ -1424,6 +1423,14 @@ data class ServiceNight(
                 hosted = state.employees.any { it.status == EmployeeStatus.ACTIVE && it.role == Role.HOST },
             )
         }
+
+        /** Where each kind of helper waits along the counter when there's nothing to do, the first ones first. */
+        private val SERVER_REST = listOf(10f, 90f, 18f, 82f)
+        private val DISHWASHER_REST = listOf(78f, 70f, 62f)
+        private val BUSSER_REST = listOf(30f, 22f, 38f)
+
+        /** The [k]th helper's waiting spot: more helpers than spots share them, a step apart. */
+        private fun restSpot(spots: List<Float>, k: Int): Float = spots[k % spots.size] + (k / spots.size) * 3f
 
         private fun <T> List<T>.shuffledWith(rng: RandomSource): List<T> {
             val list = toMutableList()
