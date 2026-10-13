@@ -197,12 +197,14 @@ fun RestaurantScene(
                 SceneTarget.Fridge to labels.fridge,
                 SceneTarget.Pantry to labels.pantry,
                 SceneTarget.MenuBoard to labels.menu,
-            ) + (if (model.mopOut) listOf(SceneTarget.Mop to labels.mop) else emptyList()) +
+            ) +
                 // One tap area per table, all opening the same popup.
                 ServiceFloor.layout(model.tableCount).let { layout ->
                     layout.tables.map { SceneTarget.Tables to labels.tables }
                 } + (if (model.hiring) listOf(SceneTarget.HiringSign to labels.hiringSign) else emptyList()) +
-                staffSpots.map { (figure, _) -> SceneTarget.Staff(figure.id) to labels.staff(figure) }
+                staffSpots.map { (figure, _) -> SceneTarget.Staff(figure.id) to labels.staff(figure) } +
+                // The mop bucket last, so its tap sits on top of the nearest table's.
+                (if (model.mopOut) listOf(SceneTarget.Mop to labels.mop) else emptyList())
             val tableRects = ServiceFloor.layout(model.tableCount).let { layout ->
                 layout.tables.map { Rect(it.x - 17f * layout.scale, it.y - 10f * layout.scale, it.x + 17f * layout.scale, it.y + 12f * layout.scale) }
             }.iterator()
@@ -238,12 +240,15 @@ internal fun staffPositions(staff: List<StaffFigure>): List<Pair<StaffFigure, Po
         hosts.mapIndexed { i, f -> f to SceneLayout.hostSpot(i) }
 }
 
+/** The mop bucket's tap area: the whole corner around it, mop handle and all, so it's easy to hit. */
+internal val MOP_TAP = Rect(0f, SceneLayout.mopBucket.top - 9f, SceneLayout.mopBucket.right + 6f, SceneLayout.HEIGHT)
+
 private fun rectFor(target: SceneTarget, staffSpots: List<Pair<StaffFigure, Point>>): Rect? = when (target) {
     SceneTarget.Oven -> SceneLayout.oven
     SceneTarget.Fridge -> SceneLayout.fridge
     SceneTarget.Pantry -> SceneLayout.pantry
     SceneTarget.MenuBoard -> SceneLayout.menuBoard
-    SceneTarget.Mop -> Rect(SceneLayout.mopBucket.left, SceneLayout.mopBucket.top - 6f, SceneLayout.mopBucket.right + 4f, SceneLayout.mopBucket.bottom)
+    SceneTarget.Mop -> MOP_TAP
     SceneTarget.HiringSign -> SceneLayout.hiringSign
     SceneTarget.Tables -> null
     is SceneTarget.Staff -> staffSpots.firstOrNull { it.first.id == target.id }?.second?.let { Rect(it.x - 5f, it.y - 9f, it.x + 5f, it.y + 4f) }
