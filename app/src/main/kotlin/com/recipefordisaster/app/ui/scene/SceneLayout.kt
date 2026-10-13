@@ -69,12 +69,13 @@ object SceneLayout {
     fun cookSpot(index: Int) = Point(COOK_SPOTS.getOrElse(index) { 5f + (index - COOK_SPOTS.size) * 4f }, 32f)
     private val COOK_SPOTS = listOf(15f, 45f, 5f, 58f)
 
-    /** Dishwashers wait behind the dish station, not in front of the fridge. */
-    fun dishwasherSpot(index: Int) = Point(82f + (index % 2) * 9f, 32f - (index / 2) * 2f)
+    /** Dishwashers wait beside the dish station, clear of its sign and of the fridge. */
+    fun dishwasherSpot(index: Int) = Point(74f - (index % 2) * 7f, 32f - (index / 2) * 2f)
 
     /** The bartender stands behind the bar. */
     fun bartenderSpot(index: Int) = Point(29f + index * 5f, 32f)
-    fun serverSpot(index: Int) = Point(34f + index * 16f, 49f)
+    /** Servers wait in front of the counter, to the right of the bar so they don't hide its sign. */
+    fun serverSpot(index: Int) = Point(50f + index * 16f, 49f)
     fun busserSpot(index: Int) = Point(22f - index * 8f, 49f)
 
     /** The host greets people just inside the door, beside where they queue. */
