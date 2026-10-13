@@ -566,7 +566,7 @@ internal fun Pen.drawFridge(condition: Int, broken: Boolean, struggling: Boolean
     }
 }
 
-/** Shelves of lidded, labelled jars plus flour sacks; [fullness] 0-1 decides how much is stocked. */
+/** Shelves of lidded, labelled jars; [fullness] 0-1 decides how much is stocked. */
 /**
  * The pantry shelves: one jar per ingredient, filled to how much is left,
  * so an empty pantry looks empty. [jars] is each jar's level (0-1).
@@ -601,11 +601,6 @@ internal fun Pen.drawPantry(fullness: Float, jars: List<Float> = emptyList()) {
                 outline(Rect(jx, rowTop + 1.6f, jx + 4.6f, rowTop + 6.2f), Color(0x66FFFFFF), radius = 0.9f, width = 0.25f)
             }
         }
-    }
-    // Flour sacks slumped beside the shelves when there's stock.
-    if (fullness > 0.3f) {
-        oval(shelf.left - 3f, shelf.bottom + 2f, 3f, 2.4f, Color(0xFFE8DCC0))
-        line(shelf.left - 4.4f, shelf.bottom + 0.6f, shelf.left - 1.6f, shelf.bottom + 0.6f, Color(0xFFA08F6B), 0.4f)
     }
 }
 
