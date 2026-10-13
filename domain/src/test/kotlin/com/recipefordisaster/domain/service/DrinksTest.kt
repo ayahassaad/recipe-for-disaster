@@ -137,7 +137,7 @@ class DrinksTest {
     fun `nobody has a drink until the bar opens on day six, then a few do, then everyone`() {
         fun share(day: Int) = open(start.copy(day = day)).parties.let { ps -> ps.count { it.wantsDrinks }.toFloat() / ps.size }
         assertEquals(0f, share(5), 0.001f)
-        assertTrue(share(6) > 0f && share(6) < 0.5f)
+        assertTrue(share(6) > 0f && share(6) < 0.7f)
         assertTrue(share(8) > share(6))
         assertEquals(1f, share(10), 0.001f)
     }

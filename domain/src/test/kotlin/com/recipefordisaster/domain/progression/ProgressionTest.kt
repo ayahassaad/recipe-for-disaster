@@ -26,9 +26,9 @@ class ProgressionTest {
     fun `a new feature starts rare and settles in over a few days`() {
         assertEquals(0f, Progression.strength(start.copy(day = 5), Feature.DRINKS), 0.001f)
         val first = Progression.strength(start.copy(day = 6), Feature.DRINKS)
-        assertTrue(first > 0f && first < 0.5f)
+        assertTrue(first >= 0.4f && first < 0.5f)
         assertTrue(Progression.strength(start.copy(day = 8), Feature.DRINKS) > first)
-        assertEquals(1f, Progression.strength(start.copy(day = 6 + Progression.RAMP_DAYS), Feature.DRINKS), 0.001f)
+        assertEquals(1f, Progression.strength(start.copy(day = 6 + Progression.RAMP_DAYS - 1), Feature.DRINKS), 0.001f)
     }
 
     @Test

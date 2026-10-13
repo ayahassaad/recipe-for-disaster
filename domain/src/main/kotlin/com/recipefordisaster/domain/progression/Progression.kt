@@ -33,11 +33,14 @@ enum class Feature(val day: Int, internal val legacyDay: Int?) {
 
 /**
  * Which features a restaurant has met so far, and how settled in each one is. Each new thing starts
- * rare on its first day and becomes normal over [RAMP_DAYS] days.
+ * gentler on its first day and becomes normal over [RAMP_DAYS] days.
  */
 object Progression {
-    /** Days a new feature takes to go from rare to normal. */
+    /** Days a new feature takes to go from its first, gentler showing to normal. */
     const val RAMP_DAYS = 5
+
+    /** How much of a new feature there is on its very first day: enough that it really does turn up. */
+    const val FIRST_DAY_STRENGTH = 0.4f
 
     /** Whether [feature] can happen today. */
     fun has(state: GameState, feature: Feature): Boolean = feature in metEarly(state) || state.day >= feature.day
@@ -49,7 +52,7 @@ object Progression {
     fun strength(state: GameState, feature: Feature): Float = when {
         feature in metEarly(state) -> 1f
         state.day < feature.day -> 0f
-        else -> ((state.day - feature.day + 1).toFloat() / RAMP_DAYS).coerceIn(0f, 1f)
+        else -> (FIRST_DAY_STRENGTH + (1f - FIRST_DAY_STRENGTH) * (state.day - feature.day).toFloat() / (RAMP_DAYS - 1)).coerceIn(0f, 1f)
     }
 
     /** Nights a new feature counts as new: the player gets pointed at it while they learn it. */
