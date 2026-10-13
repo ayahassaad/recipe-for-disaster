@@ -522,6 +522,8 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
             last = now
             if (paused) continue
             clock += dt
+            // Something new is being explained: the restaurant keeps moving, but the night waits.
+            if (night.introductionDue() != null) continue
             if (!night.finished) {
                 val before = night
                 night = night.advance(dt)
@@ -580,6 +582,10 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
             if (night.finished) {
                 val r = night.result().outcomes
                 if (r.isNotEmpty() && r.all { it.dish != null }) Confetti(clock)
+            }
+            // The first time something turns up, the game stops to explain it.
+            if (!paused) night.introductionDue()?.let { feature ->
+                IntroductionCard(feature, onGotIt = { night = night.introduce(feature) })
             }
             if (paused) {
                 // Covers the restaurant, so taps while paused don't send you anywhere.
