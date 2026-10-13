@@ -234,11 +234,13 @@ internal fun staffPositions(staff: List<StaffFigure>): List<Pair<StaffFigure, Po
     val servers = staff.filter { it.role == StaffRole.SERVER || it.role == StaffRole.MANAGER }
     val bussers = staff.filter { it.role == StaffRole.BUSSER }
     val hosts = staff.filter { it.role == StaffRole.HOST }
+    val bartenders = staff.filter { it.role == StaffRole.BARTENDER }
     return cooks.mapIndexed { i, f -> f to SceneLayout.cookSpot(i) } +
         washers.mapIndexed { i, f -> f to SceneLayout.dishwasherSpot(i) } +
         servers.mapIndexed { i, f -> f to SceneLayout.serverSpot(i) } +
         bussers.mapIndexed { i, f -> f to SceneLayout.busserSpot(i) } +
-        hosts.mapIndexed { i, f -> f to SceneLayout.hostSpot(i) }
+        hosts.mapIndexed { i, f -> f to SceneLayout.hostSpot(i) } +
+        bartenders.mapIndexed { i, f -> f to SceneLayout.bartenderSpot(i) }
 }
 
 /** The mop bucket's tap area: the whole corner around it, mop handle and all, so it's easy to hit. */

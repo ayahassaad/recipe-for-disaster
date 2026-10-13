@@ -62,8 +62,18 @@ object SceneLayout {
     val fuseBox = Rect(81.8f, 141f, 86.2f, 146.6f)
 
     /** Where each kind of worker stands in the morning (they spread out if there are several). */
-    fun cookSpot(index: Int) = Point(16f + index * 18f, 32f)
-    fun dishwasherSpot(index: Int) = Point(60f + index * 8f, 30f)
+    /**
+     * Cooks stand at the oven and the stove, clear of the bar and of the plates waiting on the counter;
+     * any more squeeze in at the ends.
+     */
+    fun cookSpot(index: Int) = Point(COOK_SPOTS.getOrElse(index) { 5f + (index - COOK_SPOTS.size) * 4f }, 32f)
+    private val COOK_SPOTS = listOf(15f, 45f, 5f, 58f)
+
+    /** Dishwashers wait behind the dish station, not in front of the fridge. */
+    fun dishwasherSpot(index: Int) = Point(82f + (index % 2) * 9f, 32f - (index / 2) * 2f)
+
+    /** The bartender stands behind the bar. */
+    fun bartenderSpot(index: Int) = Point(29f + index * 5f, 32f)
     fun serverSpot(index: Int) = Point(34f + index * 16f, 49f)
     fun busserSpot(index: Int) = Point(22f - index * 8f, 49f)
 

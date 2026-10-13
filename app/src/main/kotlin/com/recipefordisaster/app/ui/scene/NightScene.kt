@@ -75,6 +75,7 @@ internal fun helperColors(staff: List<StaffFigure>): Map<String, Color> {
     val helpers = staff.filter { it.role == StaffRole.SERVER || it.role == StaffRole.MANAGER } +
         staff.filter { it.role == StaffRole.DISHWASHER } +
         staff.filter { it.role == StaffRole.BUSSER } +
+        staff.filter { it.role == StaffRole.BARTENDER } +
         staff.filter { it.role == StaffRole.HOST }.take(1)
     return helpers.mapIndexed { k, figure -> figure.id.value to HelperColors[k % HelperColors.size] }.toMap()
 }
