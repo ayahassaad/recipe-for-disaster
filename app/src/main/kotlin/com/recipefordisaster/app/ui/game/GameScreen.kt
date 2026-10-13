@@ -577,6 +577,8 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
                     if (session.setup.original.day <= GUIDED_DAYS || newThing) hint.focus(night) else null
                 },
                 playerLook = com.recipefordisaster.app.ui.player.PlayerLooks.get(androidx.compose.ui.platform.LocalContext.current).look,
+                // While something new is explained, zoom in on it.
+                zoomOn = if (paused) null else night.introductionDue()?.let { introductionSpot(night, it) },
             )
             // Everyone fed tonight: confetti!
             if (night.finished) {

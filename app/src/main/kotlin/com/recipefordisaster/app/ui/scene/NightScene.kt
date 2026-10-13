@@ -9,7 +9,10 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.clipRect
@@ -113,6 +116,8 @@ fun NightScene(
     focus: NightFocus? = null,
     /** How the player has chosen to look. */
     playerLook: com.recipefordisaster.app.ui.player.PlayerLook = com.recipefordisaster.app.ui.player.PlayerLook(),
+    /** A spot to zoom in on (while something new is being explained); null for the whole room. */
+    zoomOn: Point? = null,
 ) {
     val text = rememberTextMeasurer()
     val density = LocalDensity.current
@@ -128,7 +133,26 @@ fun NightScene(
         val scale = layout.scale
         val helperColor = remember(model.staff) { helperColors(model.staff) }
 
-        Canvas(modifier = Modifier.fillMaxSize()) {
+        // Zooming in on something smoothly, and back out again when it's done.
+        val zoom by androidx.compose.animation.core.animateFloatAsState(if (zoomOn != null) ZOOM else 1f, label = "zoom")
+        val zoomCentre = remember { androidx.compose.runtime.mutableStateOf(Point(SceneLayout.WIDTH / 2, SceneLayout.HEIGHT / 2)) }
+        if (zoomOn != null) zoomCentre.value = zoomOn
+        val centre = zoomCentre.value
+        Canvas(
+            // Clipped first, so the zoomed-in room never spills over the bar at the top or the hint below.
+            modifier = Modifier.fillMaxSize().clipToBounds().graphicsLayer {
+                // Scaled up about the middle, then slid so the thing sits in the top part of the screen,
+                // clear of the explanation along the bottom.
+                scaleX = zoom
+                scaleY = zoom
+                val px = origin.x + centre.x * unit
+                val py = origin.y + centre.y * unit
+                val along = (zoom - 1f) / (ZOOM - 1f)
+                translationX = (widthPx / 2 - (widthPx / 2 + (px - widthPx / 2) * zoom)) * along
+                translationY = (heightPx * ZOOM_TARGET_Y - (heightPx / 2 + (py - heightPx / 2) * zoom)) * along
+                clip = true
+            },
+        ) {
             drawSurround(origin, unit)
             clipRect(origin.x, origin.y, origin.x + unit * SceneLayout.WIDTH, origin.y + unit * SceneLayout.HEIGHT) {
                 val pen = Pen(this, unit, origin)
@@ -577,6 +601,10 @@ private fun TapArea(rect: Rect, unit: Float, origin: Offset, label: String, onTa
             .clickable(role = Role.Button, onClick = onTap),
     )
 }
+
+/** How far the room zooms in on something new while it's explained, and how far down the screen it ends up. */
+private const val ZOOM = 1.8f
+private const val ZOOM_TARGET_Y = 0.3f
 
 /** Table index -> colour for its number card: every table is the player's. */
 private fun ownerColors(night: ServiceNight): Map<Int, Color> = night.player.tables.associateWith { PlayerColor }

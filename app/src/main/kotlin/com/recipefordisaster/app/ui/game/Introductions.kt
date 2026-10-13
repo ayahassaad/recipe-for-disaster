@@ -22,7 +22,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.recipefordisaster.app.R
 import com.recipefordisaster.app.ui.theme.ChalkWhite
+import com.recipefordisaster.app.ui.scene.SceneLayout
+import com.recipefordisaster.app.ui.scene.toPoint
 import com.recipefordisaster.domain.progression.Feature
+import com.recipefordisaster.domain.service.ServiceNight
 
 /** The title and the explanation for the pop-up the first time [feature] turns up. */
 internal data class IntroductionText(@StringRes val title: Int, @StringRes val body: Int)
@@ -42,6 +45,24 @@ internal fun introductionText(feature: Feature): IntroductionText = when (featur
     Feature.INSPECTOR -> IntroductionText(R.string.intro_inspector_title, R.string.intro_inspector)
     Feature.POWER_CUT -> IntroductionText(R.string.intro_power_title, R.string.intro_power)
     Feature.DOUBLE_TROUBLE -> IntroductionText(R.string.intro_double_title, R.string.intro_double)
+}
+
+/** Where in the restaurant [feature] is right now, to zoom in on while it's explained. */
+internal fun introductionSpot(night: ServiceNight, feature: Feature): SceneLayout.Point {
+    fun tableOf(party: ServiceNight.Party?) = party?.table?.let { night.layout.tables[it].toPoint() }
+    val door = SceneLayout.Point(50f, 132f)
+    return when (feature) {
+        Feature.SPILLS -> night.messesOnFloor.firstOrNull()?.at?.toPoint()
+        Feature.DRINKS -> tableOf(night.parties.firstOrNull { it.stage == ServiceNight.Stage.WANTS_DRINKS })
+        Feature.CAT -> night.catPose()?.at?.toPoint()
+        Feature.FAMILIES -> tableOf(night.parties.firstOrNull { it.family && it.stage >= ServiceNight.Stage.DECIDING }) ?: door
+        Feature.CELEBRITY, Feature.CRITIC, Feature.INSPECTOR -> tableOf(night.parties.firstOrNull { it.special != null && it.stage >= ServiceNight.Stage.DECIDING }) ?: door
+        Feature.PAN_FIRE -> SceneLayout.stove.center
+        Feature.POWER_CUT -> SceneLayout.fuseBox.center
+        Feature.RAT, Feature.DOG, Feature.DOUBLE_TROUBLE -> night.chaosSpot()?.toPoint()
+        Feature.FRIDGE_BREAKS -> SceneLayout.fridge.center
+        Feature.CHEF_MOODS -> SceneLayout.cookSpot(0)
+    } ?: SceneLayout.Point(SceneLayout.WIDTH / 2, SceneLayout.HEIGHT / 2)
 }
 
 /**
