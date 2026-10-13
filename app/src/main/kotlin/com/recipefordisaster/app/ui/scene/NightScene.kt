@@ -302,7 +302,7 @@ fun NightScene(
                                             Hands.WATCH -> drawWatchCheck(seat, clock, Palette.guestColors[guest % Palette.guestColors.size])
                                             Hands.SIP -> drawSip(sitAt, drink, child)
                                             Hands.MENU -> handsPen.drawMenuCard(sitAt, clock + guest, sleeve)
-                                            Hands.PHONE -> drawPhone(seat, clock)
+                                            Hands.PHONE -> handsPen.drawPhone(sitAt, clock, sleeve)
                                             Hands.NONE -> {}
                                         }
                                     }
@@ -1218,7 +1218,7 @@ private enum class Hands {
     NONE, MENU, PHONE, WATCH, SIP;
 
     companion object {
-        val WITH_ARMS = setOf(MENU)
+        val WITH_ARMS = setOf(MENU, PHONE)
     }
 }
 
@@ -1270,9 +1270,10 @@ private fun Pen.drawWatchCheck(seat: Point, clock: Float, sleeve: Color) {
     line(c.x, c.y, c.x, c.y - 0.9f, Palette.ink, 0.3f)
 }
 
-/** A phone in a guest's hand, screen glowing, a thumb scrolling. */
-private fun Pen.drawPhone(seat: Point, clock: Float) {
+/** A phone in a guest's hand, screen glowing, a thumb scrolling; the other hand rests in their lap. */
+private fun Pen.drawPhone(seat: Point, clock: Float, sleeve: Color) {
     val c = Point(seat.x + 1.4f, seat.y + 3f)
+    drawArmsTo(seat, Point(seat.x - 2.6f, seat.y + 4.4f), Point(c.x + 0.6f, c.y + 1.4f), sleeve)
     dot(c.x, c.y, 2.6f, Color(0x226FD3FF)) // glow
     box(c.x - 0.9f, c.y - 1.5f, 1.8f, 3f, Color(0xFF1E1E22), radius = 0.35f)
     box(c.x - 0.7f, c.y - 1.25f, 1.4f, 2.4f, Color(0xFF8FD3F4), radius = 0.2f)
