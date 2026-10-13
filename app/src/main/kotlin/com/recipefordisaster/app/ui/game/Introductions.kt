@@ -77,6 +77,9 @@ private fun ExplainingPlayer(modifier: Modifier = Modifier) {
     }
 }
 
+/** Whether the explanation goes at the top of the screen: when the thing it's about is in the bottom part of the room. */
+internal fun explainAtTop(spot: SceneLayout.Point): Boolean = spot.y > SceneLayout.HEIGHT * 0.55f
+
 /** Where in the restaurant [feature] is right now, to zoom in on while it's explained. */
 internal fun introductionSpot(night: ServiceNight, feature: Feature): SceneLayout.Point {
     fun tableOf(party: ServiceNight.Party?) = party?.table?.let { night.layout.tables[it].toPoint() }
@@ -100,14 +103,15 @@ internal fun introductionSpot(night: ServiceNight, feature: Feature): SceneLayou
  * about it. Covers the restaurant so nothing gets tapped by accident; [onGotIt] carries on.
  */
 @Composable
-internal fun IntroductionCard(feature: Feature, onGotIt: () -> Unit, modifier: Modifier = Modifier) {
+internal fun IntroductionCard(feature: Feature, onGotIt: () -> Unit, modifier: Modifier = Modifier, atTop: Boolean = false) {
     val text = introductionText(feature)
     Box(
         modifier = modifier
             .fillMaxSize()
             // Nothing dims the restaurant; taps on it just don't go through while this is up.
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {},
-        contentAlignment = Alignment.BottomCenter,
+        // On whichever side of the screen the thing being explained isn't.
+        contentAlignment = if (atTop) Alignment.TopCenter else Alignment.BottomCenter,
     ) {
         // You, waving, explaining it from beside the board.
         Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp), verticalAlignment = Alignment.Bottom) {

@@ -118,6 +118,8 @@ fun NightScene(
     playerLook: com.recipefordisaster.app.ui.player.PlayerLook = com.recipefordisaster.app.ui.player.PlayerLook(),
     /** A spot to zoom in on (while something new is being explained); null for the whole room. */
     zoomOn: Point? = null,
+    /** Where on screen the zoomed-in thing should end up, 0 top to 1 bottom: away from the explanation. */
+    zoomTargetY: Float = 0.3f,
 ) {
     val text = rememberTextMeasurer()
     val density = LocalDensity.current
@@ -159,7 +161,7 @@ fun NightScene(
                     origin.x, origin.x + SceneLayout.WIDTH * unit, widthPx / 2, widthPx,
                 )
                 translationY = keepRoomInView(
-                    (heightPx * ZOOM_TARGET_Y - (heightPx / 2 + (py - heightPx / 2) * zoom)) * along,
+                    (heightPx * zoomTargetY - (heightPx / 2 + (py - heightPx / 2) * zoom)) * along,
                     origin.y, origin.y + SceneLayout.HEIGHT * unit, heightPx / 2, heightPx,
                 )
                 clip = true
@@ -624,9 +626,8 @@ private fun TapArea(rect: Rect, unit: Float, origin: Offset, label: String, onTa
     )
 }
 
-/** How far the room zooms in on something new while it's explained, and how far down the screen it ends up. */
+/** How far the room zooms in on something new while it's explained. */
 private const val ZOOM = 1.8f
-private const val ZOOM_TARGET_Y = 0.3f
 
 /** Table index -> colour for its number card: every table is the player's. */
 private fun ownerColors(night: ServiceNight): Map<Int, Color> = night.player.tables.associateWith { PlayerColor }

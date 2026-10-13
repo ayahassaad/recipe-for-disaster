@@ -577,8 +577,9 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
                     if (session.setup.original.day <= GUIDED_DAYS || newThing) hint.focus(night) else null
                 },
                 playerLook = com.recipefordisaster.app.ui.player.PlayerLooks.get(androidx.compose.ui.platform.LocalContext.current).look,
-                // While something new is explained, zoom in on it.
+                // While something new is explained, zoom in on it, on the other side of the screen from the explanation.
                 zoomOn = if (paused) null else night.introductionDue()?.let { introductionSpot(night, it) },
+                zoomTargetY = night.introductionDue()?.let { if (explainAtTop(introductionSpot(night, it))) 0.72f else 0.28f } ?: 0.28f,
             )
             // Everyone fed tonight: confetti!
             if (night.finished) {
@@ -587,7 +588,7 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
             }
             // The first time something turns up, the game stops to explain it.
             if (!paused) night.introductionDue()?.let { feature ->
-                IntroductionCard(feature, onGotIt = { night = night.introduce(feature) })
+                IntroductionCard(feature, onGotIt = { night = night.introduce(feature) }, atTop = explainAtTop(introductionSpot(night, feature)))
             }
             if (paused) {
                 // Covers the restaurant, so taps while paused don't send you anywhere.
