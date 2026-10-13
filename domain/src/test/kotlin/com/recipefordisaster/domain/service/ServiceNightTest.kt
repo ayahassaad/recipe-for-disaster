@@ -725,8 +725,10 @@ class ServiceNightTest {
     fun `the cat moves in on day eight, dropping by now and then at first and soon every night`() {
         fun nights(day: Int) = (1L..40L).count { seed -> open(start.copy(day = day), seed).cat }
         assertEquals(0, nights(7))
-        assertTrue(nights(8) in 1..20)
-        assertTrue(nights(10) > nights(8))
+        // Promised for day eight, so it's there on day eight.
+        assertEquals(40, nights(8))
+        assertTrue(nights(9) in 1 until 40)
+        assertTrue(nights(11) > nights(9))
         assertEquals(40, nights(12))
     }
 

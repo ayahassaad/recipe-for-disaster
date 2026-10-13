@@ -60,4 +60,12 @@ class ProgressionTest {
         assertTrue(Progression.isNew(start.copy(day = 8), Feature.DRINKS))
         assertFalse(Progression.isNew(start.copy(day = 9), Feature.DRINKS))
     }
+
+    @Test
+    fun `a feature's first day is the day it was promised for`() {
+        assertTrue(Progression.debutsToday(start.copy(day = 8), Feature.CAT))
+        assertFalse(Progression.debutsToday(start.copy(day = 9), Feature.CAT))
+        // A game that already had the cat before doesn't have a first day for it.
+        assertFalse(Progression.debutsToday(start.copy(day = 8, featuresMetEarly = setOf(Feature.CAT)), Feature.CAT))
+    }
 }

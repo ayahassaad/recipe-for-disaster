@@ -1342,7 +1342,8 @@ data class ServiceNight(
             // Which plates a grumpy chef burns or a happy one makes special (rolled last of all).
             val chefLuck = rng.nextFloat()
             // The cat moves in on day eight: at first it only drops by now and then, and soon it's there every night.
-            val catTonight = rng.nextFloat() < Progression.strength(state, Feature.CAT)
+            // (On its very first day, as promised, it's sure to come.)
+            val catTonight = rng.nextFloat() < Progression.strength(state, Feature.CAT) || Progression.debutsToday(state, Feature.CAT)
             // From day twenty-six, now and then a second thing goes wrong later in the night (rolled last of all).
             val otherKinds = chaosKinds.filter { it != chaos?.kind }
             val laterChaos = if (chaos != null && otherKinds.isNotEmpty() && rng.nextFloat() < DOUBLE_TROUBLE_CHANCE * Progression.strength(state, Feature.DOUBLE_TROUBLE)) {

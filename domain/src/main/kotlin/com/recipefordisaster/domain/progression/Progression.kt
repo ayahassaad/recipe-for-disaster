@@ -58,6 +58,12 @@ object Progression {
     /** Nights a new feature counts as new: the player gets pointed at it while they learn it. */
     const val NEW_FOR_DAYS = 3
 
+    /**
+     * Whether today is [feature]'s first day. The night before, the receipt promised it, so on its
+     * first day it's sure to turn up.
+     */
+    fun debutsToday(state: GameState, feature: Feature): Boolean = feature !in metEarly(state) && state.day == feature.day
+
     /** Whether [feature] is still new to this restaurant (it arrived in the last few nights). */
     fun isNew(state: GameState, feature: Feature): Boolean =
         feature !in metEarly(state) && state.day >= feature.day && state.day < feature.day + NEW_FOR_DAYS
