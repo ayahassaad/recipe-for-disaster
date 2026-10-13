@@ -363,6 +363,12 @@ fun NightScene(
                         drawFuseBox(true)
                         drawAlert(text, Point(SceneLayout.fuseBox.right, SceneLayout.fuseBox.top - 1.5f), clock)
                     }
+                    // Whatever's being explained gets a bright pulsing ring, so there's no doubt what it's about.
+                    zoomOn?.let { spot ->
+                        val pulse = (clock * 1.2f) % 1f
+                        ring(spot.x, spot.y, 7f + pulse * 3f, Palette.gold.copy(alpha = 0.9f * (1f - pulse)), 0.7f)
+                        ring(spot.x, spot.y, 7f, Palette.gold, 0.5f)
+                    }
                     // "Tap here": a pulsing ring around whatever the hint is talking about.
                     focus?.let { f ->
                         val (center, radius) = when (f) {
