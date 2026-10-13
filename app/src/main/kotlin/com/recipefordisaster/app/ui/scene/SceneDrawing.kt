@@ -722,14 +722,14 @@ internal fun Pen.drawHiringSign(text: TextMeasurer, label: String) {
 
 // ---------------------------------------------------------------- people
 
-internal enum class Outfit { CHEF, SERVER, WASHER, HOST, GUEST }
+internal enum class Outfit { CHEF, SERVER, WASHER, HOST, GUEST, BARTENDER }
 
 internal fun outfitFor(role: Role) = when (role) {
     Role.COOK -> Outfit.CHEF
     Role.SERVER, Role.MANAGER, Role.BUSSER -> Outfit.SERVER
     Role.DISHWASHER -> Outfit.WASHER
     Role.HOST -> Outfit.HOST
-    Role.BARTENDER -> Outfit.SERVER
+    Role.BARTENDER -> Outfit.BARTENDER
 }
 
 /**
@@ -776,7 +776,7 @@ internal fun Pen.drawPerson(
     // Body colours.
     val top = when (outfit) {
         Outfit.CHEF -> Palette.chefWhite
-        Outfit.SERVER -> Color(0xFFFAFAF7)
+        Outfit.SERVER, Outfit.BARTENDER -> Color(0xFFFAFAF7)
         Outfit.WASHER -> Palette.washerBlue
         Outfit.HOST -> Color(0xFF2C3A50) // a dark suit
         Outfit.GUEST -> bodyColor
@@ -833,6 +833,18 @@ internal fun Pen.drawPerson(
                 moveTo(at.x, y - 0.6f); lineTo(at.x + 1.3f, y - 1.3f); lineTo(at.x + 1.3f, y + 0.1f); close()
             }
         }
+        Outfit.BARTENDER -> {
+            // A burgundy waistcoat with gold buttons, a black bow tie, and shirt sleeves rolled up for pouring.
+            val vest = Color(0xFF7A2333)
+            box(at.x - 4f, y - 1.2f, 2.6f, 6.2f, vest, radius = 1.2f)
+            box(at.x + 1.4f, y - 1.2f, 2.6f, 6.2f, vest, radius = 1.2f)
+            for (k in 0..1) dot(at.x - 1.9f, y + 1.4f + k * 1.6f, 0.3f, Palette.gold)
+            shape(Palette.ink) {
+                moveTo(at.x, y - 0.6f); lineTo(at.x - 1.3f, y - 1.3f); lineTo(at.x - 1.3f, y + 0.1f); close()
+                moveTo(at.x, y - 0.6f); lineTo(at.x + 1.3f, y - 1.3f); lineTo(at.x + 1.3f, y + 0.1f); close()
+            }
+            dot(at.x, y - 0.6f, 0.35f, Palette.ink)
+        }
         Outfit.WASHER -> {
             // Overalls bib with two buttons.
             box(at.x - 2f, y - 0.6f, 4f, 3f, apron ?: Color(0xFF2F6188), radius = 0.5f)
@@ -869,7 +881,7 @@ internal fun Pen.drawPerson(
         drawHairFromBehind(style, hx, hy, hair)
     } else {
         // Hair on top, in one of a few styles (staff keep theirs under a hat or cap).
-        if (outfit == Outfit.GUEST || outfit == Outfit.SERVER) drawHair(style, hx, hy, hair)
+        if (outfit == Outfit.GUEST || outfit == Outfit.SERVER || outfit == Outfit.BARTENDER) drawHair(style, hx, hy, hair)
         // Face: eyes with a highlight, rosy cheeks, mouth.
         val eyeY = hy + 0.2f
         for (side in listOf(-1f, 1f)) {

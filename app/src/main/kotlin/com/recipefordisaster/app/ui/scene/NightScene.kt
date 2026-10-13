@@ -400,7 +400,11 @@ fun NightScene(
                         val figure = model.staff.firstOrNull { it.id.value == waiter.id }
                         drawPerson(
                             at = at,
-                            outfit = if (waiter.kind == ServiceNight.Kind.DISHWASHER) Outfit.WASHER else Outfit.SERVER,
+                            outfit = when (waiter.kind) {
+                                ServiceNight.Kind.DISHWASHER -> Outfit.WASHER
+                                ServiceNight.Kind.BARTENDER -> Outfit.BARTENDER
+                                else -> Outfit.SERVER
+                            },
                             mood = figure?.morale ?: 80,
                             bob = bob,
                             sweat = (figure?.stress ?: 0) >= 70,
