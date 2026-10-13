@@ -6,13 +6,13 @@ import android.media.MediaPlayer
 import android.media.SoundPool
 import com.recipefordisaster.app.R
 
-/** The game's sound effects. */
-enum class Sfx(val res: Int) {
+/** The game's sound effects, each with how loud it plays (some recordings are louder than others). */
+enum class Sfx(val res: Int, val loudness: Float = 0.8f) {
     BELL(R.raw.sfx_bell),
     COINS(R.raw.sfx_coins),
     CLINK(R.raw.sfx_clink),
     PAPER(R.raw.sfx_paper),
-    DOOR(R.raw.sfx_door),
+    DOOR(R.raw.sfx_door, loudness = 0.3f),
     GRUMBLE(R.raw.sfx_grumble),
     SPLASH(R.raw.sfx_splash),
     ALARM(R.raw.sfx_alarm),
@@ -50,7 +50,7 @@ class Sounds private constructor(private val context: Context) {
             if (value && musicWanted) startMusic() else if (!value) stopMusicNow()
         }
 
-    fun play(sfx: Sfx, volume: Float = 0.8f) {
+    fun play(sfx: Sfx, volume: Float = sfx.loudness) {
         if (!effectsOn) return
         loaded[sfx]?.let { pool.play(it, volume, volume, 1, 0, 1f) }
     }
