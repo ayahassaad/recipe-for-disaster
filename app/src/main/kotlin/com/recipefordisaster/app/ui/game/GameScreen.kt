@@ -440,6 +440,7 @@ private fun sceneLabels(need: MorningAdvisor.Need? = null): SceneLabels {
         com.recipefordisaster.domain.employee.Role.MANAGER to stringResource(R.string.role_manager),
         com.recipefordisaster.domain.employee.Role.HOST to stringResource(R.string.role_host),
         com.recipefordisaster.domain.employee.Role.BUSSER to stringResource(R.string.role_busser),
+        com.recipefordisaster.domain.employee.Role.BARTENDER to stringResource(R.string.role_bartender),
     )
     return SceneLabels(
         menu = stringResource(R.string.scene_menu_sign),

@@ -146,7 +146,10 @@ class GameViewModel(
                     val state = com.recipefordisaster.domain.progression.Progression.ensure(com.recipefordisaster.domain.equipment.Fridge.ensure(result.state)).let { s ->
                         // Older saves may be missing a kind of applicant: there's always one of each to hire now.
                         s.copy(
-                            applicants = com.recipefordisaster.domain.employee.StaffingMarket.withEveryBasicRole(s.applicants, com.recipefordisaster.domain.simulation.SeededRandomSource(s.seed + s.day), s.day),
+                            applicants = com.recipefordisaster.domain.employee.StaffingMarket.withEveryBasicRole(
+                                s.applicants, com.recipefordisaster.domain.simulation.SeededRandomSource(s.seed + s.day), s.day,
+                                bar = com.recipefordisaster.domain.progression.Progression.has(s, com.recipefordisaster.domain.progression.Feature.DRINKS),
+                            ),
                             // The room now holds at most nine tables.
                             restaurant = s.restaurant.copy(tables = s.restaurant.tables.coerceAtMost(com.recipefordisaster.domain.restaurant.TableGrowth.MAX)),
                         )

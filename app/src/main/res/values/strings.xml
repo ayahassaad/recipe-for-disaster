@@ -188,6 +188,7 @@
     <string name="role_manager">Manager</string>
     <string name="role_host">Host</string>
     <string name="role_busser">Busser</string>
+    <string name="role_bartender">Bartender</string>
     <string name="trait_perfectionist">Perfectionist</string>
     <string name="trait_slacker">Slacker</string>
     <string name="trait_gossip">Gossip</string>
@@ -293,6 +294,7 @@
     <string name="job_manager">Helps carry food out and clear tables, like a server.</string>
     <string name="job_host">Greets guests at the door: they wait longer, and one more party fits inside.</string>
     <string name="job_busser">Clears tables and washes up, so you don\'t have to.</string>
+    <string name="job_bartender">Looks after the drinks: takes the orders, pours them at the bar and carries them over.</string>
     <string name="paused_title">Paused</string>
     <string name="paused_resume">Tap anywhere to carry on</string>
     <string name="leave_title">Leave the restaurant?</string>

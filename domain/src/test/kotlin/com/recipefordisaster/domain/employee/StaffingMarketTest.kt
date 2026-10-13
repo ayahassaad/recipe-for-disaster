@@ -32,4 +32,15 @@ class StaffingMarketTest {
             assertTrue(roles.containsAll(setOf(Role.COOK, Role.SERVER, Role.DISHWASHER)))
         }
     }
+
+    @Test
+    fun `a bartender applies once the bar is open, and not before`() {
+        val engine = com.recipefordisaster.domain.simulation.DefaultDayTickEngine(com.recipefordisaster.domain.event.EventEngine(emptyList()))
+        val start = com.recipefordisaster.domain.simulation.NewGameFactory.create(seed = 5L)
+        fun poolAfter(day: Int) = engine.advanceDay(start.copy(day = day), com.recipefordisaster.domain.simulation.PlayerDecisions(), SeededRandomSource(day.toLong())).newState.applicants
+        assertTrue(poolAfter(3).none { it.role == Role.BARTENDER })
+        // The night of day five closes; day six is when the bar opens.
+        assertTrue(poolAfter(5).any { it.role == Role.BARTENDER })
+        assertTrue(StaffingMarket.withEveryBasicRole(emptyList(), SeededRandomSource(1L), 6, bar = true).any { it.role == Role.BARTENDER })
+    }
 }

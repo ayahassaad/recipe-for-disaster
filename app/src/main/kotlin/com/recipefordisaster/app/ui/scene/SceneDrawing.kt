@@ -725,6 +725,7 @@ internal fun outfitFor(role: Role) = when (role) {
     Role.SERVER, Role.MANAGER, Role.BUSSER -> Outfit.SERVER
     Role.DISHWASHER -> Outfit.WASHER
     Role.HOST -> Outfit.HOST
+    Role.BARTENDER -> Outfit.SERVER
 }
 
 /**

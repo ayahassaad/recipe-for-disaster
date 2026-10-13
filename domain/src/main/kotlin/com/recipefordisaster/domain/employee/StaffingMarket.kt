@@ -50,9 +50,12 @@ object StaffingMarket {
         return basics + luxury
     }
 
-    /** Fills in any basic job (cook, server, dishwasher) missing from [current]'s pool, e.g. for an older save. */
-    fun withEveryBasicRole(current: List<Employee>, rng: RandomSource, day: Int): List<Employee> {
-        val missing = BASIC_ROLES.filter { role -> current.none { it.role == role } }
+    /**
+     * Fills in any basic job (cook, server, dishwasher) missing from [current]'s pool, e.g. for an
+     * older save, and a bartender once the bar is open ([bar]).
+     */
+    fun withEveryBasicRole(current: List<Employee>, rng: RandomSource, day: Int, bar: Boolean = false): List<Employee> {
+        val missing = (BASIC_ROLES + (if (bar) listOf(Role.BARTENDER) else emptyList())).filter { role -> current.none { it.role == role } }
         return current + missing.mapIndexed { k, role -> generateApplicant(rng, day, current.size + k, role) }
     }
 
@@ -73,6 +76,7 @@ object StaffingMarket {
             Role.MANAGER -> 60 + skill / 2
             Role.HOST -> 30 + reliability / 5
             Role.BUSSER -> 18 + speed / 6
+            Role.BARTENDER -> 25 + (skill + speed) / 6
         } + rng.nextInt(10)
 
         return Employee(

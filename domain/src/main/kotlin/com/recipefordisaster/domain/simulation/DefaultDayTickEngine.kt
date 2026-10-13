@@ -203,6 +203,10 @@ class DefaultDayTickEngine(
             StaffingMarket.generateApplicants(rng, nextDay, cash = newCash)
         } else {
             start.applicants
+        }.let { pool ->
+            // Once the bar is open there's always a bartender looking for work (rolled separately, so nothing else changes).
+            val barOpen = com.recipefordisaster.domain.progression.Progression.has(start.copy(day = nextDay), com.recipefordisaster.domain.progression.Feature.DRINKS)
+            StaffingMarket.withEveryBasicRole(pool, SeededRandomSource(state.seed * 31 + nextDay), nextDay, bar = barOpen)
         }
 
         val stateBeforeEvent = start.copy(

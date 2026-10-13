@@ -535,5 +535,6 @@ private fun roleDescription(role: com.recipefordisaster.domain.employee.Role): S
         com.recipefordisaster.domain.employee.Role.MANAGER -> R.string.job_manager
         com.recipefordisaster.domain.employee.Role.HOST -> R.string.job_host
         com.recipefordisaster.domain.employee.Role.BUSSER -> R.string.job_busser
+        com.recipefordisaster.domain.employee.Role.BARTENDER -> R.string.job_bartender
     },
 )

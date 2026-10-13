@@ -45,6 +45,9 @@ enum class Role {
     HOST,
     /** Clears dirty tables and washes up during service, so the player doesn't have to. */
     BUSSER,
+
+    /** Looks after the drinks: takes the orders, pours them at the bar and carries them over. */
+    BARTENDER,
 }
 
 @Serializable
