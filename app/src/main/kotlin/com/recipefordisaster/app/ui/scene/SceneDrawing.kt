@@ -759,16 +759,19 @@ internal fun Pen.drawPerson(
     armsBusy: Boolean = false,
     /** The player's chosen look; null for the usual face and hair. */
     look: PlayerLook? = null,
+    /** Sitting on a chair: no feet on the floor, and knees in their lap instead. */
+    seated: Boolean = false,
 ) {
     val skin = look?.skinColor ?: Palette.face
     val y = at.y - bob + if (slumped) 0.8f else 0f
-    oval(at.x, at.y + 3.6f, 4.2f, 1.3f, Palette.shadow)
-
-    // Feet, stepping in turn while walking.
+    // Feet, stepping in turn while walking (tucked under the table when sitting).
     val step = walkPhase?.let { sin(it * 2f * PI.toFloat()) } ?: 0f
-    val shoe = if (outfit == Outfit.CHEF) Color(0xFF2B2B2B) else Color(0xFF3A2A20)
-    oval(at.x - 1.6f, at.y + 3.2f - step, 1.1f, 0.8f, shoe)
-    oval(at.x + 1.6f, at.y + 3.2f + step, 1.1f, 0.8f, shoe)
+    if (!seated) {
+        oval(at.x, at.y + 3.6f, 4.2f, 1.3f, Palette.shadow)
+        val shoe = if (outfit == Outfit.CHEF) Color(0xFF2B2B2B) else Color(0xFF3A2A20)
+        oval(at.x - 1.6f, at.y + 3.2f - step, 1.1f, 0.8f, shoe)
+        oval(at.x + 1.6f, at.y + 3.2f + step, 1.1f, 0.8f, shoe)
+    }
 
     // Body colours.
     val top = when (outfit) {
@@ -799,6 +802,11 @@ internal fun Pen.drawPerson(
     }
     box(at.x - 4f, y - 1.2f, 8f, 6.4f, top, radius = 2.4f)
     box(at.x - 4f, y + 2.6f, 8f, 2.6f, shade.copy(alpha = 0.35f), radius = 1.6f)
+    // Sitting down: knees in the lap, on the chair's cushion.
+    if (seated) {
+        box(at.x - 3.8f, y + 3.6f, 7.6f, 2.4f, Color(0xFF3A3F4A), radius = 1.2f)
+        line(at.x, y + 3.9f, at.x, y + 5.7f, Color(0x33000000), 0.25f)
+    }
 
     when (outfit) {
         Outfit.CHEF -> {

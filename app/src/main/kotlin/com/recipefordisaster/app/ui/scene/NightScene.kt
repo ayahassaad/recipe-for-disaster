@@ -293,7 +293,7 @@ fun NightScene(
                                             else -> Hands.NONE
                                         }
                                         // Whatever their hands are doing, they only ever have the one pair: the arms are drawn doing it.
-                                        drawGuest(sitAt, guest, mood, angry = waitedFraction > 0.75f, walkPhase = null, g, bob = guestBob, child = child, armsBusy = hands in Hands.WITH_ARMS)
+                                        drawGuest(sitAt, guest, mood, angry = waitedFraction > 0.75f, walkPhase = null, g, bob = guestBob, child = child, armsBusy = hands in Hands.WITH_ARMS, seated = true)
                                         if (g == 0) party.special?.let { drawSpecialLook(seat, it, clock, guestBob) }
                                         // A child's hands are drawn as small as the child.
                                         val handsPen = if (child) around(Point(sitAt.x, sitAt.y + 3.6f), CHILD_SIZE) else this
@@ -577,7 +577,18 @@ private fun TapArea(rect: Rect, unit: Float, origin: Offset, label: String, onTa
 /** Table index -> colour for its number card: every table is the player's. */
 private fun ownerColors(night: ServiceNight): Map<Int, Color> = night.player.tables.associateWith { PlayerColor }
 
-private fun Pen.drawGuest(at: Point, guest: Int, mood: Int, angry: Boolean, walkPhase: Float?, seatIndex: Int, bob: Float = 0f, child: Boolean = false, armsBusy: Boolean = false) {
+private fun Pen.drawGuest(
+    at: Point,
+    guest: Int,
+    mood: Int,
+    angry: Boolean,
+    walkPhase: Float?,
+    seatIndex: Int,
+    bob: Float = 0f,
+    child: Boolean = false,
+    armsBusy: Boolean = false,
+    seated: Boolean = false,
+) {
     // A child is a smaller person, standing on the same spot of floor, in a bright top.
     if (child) {
         around(Point(at.x, at.y + 3.6f), CHILD_SIZE).drawPerson(
@@ -590,6 +601,7 @@ private fun Pen.drawGuest(at: Point, guest: Int, mood: Int, angry: Boolean, walk
             variant = guest + 1,
             walkPhase = walkPhase,
             armsBusy = armsBusy,
+            seated = seated,
         )
         return
     }
@@ -603,6 +615,7 @@ private fun Pen.drawGuest(at: Point, guest: Int, mood: Int, angry: Boolean, walk
         variant = guest,
         walkPhase = walkPhase,
         armsBusy = armsBusy,
+        seated = seated,
     )
 }
 
