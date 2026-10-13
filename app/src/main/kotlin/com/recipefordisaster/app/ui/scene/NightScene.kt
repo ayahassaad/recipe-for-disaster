@@ -300,7 +300,7 @@ fun NightScene(
                                         val sleeve = guestSleeve(party, g, guest)
                                         when (hands) {
                                             Hands.WATCH -> handsPen.drawWatchCheck(sitAt, clock, sleeve)
-                                            Hands.SIP -> drawSip(sitAt, drink, child)
+                                            Hands.SIP -> handsPen.drawSip(sitAt, drink, sleeve)
                                             Hands.MENU -> handsPen.drawMenuCard(sitAt, clock + guest, sleeve)
                                             Hands.PHONE -> handsPen.drawPhone(sitAt, clock, sleeve)
                                             Hands.NONE -> {}
@@ -676,14 +676,11 @@ private fun Pen.drawDrink(at: Point, drink: Drink, level: Float) {
     }
 }
 
-/** A guest taking a sip: hand and glass up at their mouth. */
-private fun Pen.drawSip(seat: Point, drink: Drink, child: Boolean) {
-    val s = if (child) 0.68f else 1f
-    val at = Point(seat.x + 1.2f * s, seat.y - 2.4f * s)
-    with(around(at, s)) {
-        drawDrink(at, drink, 0.7f)
-        dot(at.x + 1f, at.y + 0.8f, 0.8f, Palette.face)
-    }
+/** A guest taking a sip: one hand bringing the glass up to their mouth, the other resting on the table. */
+private fun Pen.drawSip(seat: Point, drink: Drink, sleeve: Color) {
+    val glass = Point(seat.x + 1.2f, seat.y - 2.4f)
+    drawArmsTo(seat, Point(seat.x - 4.4f, seat.y + 4.2f), Point(glass.x + 1f, glass.y + 0.8f), sleeve)
+    drawDrink(glass, drink, 0.7f)
 }
 
 /**
@@ -1218,7 +1215,7 @@ private enum class Hands {
     NONE, MENU, PHONE, WATCH, SIP;
 
     companion object {
-        val WITH_ARMS = setOf(MENU, PHONE, WATCH)
+        val WITH_ARMS = setOf(MENU, PHONE, WATCH, SIP)
     }
 }
 
