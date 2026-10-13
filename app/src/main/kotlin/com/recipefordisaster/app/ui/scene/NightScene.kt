@@ -455,7 +455,7 @@ fun NightScene(
                         }
                         if (!night.chaosBeingHandled) drawAlert(text, alertAt, clock)
                     }
-                    drawFuseBox(night.activeChaos?.kind == ChaosKind.POWER_CUT)
+                    if (model.fuseBox) drawFuseBox(night.activeChaos?.kind == ChaosKind.POWER_CUT)
 
                     // The restaurant cat, and the plate it just knocked off the counter.
                     night.catPose()?.let { pose -> drawCat(pose.at.toPoint(), pose.walking, pose.facingRight, clock) }

@@ -76,6 +76,8 @@ data class SceneModel(
     val name: String = "",
     /** Whether the bar is open (drinks have arrived): before then it isn't there at all. */
     val barOpen: Boolean = true,
+    /** Whether the fuse box is on the wall: only once the power can go out. */
+    val fuseBox: Boolean = true,
     /** Whether the mop bucket is out: from when spills start (or earlier if the floor needs a clean). */
     val mopOut: Boolean = true,
     /** How the cooks are feeling: it shows over their heads, so you can see a grumpy night coming. */
