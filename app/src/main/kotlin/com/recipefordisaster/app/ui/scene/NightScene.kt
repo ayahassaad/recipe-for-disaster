@@ -148,8 +148,20 @@ fun NightScene(
                 val px = origin.x + centre.x * unit
                 val py = origin.y + centre.y * unit
                 val along = (zoom - 1f) / (ZOOM - 1f)
-                translationX = (widthPx / 2 - (widthPx / 2 + (px - widthPx / 2) * zoom)) * along
-                translationY = (heightPx * ZOOM_TARGET_Y - (heightPx / 2 + (py - heightPx / 2) * zoom)) * along
+                // ...but never so far that the edge of the room comes into view.
+                fun keepRoomInView(wanted: Float, start: Float, end: Float, middle: Float, screen: Float): Float {
+                    val most = -(middle + (start - middle) * zoom) // the room's start edge reaches the screen's
+                    val least = screen - (middle + (end - middle) * zoom) // the room's end edge reaches the screen's
+                    return if (least <= most) wanted.coerceIn(least, most) else wanted
+                }
+                translationX = keepRoomInView(
+                    (widthPx / 2 - (widthPx / 2 + (px - widthPx / 2) * zoom)) * along,
+                    origin.x, origin.x + SceneLayout.WIDTH * unit, widthPx / 2, widthPx,
+                )
+                translationY = keepRoomInView(
+                    (heightPx * ZOOM_TARGET_Y - (heightPx / 2 + (py - heightPx / 2) * zoom)) * along,
+                    origin.y, origin.y + SceneLayout.HEIGHT * unit, heightPx / 2, heightPx,
+                )
                 clip = true
             },
         ) {
