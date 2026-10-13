@@ -278,19 +278,32 @@ fun NightScene(
                                         // A child sits up on a booster cushion, so they can see over the table.
                                         val child = party.family && g == 1
                                         if (child) box(seat.x - 3f, seat.y + 0.6f, 6f, 2.4f, Color(0xFFE85D75), radius = 1f)
-                                        drawGuest(if (child) Point(seat.x, seat.y - 1.2f) else seat, guest, mood, angry = waitedFraction > 0.75f, walkPhase = null, g, bob = guestBob, child = child)
-                                        if (g == 0) party.special?.let { drawSpecialLook(seat, it, clock, guestBob) }
+                                        val sitAt = if (child) Point(seat.x, seat.y - 1.2f) else seat
                                         // Reading the menu while deciding; now and then someone checks their phone while the food comes.
                                         // Once they've waited a good while, they keep looking at their watch instead.
                                         val waitingStage = party.stage == Stage.READY_TO_ORDER || party.stage == Stage.WANTS_DRINKS || party.stage == Stage.DRINKS_ORDERED ||
                                             party.stage in Stage.ORDER_TAKEN..Stage.CARRIED
-                                        when {
-                                            waitingStage && waitedFraction >= WATCH_FROM && ((clock * 0.35f + guest * 0.5f) % 1f) < 0.45f -> drawWatchCheck(seat, clock, Palette.guestColors[guest % Palette.guestColors.size])
+                                        val hands = when {
+                                            waitingStage && waitedFraction >= WATCH_FROM && ((clock * 0.35f + guest * 0.5f) % 1f) < 0.45f -> Hands.WATCH
                                             // Now and then a sip, with the glass up at their mouth; the rest of the time they read the menu.
-                                            sipping -> drawSip(if (child) Point(seat.x, seat.y - 1.2f) else seat, drink, child)
-                                            party.stage in Stage.DECIDING..Stage.READY_TO_ORDER -> drawMenuCard(seat, clock + guest)
+                                            sipping -> Hands.SIP
+                                            party.stage in Stage.DECIDING..Stage.READY_TO_ORDER -> Hands.MENU
                                             party.stage in Stage.ORDER_TAKEN..Stage.CARRIED && waitedFraction < 0.6f &&
-                                                ((clock * 0.2f + guest * 0.37f) % 1f) < 0.4f -> drawPhone(seat, clock)
+                                                ((clock * 0.2f + guest * 0.37f) % 1f) < 0.4f -> Hands.PHONE
+                                            else -> Hands.NONE
+                                        }
+                                        // Whatever their hands are doing, they only ever have the one pair: the arms are drawn doing it.
+                                        drawGuest(sitAt, guest, mood, angry = waitedFraction > 0.75f, walkPhase = null, g, bob = guestBob, child = child, armsBusy = hands in Hands.WITH_ARMS)
+                                        if (g == 0) party.special?.let { drawSpecialLook(seat, it, clock, guestBob) }
+                                        // A child's hands are drawn as small as the child.
+                                        val handsPen = if (child) around(Point(sitAt.x, sitAt.y + 3.6f), CHILD_SIZE) else this
+                                        val sleeve = guestSleeve(party, g, guest)
+                                        when (hands) {
+                                            Hands.WATCH -> drawWatchCheck(seat, clock, Palette.guestColors[guest % Palette.guestColors.size])
+                                            Hands.SIP -> drawSip(sitAt, drink, child)
+                                            Hands.MENU -> handsPen.drawMenuCard(sitAt, clock + guest, sleeve)
+                                            Hands.PHONE -> drawPhone(seat, clock)
+                                            Hands.NONE -> {}
                                         }
                                     }
                                     // Two at a table chat while they wait and eat (unless they're getting cross).
@@ -564,7 +577,7 @@ private fun TapArea(rect: Rect, unit: Float, origin: Offset, label: String, onTa
 /** Table index -> colour for its number card: every table is the player's. */
 private fun ownerColors(night: ServiceNight): Map<Int, Color> = night.player.tables.associateWith { PlayerColor }
 
-private fun Pen.drawGuest(at: Point, guest: Int, mood: Int, angry: Boolean, walkPhase: Float?, seatIndex: Int, bob: Float = 0f, child: Boolean = false) {
+private fun Pen.drawGuest(at: Point, guest: Int, mood: Int, angry: Boolean, walkPhase: Float?, seatIndex: Int, bob: Float = 0f, child: Boolean = false, armsBusy: Boolean = false) {
     // A child is a smaller person, standing on the same spot of floor, in a bright top.
     if (child) {
         around(Point(at.x, at.y + 3.6f), CHILD_SIZE).drawPerson(
@@ -576,6 +589,7 @@ private fun Pen.drawGuest(at: Point, guest: Int, mood: Int, angry: Boolean, walk
             angry = angry,
             variant = guest + 1,
             walkPhase = walkPhase,
+            armsBusy = armsBusy,
         )
         return
     }
@@ -588,6 +602,7 @@ private fun Pen.drawGuest(at: Point, guest: Int, mood: Int, angry: Boolean, walk
         angry = angry,
         variant = guest,
         walkPhase = walkPhase,
+        armsBusy = armsBusy,
     )
 }
 
@@ -1198,17 +1213,41 @@ private fun doorOpenness(night: ServiceNight): Float {
     return open
 }
 
-/** A menu card held open in front of a guest, tilting a little as they read. */
-private fun Pen.drawMenuCard(seat: Point, clock: Float) {
+/** What a seated guest's hands are busy with. The ones in [WITH_ARMS] draw the guest's arms doing it. */
+private enum class Hands {
+    NONE, MENU, PHONE, WATCH, SIP;
+
+    companion object {
+        val WITH_ARMS = setOf(MENU)
+    }
+}
+
+/** The colour of a guest's sleeves: their top, a shade darker (a child's top is a bright one). */
+private fun guestSleeve(party: ServiceNight.Party, seatIndex: Int, guest: Int): Color {
+    val top = if (party.family && seatIndex == 1) CHILD_COLOURS[guest % CHILD_COLOURS.size] else Palette.guestColors[guest % Palette.guestColors.size]
+    return top.copy(red = top.red * 0.82f, green = top.green * 0.82f, blue = top.blue * 0.82f)
+}
+
+/** Both arms, from a seated guest's shoulders to their two hands. */
+private fun Pen.drawArmsTo(at: Point, left: Point, right: Point, sleeve: Color) {
+    line(at.x - 4.3f, at.y + 0.2f, left.x, left.y, sleeve, 1.7f)
+    line(at.x + 4.3f, at.y + 0.2f, right.x, right.y, sleeve, 1.7f)
+    dot(left, 0.9f, Palette.face)
+    dot(right, 0.9f, Palette.face)
+}
+
+/** A menu card held open in front of a guest in both hands, tilting a little as they read. */
+private fun Pen.drawMenuCard(seat: Point, clock: Float, sleeve: Color) {
     val tilt = sin(clock * 0.9f) * 0.3f
     val c = Point(seat.x, seat.y + 3.2f + tilt)
+    drawArmsTo(seat, Point(c.x - 2.5f, c.y + 0.6f), Point(c.x + 2.5f, c.y + 0.6f), sleeve)
     box(c.x - 2.4f, c.y - 1.6f, 4.8f, 3.2f, Color(0xFF7A2E2A), radius = 0.4f)
     line(c.x, c.y - 1.5f, c.x, c.y + 1.5f, Color(0xFF4F1C19), 0.25f) // the fold
     for (k in 0..1) {
         line(c.x - 1.9f, c.y - 0.6f + k * 1f, c.x - 0.5f, c.y - 0.6f + k * 1f, Palette.gold, 0.2f)
         line(c.x + 0.5f, c.y - 0.6f + k * 1f, c.x + 1.9f, c.y - 0.6f + k * 1f, Palette.gold, 0.2f)
     }
-    for (side in listOf(-1f, 1f)) dot(c.x + side * 2.5f, c.y + 0.6f, 0.75f, Palette.face)
+    for (side in listOf(-1f, 1f)) dot(c.x + side * 2.5f, c.y + 0.6f, 0.75f, Palette.face) // fingers over the edges
 }
 
 /** How long a party has to have waited (as a share of their patience) before they start checking their watch. */
