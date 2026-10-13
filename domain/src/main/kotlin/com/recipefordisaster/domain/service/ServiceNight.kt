@@ -1333,10 +1333,17 @@ data class ServiceNight(
             // From day ten, some parties of two are a grown-up out with a child: only the odd one at first
             // (rolled after everything else).
             val familyChance = FAMILY_CHANCE * Progression.strength(state, Feature.FAMILIES)
-            val withFamilies = if (familyChance > 0f) {
+            val rolledFamilies = if (familyChance > 0f) {
                 specialParties.map { p -> if (p.guests.size == 2 && p.special == null && rng.nextFloat() < familyChance) p.copy(family = true) else p }
             } else {
                 specialParties
+            }
+            // On the first night families come, as promised, at least one does.
+            val firstFamily = rolledFamilies.indexOfFirst { it.guests.size == 2 && it.special == null }
+            val withFamilies = if (Progression.debutsToday(state, Feature.FAMILIES) && rolledFamilies.none { it.family } && firstFamily >= 0) {
+                rolledFamilies.mapIndexed { k, p -> if (k == firstFamily) p.copy(family = true) else p }
+            } else {
+                rolledFamilies
             }
 
             // Which plates a grumpy chef burns or a happy one makes special (rolled last of all).

@@ -51,4 +51,9 @@ class FamilyTest {
         val mess = n.messesOnFloor.minByOrNull { it.at.distanceTo(stand) }
         assertTrue(mess != null && mess.appearsAt >= left.stageSince - 0.1f && mess.at.distanceTo(stand) < 30f)
     }
+
+    @Test
+    fun `on the first night families come, at least one does`() {
+        (1L..20L).forEach { seed -> assertTrue(open(start.copy(day = 10), seed).parties.any { it.family }) }
+    }
 }
