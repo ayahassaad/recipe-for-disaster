@@ -25,8 +25,8 @@ object Difficulty {
 
     /** The day disasters start, and how likely they are then and once they're fully settled in. */
     private const val CHAOS_FROM = 15
-    private const val CHAOS_START = 0.15f
-    private const val CHAOS_FULL = 0.45f
+    private const val CHAOS_START = 0.3f
+    private const val CHAOS_FULL = 0.6f
 
     /** Every this many days there's a quieter night, so it gets harder in waves rather than a straight climb. */
     const val BREATHER_EVERY = 7

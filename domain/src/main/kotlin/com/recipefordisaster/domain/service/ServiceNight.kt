@@ -1315,7 +1315,7 @@ data class ServiceNight(
             // Some nights, something goes wrong (rolled last, after everything else about the night).
             // Disasters start on day fifteen, one kind at a time, and get a little more likely as the run goes on.
             val chaosKinds = ChaosKind.entries.filter { Progression.has(state, featureOf(it)) }
-            val chaosChance = dials.chaosChance * Progression.strength(state, Feature.RAT)
+            val chaosChance = dials.chaosChance
             fun chaosAt(kind: ChaosKind) = when (kind) {
                 ChaosKind.RAT -> FloorPoint(50f, 106f)
                 ChaosKind.DOG -> ServiceFloor.layout(tableCount).stand(rng.nextInt(tableCount)).let { FloorPoint(it.x, it.y - 2f) }
