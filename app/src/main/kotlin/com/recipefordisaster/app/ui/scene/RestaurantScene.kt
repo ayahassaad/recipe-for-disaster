@@ -76,6 +76,8 @@ data class SceneModel(
     val name: String = "",
     /** Whether the bar is open (drinks have arrived): before then it isn't there at all. */
     val barOpen: Boolean = true,
+    /** Whether the mop bucket is out: from when spills start (or earlier if the floor needs a clean). */
+    val mopOut: Boolean = true,
     /** How the cooks are feeling: it shows over their heads, so you can see a grumpy night coming. */
     val chefMood: com.recipefordisaster.domain.service.ChefMood = com.recipefordisaster.domain.service.ChefMood.NORMAL,
 )
@@ -149,7 +151,7 @@ fun RestaurantScene(
                 drawPantry(model.pantryFullness, model.pantryJars)
                 drawTables(ServiceFloor.layout(model.tableCount))
                 drawMenuBoard(text, labels.menu)
-                drawMopBucket()
+                if (model.mopOut) drawMopBucket()
                 if (model.hiring) drawHiringSign(text, labels.hiring)
 
                 // Staff at their morning spots.
@@ -193,8 +195,7 @@ fun RestaurantScene(
                 SceneTarget.Fridge to labels.fridge,
                 SceneTarget.Pantry to labels.pantry,
                 SceneTarget.MenuBoard to labels.menu,
-                SceneTarget.Mop to labels.mop,
-            ) +
+            ) + (if (model.mopOut) listOf(SceneTarget.Mop to labels.mop) else emptyList()) +
                 // One tap area per table, all opening the same popup.
                 ServiceFloor.layout(model.tableCount).let { layout ->
                     layout.tables.map { SceneTarget.Tables to labels.tables }

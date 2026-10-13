@@ -143,7 +143,7 @@ fun NightScene(
                     drawTables(layout)
                     drawMenuBoard(text, labels.menu)
                     // The mop stays in the bucket unless someone's carrying it.
-                    drawMopBucket(withMop = night.waiters.none { it.holdingMop })
+                    if (model.mopOut) drawMopBucket(withMop = night.waiters.none { it.holdingMop })
 
                     // Kitchen staff at their stations, working when there's cooking; the host by the door.
                     staffPositions(model.staff).filter { it.first.role == StaffRole.COOK || it.first.role == StaffRole.HOST }
@@ -538,7 +538,7 @@ fun NightScene(
         }
         // The fridge, over the chef's end of the kitchen so it gets the tap.
         TapArea(SceneLayout.fridge, unit, origin, labels.fridge, onTapFridge)
-        TapArea(Rect(SceneLayout.mopBucket.left - 2f, SceneLayout.mopBucket.top - 8f, SceneLayout.mopBucket.right + 6f, SceneLayout.mopBucket.bottom), unit, origin, labels.mopBucket, onTapMopBucket)
+        if (model.mopOut) TapArea(Rect(SceneLayout.mopBucket.left - 2f, SceneLayout.mopBucket.top - 8f, SceneLayout.mopBucket.right + 6f, SceneLayout.mopBucket.bottom), unit, origin, labels.mopBucket, onTapMopBucket)
         // Spills last, so they sit on top of the tables' tap areas.
         night.messesOnFloor.forEach { mess ->
             TapArea(Rect(mess.at.x - 6f, mess.at.y - 4f, mess.at.x + 6f, mess.at.y + 4f), unit, origin, labels.spill) { onTapMess(mess.id) }

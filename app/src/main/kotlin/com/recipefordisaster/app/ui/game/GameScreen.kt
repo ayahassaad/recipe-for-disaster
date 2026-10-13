@@ -417,6 +417,8 @@ internal fun sceneModelFor(state: GameState, advice: List<Advice>, hiringOpen: B
         staff = working.map { StaffFigure(it.id, it.name, it.role, it.morale, it.stress) },
         chefMood = com.recipefordisaster.domain.service.ChefMood.of(state),
         barOpen = com.recipefordisaster.domain.progression.Progression.has(state, com.recipefordisaster.domain.progression.Feature.DRINKS),
+        // The mop comes out with the spills, or sooner if the floor needs a clean in the morning.
+        mopOut = com.recipefordisaster.domain.progression.Progression.has(state, com.recipefordisaster.domain.progression.Feature.SPILLS) || SceneTarget.Mop in alerts,
         ovenCondition = oven(state)?.condition ?: 100,
         ovenLevel = oven(state)?.upgradeLevel ?: 1,
         fridgeCondition = com.recipefordisaster.domain.equipment.Fridge.of(state)?.condition ?: 100,
