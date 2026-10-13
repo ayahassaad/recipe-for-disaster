@@ -214,10 +214,10 @@ data class ServiceNight(
 
     /**
      * Who a waiter is: the player, a hired server running food, a hired
-     * dishwasher (clears tables, washes up and mops), or a busser (clears
-     * tables and washes up, but doesn't mop).
+     * dishwasher (clears tables, washes up and mops), a busser (clears
+     * tables and washes up, but doesn't mop), or a bartender (drinks).
      */
-    enum class Kind { PLAYER, RUNNER, DISHWASHER, BUSSER }
+    enum class Kind { PLAYER, RUNNER, DISHWASHER, BUSSER, BARTENDER }
 
     @Serializable
     sealed interface Errand {
@@ -860,7 +860,7 @@ data class ServiceNight(
                     updateWaiter { it.copy(hands = it.hands - HandItem.Plate(party.id)) }
                 } else if (party != null && party.id in waiter.drinks) {
                     night = night.serveDrinks(party.id, waiterId)
-                } else if (waiter.kind == Kind.PLAYER && party != null && party.stage == Stage.WANTS_DRINKS) {
+                } else if ((waiter.kind == Kind.PLAYER || waiter.kind == Kind.BARTENDER) && party != null && party.stage == Stage.WANTS_DRINKS) {
                     // Their drinks order goes on the notepad; pour it at the bar.
                     updateWaiter { it.copy(drinkOrders = it.drinkOrders + party.id) }
                     night = night.updateParty(party.id) { it.copy(stage = Stage.DRINKS_ORDERED, stageSince = time, drinksOrderedAt = time, heldBy = waiterId) }
@@ -1008,6 +1008,17 @@ data class ServiceNight(
                         waiter.dirtyDishes.isNotEmpty() && (waiter.freeHands == 0 || table == null) -> Errand.VisitDishStation
                         mess != null -> Errand.CleanMess(mess.id)
                         table != null && waiter.freeHands > 0 -> Errand.VisitTable(table)
+                        else -> null
+                    }
+                }
+                Kind.BARTENDER -> {
+                    // The bartender sees to every table that wants a drink and that you're not already on your way to.
+                    val claimed = night.waiters.flatMap { listOfNotNull(it.errand) + it.queue }.filterIsInstance<Errand.VisitTable>().map { it.table }.toSet()
+                    val thirsty = night.parties.filter { it.stage == Stage.WANTS_DRINKS && it.table !in claimed }.minByOrNull { it.stageSince }?.table
+                    when {
+                        waiter.drinks.isNotEmpty() -> night.parties.first { it.id == waiter.drinks.first() }.table?.let { Errand.Serve(it) }
+                        waiter.drinkOrders.isNotEmpty() && (waiter.freeHands == 0 || thirsty == null) -> Errand.VisitBar
+                        thirsty != null && waiter.freeHands > 0 -> Errand.VisitTable(thirsty)
                         else -> null
                     }
                 }
@@ -1306,6 +1317,12 @@ data class ServiceNight(
                 val pace = (EmployeePerformance.effectiveServiceSpeed(employee) / 50.0).toFloat().coerceIn(0.6f, 1.3f)
                 Waiter(employee.id.value, isPlayer = false, tables = allTables, speed = STAFF_SPEED * pace, restSpot = rest,
                     route = listOf(rest), routeStart = 0f, routeEnd = 0f, errand = null, kind = Kind.DISHWASHER)
+            } + state.employees.filter { it.status == EmployeeStatus.ACTIVE && it.role == Role.BARTENDER }.mapIndexed { k, employee ->
+                // Bartenders wait by the bar for tables that want a drink.
+                val rest = FloorPoint(restSpot(BARTENDER_REST, k), ServiceFloor.pass.y + 1f)
+                val pace = (EmployeePerformance.effectiveServiceSpeed(employee) / 50.0).toFloat().coerceIn(0.6f, 1.3f)
+                Waiter(employee.id.value, isPlayer = false, tables = allTables, speed = STAFF_SPEED * pace, restSpot = rest,
+                    route = listOf(rest), routeStart = 0f, routeEnd = 0f, errand = null, kind = Kind.BARTENDER)
             } + state.employees.filter { it.status == EmployeeStatus.ACTIVE && it.role == Role.BUSSER }.mapIndexed { k, employee ->
                 // Bussers wait at the left end of the counter, quick on their feet.
                 val rest = FloorPoint(restSpot(BUSSER_REST, k), ServiceFloor.pass.y + 1f)
@@ -1428,6 +1445,7 @@ data class ServiceNight(
         private val SERVER_REST = listOf(10f, 90f, 18f, 82f)
         private val DISHWASHER_REST = listOf(78f, 70f, 62f)
         private val BUSSER_REST = listOf(30f, 22f, 38f)
+        private val BARTENDER_REST = listOf(36f, 42f)
 
         /** The [k]th helper's waiting spot: more helpers than spots share them, a step apart. */
         private fun restSpot(spots: List<Float>, k: Int): Float = spots[k % spots.size] + (k / spots.size) * 3f

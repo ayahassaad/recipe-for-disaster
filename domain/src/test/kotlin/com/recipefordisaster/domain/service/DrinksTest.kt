@@ -148,6 +148,17 @@ class DrinksTest {
         val n = waitFor(open(start.copy(day = 3))) { night -> night.parties.any { it.stage == Stage.READY_TO_ORDER } }
         assertTrue(n.parties.none { it.stage == Stage.WANTS_DRINKS })
     }
+
+    @Test
+    fun `a bartender takes the drinks orders, pours them and brings them over`() {
+        val bartender = start.applicants.first().copy(role = com.recipefordisaster.domain.employee.Role.BARTENDER)
+        var n = open(start.copy(employees = start.employees + bartender))
+        n = waitFor(n) { night -> night.parties.any { it.stage == Stage.DRINKING } }
+        assertTrue(n.parties.any { it.stage == Stage.DRINKING })
+        // You never had to lift a finger for it.
+        assertTrue(n.player.drinkOrders.isEmpty() && n.player.drinks.isEmpty())
+        assertEquals(1, n.waiters.count { it.kind == ServiceNight.Kind.BARTENDER })
+    }
 }
 
 /** A quick player who looks after the drinks as well as the food. */
