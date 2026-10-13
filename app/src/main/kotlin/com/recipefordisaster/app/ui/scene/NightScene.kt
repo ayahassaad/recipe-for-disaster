@@ -303,9 +303,9 @@ fun NightScene(
                     // Lights out: everything goes dark except a little glow around the fuse box.
                     if (night.activeChaos?.kind == ChaosKind.POWER_CUT) {
                         drawRect(Color(0xCC0B0E1A), topLeft = p(0f, 0f), size = androidx.compose.ui.geometry.Size(u(SceneLayout.WIDTH), u(SceneLayout.HEIGHT)))
-                        dot(ServiceFloor.fuseBox.x - 4f, ServiceFloor.fuseBox.y - 4f, 9f, Color(0x33F2C230))
+                        dot(SceneLayout.fuseBox.center, 9f, Color(0x33F2C230))
                         drawFuseBox(true)
-                        drawAlert(text, Point(ServiceFloor.fuseBox.x - 1f, ServiceFloor.fuseBox.y - 12f), clock)
+                        drawAlert(text, Point(SceneLayout.fuseBox.right, SceneLayout.fuseBox.top - 1.5f), clock)
                     }
                     // "Tap here": a pulsing ring around whatever the hint is talking about.
                     focus?.let { f ->
@@ -532,6 +532,7 @@ fun NightScene(
         night.activeChaos?.let { c ->
             val rect = when (c.kind) {
                 ChaosKind.PAN_FIRE -> SceneLayout.stove
+                ChaosKind.POWER_CUT -> Rect(SceneLayout.fuseBox.left - 6f, SceneLayout.fuseBox.top - 12f, SceneLayout.fuseBox.right + 6f, SceneLayout.HEIGHT)
                 else -> night.chaosSpot()!!.let { Rect(it.x - 7f, it.y - 7f, it.x + 7f, it.y + 5f) }
             }
             TapArea(rect, unit, origin, labels.chaos, onTapChaos)
@@ -1374,12 +1375,12 @@ private fun Pen.drawDog(at: Point, clock: Float) {
 
 /** The fuse box on the wall by the door; its little lever down (and a red light) when the power's out. */
 private fun Pen.drawFuseBox(out: Boolean) {
-    val c = ServiceFloor.fuseBox
-    box(c.x - 6f, c.y - 9f, 4.4f, 5.6f, Color(0xFF8D959C), radius = 0.4f)
-    box(c.x - 5.4f, c.y - 8.4f, 3.2f, 4.4f, Color(0xFF5E666C), radius = 0.3f)
-    val lever = if (out) c.y - 5.6f else c.y - 7.6f
-    box(c.x - 4.3f, lever, 1f, 1.6f, Color(0xFFE0E0E0), radius = 0.2f)
-    dot(c.x - 2.8f, c.y - 8f, 0.35f, if (out) Palette.alert else Color(0xFF4CAF50))
+    val f = SceneLayout.fuseBox
+    box(f, Color(0xFF8D959C), radius = 0.4f)
+    box(f.left + 0.6f, f.top + 0.6f, f.width - 1.2f, f.height - 1.2f, Color(0xFF5E666C), radius = 0.3f)
+    val lever = if (out) f.top + 3.4f else f.top + 1.4f
+    box(f.left + 1.7f, lever, 1f, 1.6f, Color(0xFFE0E0E0), radius = 0.2f)
+    dot(f.left + 3.2f, f.top + 1f, 0.35f, if (out) Palette.alert else Color(0xFF4CAF50))
 }
 
 /**
@@ -1542,7 +1543,7 @@ private fun Pen.drawHandlingChaos(at: Point, kind: ChaosKind, target: Point, pro
         }
         ChaosKind.POWER_CUT -> {
             // Reaching up to the fuse box and flipping the switch, with a torch glow.
-            val reach = Point(ServiceFloor.fuseBox.x - 3.8f, ServiceFloor.fuseBox.y - 6f)
+            val reach = SceneLayout.fuseBox.center
             line(at.x - 3f, at.y - 0.5f, reach.x, reach.y, sleeve, 1.3f)
             dot(reach, 0.9f, Palette.face)
             dot(reach.x, reach.y, 3.5f, Color(0x33FFE27A))

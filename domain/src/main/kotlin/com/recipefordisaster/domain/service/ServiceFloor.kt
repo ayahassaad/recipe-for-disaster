@@ -66,8 +66,8 @@ object ServiceFloor {
     /** Where drinks are poured: the bar end of the counter, between the chef and the tip jar. */
     val bar = FloorPoint(29f, 49f)
 
-    /** Where the fuse box is: on the wall by the door, for when the lights go out. */
-    val fuseBox = FloorPoint(8f, 128f)
+    /** Where you stand to reach the fuse box, on the front wall to the right of the door, clear of the tables. */
+    val fuseBox = FloorPoint(84f, 136f)
 
     /** Where you stand to fix the fridge: in front of the counter, below it. */
     val fridge = FloorPoint(60f, 49f)

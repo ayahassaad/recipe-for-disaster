@@ -58,6 +58,9 @@ object SceneLayout {
     val outside = Point(50f, 153f)
     val hiringSign = Rect(68f, 138f, 90f, 148f)
 
+    /** The fuse box, on the front wall to the right of the door (the hiring sign only goes up in the morning). */
+    val fuseBox = Rect(81.8f, 141f, 86.2f, 146.6f)
+
     /** Where each kind of worker stands in the morning (they spread out if there are several). */
     fun cookSpot(index: Int) = Point(16f + index * 18f, 32f)
     fun dishwasherSpot(index: Int) = Point(60f + index * 8f, 30f)
