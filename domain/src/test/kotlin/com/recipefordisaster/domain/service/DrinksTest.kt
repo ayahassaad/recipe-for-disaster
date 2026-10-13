@@ -125,12 +125,13 @@ class DrinksTest {
     }
 
     @Test
-    fun `a hired server takes, pours and brings drinks for tables left waiting`() {
+    fun `servers leave orders and drinks to you`() {
         val server = start.applicants.first().copy(role = com.recipefordisaster.domain.employee.Role.SERVER)
-        val n = waitFor(open(start.copy(employees = start.employees + server))) { night -> night.parties.any { it.stage == Stage.DRINKING } }
-        val drinking = n.parties.first { it.stage == Stage.DRINKING }
-        assertTrue(drinking.sippedFor > 0f)
-        assertTrue(n.player.drinkOrders.isEmpty())
+        var n = open(start.copy(employees = start.employees + server))
+        repeat(1_500) {
+            n = n.advance(0.05f)
+            assertTrue(n.parties.none { it.stage == Stage.DRINKING || it.stage == Stage.ORDER_TAKEN })
+        }
     }
 
     @Test

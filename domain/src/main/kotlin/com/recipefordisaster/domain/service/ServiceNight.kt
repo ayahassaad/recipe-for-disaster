@@ -860,7 +860,7 @@ data class ServiceNight(
                     updateWaiter { it.copy(hands = it.hands - HandItem.Plate(party.id)) }
                 } else if (party != null && party.id in waiter.drinks) {
                     night = night.serveDrinks(party.id, waiterId)
-                } else if ((waiter.kind == Kind.PLAYER || waiter.kind == Kind.RUNNER) && party != null && party.stage == Stage.WANTS_DRINKS) {
+                } else if (waiter.kind == Kind.PLAYER && party != null && party.stage == Stage.WANTS_DRINKS) {
                     // Their drinks order goes on the notepad; pour it at the bar.
                     updateWaiter { it.copy(drinkOrders = it.drinkOrders + party.id) }
                     night = night.updateParty(party.id) { it.copy(stage = Stage.DRINKS_ORDERED, stageSince = time, drinksOrderedAt = time, heldBy = waiterId) }
@@ -868,7 +868,7 @@ data class ServiceNight(
                     // Clear the table: its dirty plates go in one hand.
                     night = night.copy(dirtyTables = night.dirtyTables - errand.table, dirtiedAt = night.dirtiedAt - errand.table)
                     updateWaiter { it.copy(hands = it.hands + HandItem.DirtyDishes(errand.table)) }
-                } else if ((waiter.kind == Kind.PLAYER || waiter.kind == Kind.RUNNER) && party != null && party.stage == Stage.READY_TO_ORDER && errand.table in waiter.tables) {
+                } else if (waiter.kind == Kind.PLAYER && party != null && party.stage == Stage.READY_TO_ORDER && errand.table in waiter.tables) {
                     // Each guest has the first thing they like that the kitchen can still make, and its
                     // ingredients are set aside now — so nobody is told later that their food has run out.
                     var stock = night.inventory
@@ -1012,18 +1012,15 @@ data class ServiceNight(
                     }
                 }
                 else -> {
-                    // Food first, then drinks; when there's none to run, servers clear tables that have sat dirty a while.
+                    // Servers carry food out and clear tables; taking orders and drinks are left to you (and a bartender).
                     val claimed = night.waiters.flatMap { listOfNotNull(it.errand) + it.queue }.filterIsInstance<Errand.VisitTable>().map { it.table }.toSet()
                     val stale = night.dirtyTables.firstOrNull { it !in claimed && time - (night.dirtiedAt[it] ?: time) >= RUNNER_CLEAR_DELAY }
-                    // A table that's been waiting a while for someone to take its drinks order.
-                    val thirsty = night.parties.filter { it.stage == Stage.WANTS_DRINKS && it.table !in claimed && time - it.stageSince >= RUNNER_DELAY }
-                        .minByOrNull { it.stageSince }?.table
                     when {
                         waiter.plates.isNotEmpty() -> night.parties.first { it.id == waiter.plates.first() }.table?.let { Errand.Serve(it) }
+                        // (Anything to do with drinks a server already had in hand from before is still seen through.)
                         waiter.drinks.isNotEmpty() -> night.parties.first { it.id == waiter.drinks.first() }.table?.let { Errand.Serve(it) }
                         waiter.drinkOrders.isNotEmpty() && waiter.freeHands > 0 -> Errand.VisitBar
                         night.parties.any { it.stage == Stage.READY_AT_PASS && time - it.stageSince >= RUNNER_DELAY } && waiter.freeHands > 0 -> Errand.VisitPass
-                        thirsty != null && waiter.freeHands > 0 -> Errand.VisitTable(thirsty)
                         waiter.dirtyDishes.isNotEmpty() -> Errand.VisitDishStation
                         stale != null && waiter.freeHands > 0 -> Errand.VisitTable(stale)
                         else -> null
@@ -1196,7 +1193,7 @@ data class ServiceNight(
         private const val DRINKS_ALLOWANCE = 8f
 
         /** How long a table sits dirty before a server with nothing else to do clears it. */
-        private const val RUNNER_CLEAR_DELAY = 6f
+        private const val RUNNER_CLEAR_DELAY = 2f
         private const val GUEST_SPEED = 32f
         private const val PLAYER_SPEED = 60f
         private const val STAFF_SPEED = 42f
