@@ -1251,7 +1251,9 @@ data class ServiceNight(
             val spillsSettled = Progression.strength(state, Feature.SPILLS)
             val spillCount = if (later.isEmpty() || spillsSettled <= 0f) 0 else {
                 val usual = (parties.size / 6 + (if (state.restaurant.cleanliness < 50) 1 else 0)).coerceAtMost(dials.maxSpills)
-                kotlin.math.ceil(usual * spillsSettled).toInt().coerceAtMost(ServiceFloor.spillSpots.size)
+                // (On the first night of spills there's always one, as promised.)
+                val first = if (Progression.debutsToday(state, Feature.SPILLS)) 1 else 0
+                kotlin.math.ceil(usual * spillsSettled).toInt().coerceAtLeast(first).coerceAtMost(ServiceFloor.spillSpots.size)
             }
             val spots = ServiceFloor.spillSpots.shuffledWith(rng)
             val messes = (0 until spillCount).map { k ->
@@ -1326,9 +1328,11 @@ data class ServiceNight(
                 ChaosKind.POWER_CUT -> ServiceFloor.fuseBox
             }
             // The day each kind of trouble is first expected, it's sure to happen (the receipt warned you).
+            // So is the first night with two lots of trouble.
+            val doubleDebut = Progression.debutsToday(state, Feature.DOUBLE_TROUBLE)
             val debutTrouble = chaosKinds.firstOrNull { Progression.debutsToday(state, featureOf(it)) }
             val chaosRoll = rng.nextFloat()
-            val chaos = if (chaosKinds.isNotEmpty() && (chaosRoll < chaosChance || debutTrouble != null)) {
+            val chaos = if (chaosKinds.isNotEmpty() && (chaosRoll < chaosChance || debutTrouble != null || doubleDebut)) {
                 val kind = debutTrouble ?: chaosKinds[rng.nextInt(chaosKinds.size)]
                 val startsAt = 30f + rng.nextFloat() * 50f
                 Chaos(kind, chaosAt(kind), startsAt)
@@ -1359,7 +1363,8 @@ data class ServiceNight(
             val catTonight = rng.nextFloat() < Progression.strength(state, Feature.CAT) || Progression.debutsToday(state, Feature.CAT)
             // From day twenty-six, now and then a second thing goes wrong later in the night (rolled last of all).
             val otherKinds = chaosKinds.filter { it != chaos?.kind }
-            val laterChaos = if (chaos != null && otherKinds.isNotEmpty() && rng.nextFloat() < DOUBLE_TROUBLE_CHANCE * Progression.strength(state, Feature.DOUBLE_TROUBLE)) {
+            val doubleRoll = rng.nextFloat()
+            val laterChaos = if (chaos != null && otherKinds.isNotEmpty() && (doubleRoll < DOUBLE_TROUBLE_CHANCE * Progression.strength(state, Feature.DOUBLE_TROUBLE) || doubleDebut)) {
                 val kind = otherKinds[rng.nextInt(otherKinds.size)]
                 Chaos(kind, chaosAt(kind), chaos.startsAt + 40f + rng.nextFloat() * 30f)
             } else {

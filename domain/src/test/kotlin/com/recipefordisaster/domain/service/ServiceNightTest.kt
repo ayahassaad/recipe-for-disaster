@@ -662,6 +662,15 @@ class ServiceNightTest {
         open(start.copy(day = 6)).copy(chaos = Chaos(kind, at, startsAt = 5f))
 
     @Test
+    fun `the first night of spills has one, and the first night of double trouble has two`() {
+        (1L..20L).forEach { seed ->
+            assertTrue(open(noWashers.copy(day = 3), seed).messes.isNotEmpty())
+            val n = open(start.copy(day = 26), seed)
+            assertTrue(n.chaos != null && n.laterChaos != null)
+        }
+    }
+
+    @Test
     fun `each kind of trouble is sure to happen on the day it's first expected`() {
         mapOf(15 to ChaosKind.RAT, 18 to ChaosKind.DOG, 21 to ChaosKind.PAN_FIRE, 24 to ChaosKind.POWER_CUT).forEach { (day, kind) ->
             (1L..20L).forEach { seed -> assertEquals("day $day", kind, open(start.copy(day = day), seed).chaos?.kind) }
