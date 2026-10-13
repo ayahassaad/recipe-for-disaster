@@ -68,5 +68,5 @@ object SceneLayout {
     fun busserSpot(index: Int) = Point(22f - index * 8f, 49f)
 
     /** The host greets people just inside the door, beside where they queue. */
-    fun hostSpot(index: Int) = Point(66f + index * 8f, 134f)
+    fun hostSpot(index: Int) = Point(80f + index * 8f, 135f)
 }
