@@ -102,6 +102,10 @@ data class ServiceNight(
     val pickiness: Int = 0,
     /** A second thing going wrong later tonight, once the first is sorted (rolled when the doors open). */
     val laterChaos: Chaos? = null,
+    /** Whether the trouble going on now is tonight's second lot. */
+    val secondTrouble: Boolean = false,
+    /** Features the player has had explained so far (this game's, plus any explained tonight). */
+    val introduced: Set<Feature> = emptySet(),
 ) {
 
     /** What a guest was waiting for when they gave up. */
@@ -366,6 +370,29 @@ data class ServiceNight(
         else -> 0f
     }.coerceIn(0f, 1f)
 
+    /**
+     * Something turning up tonight for the very first time, that the player hasn't had explained yet:
+     * the screen pauses and explains it. Null when there's nothing new to explain.
+     */
+    fun introductionDue(): Feature? {
+        fun arriving(party: Party) = party.stage in Stage.QUEUEING..Stage.DECIDING
+        val now = buildList {
+            if (secondTrouble && activeChaos != null) add(Feature.DOUBLE_TROUBLE)
+            activeChaos?.let { add(featureOf(it.kind)) }
+            if (fridgeStruggling || (fridgeBrokeTonight && fridgeBroken)) add(Feature.FRIDGE_BREAKS)
+            if (messesOnFloor.isNotEmpty()) add(Feature.SPILLS)
+            parties.filter { arriving(it) }.forEach { party -> party.special?.let { add(featureOf(it)) } }
+            if (parties.any { it.family && arriving(it) }) add(Feature.FAMILIES)
+            if (parties.any { it.stage == Stage.WANTS_DRINKS }) add(Feature.DRINKS)
+            if (cat && time >= CAT_INTRODUCED_AFTER) add(Feature.CAT)
+            if (chefMood != ChefMood.NORMAL && parties.any { it.stage == Stage.COOKING }) add(Feature.CHEF_MOODS)
+        }
+        return now.firstOrNull { it !in introduced }
+    }
+
+    /** The player has read about [feature]: it won't be explained again. */
+    fun introduce(feature: Feature): ServiceNight = copy(introduced = introduced + feature)
+
     // ------------------------------------------------------------ the player's commands
 
     /** Go to a table: take their order if they're ready, or serve them if you're carrying their food. */
@@ -535,7 +562,7 @@ data class ServiceNight(
     private fun chaosStep(): ServiceNight {
         // Once the first trouble is over, the second one (if there is one) is next.
         val next = laterChaos
-        if (next != null && chaos?.resolved == true && time >= next.startsAt) return copy(chaos = next, laterChaos = null)
+        if (next != null && chaos?.resolved == true && time >= next.startsAt) return copy(chaos = next, laterChaos = null, secondTrouble = true)
         val c = activeChaos ?: return this
         val limit = c.lastsAtMost ?: return this
         return if (time - c.startsAt >= limit) copy(chaos = c.copy(resolved = true)) else this
@@ -1101,6 +1128,9 @@ data class ServiceNight(
         /** Seconds to chase out the rat, put out the fire, lead the dog out or flip the fuses. */
         private const val HANDLE_CHAOS = 3f
 
+        /** How long into the night the cat has to be about before it's introduced (so it's on screen by then). */
+        private const val CAT_INTRODUCED_AFTER = 3f
+
         /** Once two disasters a night are possible, about this share of nights with one get a second. */
         private const val DOUBLE_TROUBLE_CHANCE = 0.35f
 
@@ -1392,6 +1422,7 @@ data class ServiceNight(
                 chaos = chaos,
                 cat = catTonight,
                 laterChaos = laterChaos,
+                introduced = state.introductionsSeen,
                 fridgeBroken = fridgeBrokenAtOpen,
                 hosted = state.employees.any { it.status == EmployeeStatus.ACTIVE && it.role == Role.HOST },
             )

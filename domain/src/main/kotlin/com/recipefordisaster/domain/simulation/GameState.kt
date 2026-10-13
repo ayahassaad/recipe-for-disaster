@@ -65,6 +65,8 @@ data class GameState(
      * from before then, until it's loaded.
      */
     val featuresMetEarly: Set<com.recipefordisaster.domain.progression.Feature>? = null,
+    /** Features the player has had explained to them (the pop-up the first time each one appears). */
+    val introductionsSeen: Set<com.recipefordisaster.domain.progression.Feature> = emptySet(),
 )
 
 @Serializable

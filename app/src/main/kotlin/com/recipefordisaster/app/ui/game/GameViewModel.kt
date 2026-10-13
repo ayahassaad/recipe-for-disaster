@@ -199,7 +199,9 @@ class GameViewModel(
         val session = current.night ?: return
         viewModelScope.launch {
             val result = dayTickEngine.closeService(session.setup, finalNight.result(), SeededRandomSource(session.dailySeed + 2))
+            // Whatever was explained tonight stays explained.
             val newState = com.recipefordisaster.domain.equipment.Fridge.ensure(result.newState)
+                .let { it.copy(introductionsSeen = it.introductionsSeen + finalNight.introduced) }
             gameRepository.save(newState)
             gameRepository.clearNight()
             // Days this restaurant has made it through so far, towards the best run.
