@@ -299,7 +299,7 @@ fun NightScene(
                                         val handsPen = if (child) around(Point(sitAt.x, sitAt.y + 3.6f), CHILD_SIZE) else this
                                         val sleeve = guestSleeve(party, g, guest)
                                         when (hands) {
-                                            Hands.WATCH -> drawWatchCheck(seat, clock, Palette.guestColors[guest % Palette.guestColors.size])
+                                            Hands.WATCH -> handsPen.drawWatchCheck(sitAt, clock, sleeve)
                                             Hands.SIP -> drawSip(sitAt, drink, child)
                                             Hands.MENU -> handsPen.drawMenuCard(sitAt, clock + guest, sleeve)
                                             Hands.PHONE -> handsPen.drawPhone(sitAt, clock, sleeve)
@@ -1218,7 +1218,7 @@ private enum class Hands {
     NONE, MENU, PHONE, WATCH, SIP;
 
     companion object {
-        val WITH_ARMS = setOf(MENU, PHONE)
+        val WITH_ARMS = setOf(MENU, PHONE, WATCH)
     }
 }
 
@@ -1255,10 +1255,9 @@ private const val WATCH_FROM = 0.45f
 
 /** A guest lifting their wrist to look at their watch, with a little ticking clock over their head. */
 private fun Pen.drawWatchCheck(seat: Point, clock: Float, sleeve: Color) {
-    // Forearm raised across the chest, the watch face towards them.
-    val wrist = Point(seat.x + 1.6f, seat.y + 0.4f)
-    line(seat.x - 3.4f, seat.y + 2.6f, wrist.x, wrist.y, sleeve.copy(red = sleeve.red * 0.82f, green = sleeve.green * 0.82f, blue = sleeve.blue * 0.82f), 1.9f)
-    dot(wrist.x + 0.9f, wrist.y - 0.2f, 0.85f, Palette.face)
+    // One arm raised across the chest, the watch face towards them; the other hanging at their side.
+    val wrist = Point(seat.x + 1.6f, seat.y + 0.6f)
+    drawArmsTo(seat, Point(wrist.x + 0.9f, wrist.y - 0.2f), Point(seat.x + 4.4f, seat.y + 4.2f), sleeve)
     dot(wrist.x, wrist.y, 0.75f, Palette.gold)
     dot(wrist.x, wrist.y, 0.5f, Color.White)
     // The clock bubble.
