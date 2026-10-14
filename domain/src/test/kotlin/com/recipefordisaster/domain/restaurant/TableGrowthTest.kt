@@ -81,4 +81,11 @@ class TableGrowthTest {
         val rng = SeededRandomSource(9L)
         repeat(500) { assertTrue(com.recipefordisaster.domain.customer.CustomerFlow.generateCustomer(rng, it).budget >= cheapest) }
     }
+
+    @Test
+    fun `a bad night costs a famous restaurant more, a good one the same`() {
+        val bad = ReputationModel.dailyReputationDelta(averageSatisfaction = 20, cleanliness = 80, day = 10, reputation = 50)
+        assertTrue(ReputationModel.dailyReputationDelta(20, 80, day = 10, reputation = 90) < bad)
+        assertEquals(ReputationModel.dailyReputationDelta(90, 80, day = 10, reputation = 50), ReputationModel.dailyReputationDelta(90, 80, day = 10, reputation = 90))
+    }
 }

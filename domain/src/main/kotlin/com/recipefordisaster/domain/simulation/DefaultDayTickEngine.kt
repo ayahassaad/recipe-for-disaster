@@ -134,7 +134,7 @@ class DefaultDayTickEngine(
         } else {
             reviewers.map { it.satisfaction }.average().toInt()
         }
-        val reputationDelta = ReputationModel.dailyReputationDelta(averageSatisfaction, start.restaurant.cleanliness, state.day)
+        val reputationDelta = ReputationModel.dailyReputationDelta(averageSatisfaction, start.restaurant.cleanliness, state.day, start.restaurant.reputation)
 
         val financials = DailyFinancialsCalculator.calculate(
             day = state.day,
