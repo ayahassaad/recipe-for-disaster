@@ -14,6 +14,7 @@ internal fun Pen.drawDish(dish: DishId?, at: Point, left: Float = 1f) {
         "the_regular_burger" -> drawBurger(at, s)
         "mystery_soup" -> drawSoup(at, s)
         "suspicious_salad" -> drawSalad(at, s)
+        "fries_of_destiny" -> drawFries(at, s)
         else -> drawSomeFood(at, left, s)
     }
 }
@@ -46,6 +47,21 @@ private fun Pen.drawSalad(at: Point, s: Float) {
     oval(at.x - 0.3f * s, at.y - 0.1f * s, 0.5f * s, 0.35f * s, pale)
     dot(at.x + 0.6f * s, at.y - 0.1f * s, 0.38f * s, Color(0xFFD94B3B)) // tomato
     for ((dx, dy) in listOf(-0.6f to -0.3f, 0.1f to 0.4f)) dot(at.x + dx * s, at.y + dy * s, 0.17f * s, Color(0xFFFFF6D8)) // cheese
+}
+
+/** Fries standing up in a little red carton. */
+private fun Pen.drawFries(at: Point, s: Float) {
+    val gold = Color(0xFFF2C230)
+    for (k in 0 until 5) {
+        val x = at.x - 0.8f * s + k * 0.4f * s
+        val top = at.y - (0.9f + (k % 2) * 0.3f) * s
+        line(x, at.y, x + (k - 2) * 0.08f, top, gold, 0.28f * s)
+    }
+    shape(Color(0xFFD94B3B)) {
+        moveTo(at.x - 1f * s, at.y - 0.2f * s); lineTo(at.x + 1f * s, at.y - 0.2f * s)
+        lineTo(at.x + 0.75f * s, at.y + 0.9f * s); lineTo(at.x - 0.75f * s, at.y + 0.9f * s); close()
+    }
+    dot(at.x, at.y + 0.35f * s, 0.22f * s, Color(0xFFFFF4DC)) // the logo
 }
 
 /** A helping of something golden with a bit of salad: for any dish without a look of its own. */
