@@ -421,11 +421,13 @@ private fun PersonSheet(person: Employee, uiState: GameUiState.Playing, actions:
     val isNew = person.id in plan.hires
     val leaving = person.id in plan.fires
     val resting = person.id in plan.restDays
+    val training = person.id in plan.training
     PersonLine(person) {
         val status = when {
             isNew -> stringResource(R.string.staff_new)
             leaving -> stringResource(R.string.staff_leaving)
             resting -> stringResource(R.string.staff_resting)
+            training -> stringResource(R.string.staff_training, com.recipefordisaster.domain.employee.Training.SKILL_BOOST)
             person.status == EmployeeStatus.SICK -> stringResource(R.string.staff_sick)
             person.stress >= 70 -> stringResource(R.string.staff_tired)
             else -> null
@@ -482,6 +484,7 @@ private fun PersonSheet(person: Employee, uiState: GameUiState.Playing, actions:
             isNew -> OutlinedButton(onClick = { actions.onToggleHire(person.id) }) { Text(stringResource(R.string.undo)) }
             leaving -> OutlinedButton(onClick = { actions.onToggleFire(person.id) }) { Text(stringResource(R.string.undo)) }
             resting -> OutlinedButton(onClick = { actions.onToggleRestDay(person.id) }) { Text(stringResource(R.string.undo)) }
+            training -> OutlinedButton(onClick = { actions.onToggleTraining(person.id) }) { Text(stringResource(R.string.undo)) }
             else -> {
                 if (person.status == EmployeeStatus.ACTIVE) {
                     // A day off is easy to undo, so it only asks when it would leave the kitchen empty.
@@ -493,6 +496,13 @@ private fun PersonSheet(person: Employee, uiState: GameUiState.Playing, actions:
                     Text(stringResource(R.string.staff_fire))
                 }
             }
+        }
+    }
+    // Something to spend on: a morning's training makes them better at the job for good.
+    if (!isNew && !leaving && !resting && !training && com.recipefordisaster.domain.employee.Training.canTrain(person)) {
+        val cost = com.recipefordisaster.domain.employee.Training.cost(person)
+        OutlinedButton(onClick = { actions.onToggleTraining(person.id) }, enabled = uiState.cashNow >= cost) {
+            Text(stringResource(R.string.staff_train, coins(cost)))
         }
     }
 }

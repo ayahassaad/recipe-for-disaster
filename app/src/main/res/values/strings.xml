@@ -190,6 +190,8 @@
     <string name="staff_sick">Off sick</string>
     <string name="staff_tired">Exhausted</string>
     <string name="staff_day_off">Day off</string>
+    <string name="staff_train">Train them (%1$s)</string>
+    <string name="staff_training">Training this morning: +%1$d skill</string>
     <string name="staff_fire">Let go</string>
     <string name="mood_happy">%1$s looks happy</string>
     <string name="mood_ok">%1$s looks okay</string>

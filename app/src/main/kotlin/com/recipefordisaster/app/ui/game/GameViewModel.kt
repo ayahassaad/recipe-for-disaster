@@ -274,9 +274,12 @@ class GameViewModel(
     fun toggleHire(id: EmployeeId) = editPlan { it.copy(hires = it.hires.toggle(id)) }
 
     /** Firing and resting the same person are mutually exclusive, so choosing one clears the other. */
-    fun toggleFire(id: EmployeeId) = editPlan { it.copy(fires = it.fires.toggle(id), restDays = it.restDays - id) }
+    fun toggleFire(id: EmployeeId) = editPlan { it.copy(fires = it.fires.toggle(id), restDays = it.restDays - id, training = it.training - id) }
 
-    fun toggleRestDay(id: EmployeeId) = editPlan { it.copy(restDays = it.restDays.toggle(id), fires = it.fires - id) }
+    fun toggleRestDay(id: EmployeeId) = editPlan { it.copy(restDays = it.restDays.toggle(id), fires = it.fires - id, training = it.training - id) }
+
+    /** Training happens in the morning, so it can't go with a day off or being let go. */
+    fun toggleTraining(id: EmployeeId) = editPlan { it.copy(training = it.training.toggle(id), restDays = it.restDays - id, fires = it.fires - id) }
 
     fun toggleRepair(id: EquipmentId) = editPlan { it.copy(repairs = it.repairs.toggle(id)) }
     fun toggleUpgrade(id: EquipmentId) = editPlan { it.copy(upgrades = it.upgrades.toggle(id)) }
