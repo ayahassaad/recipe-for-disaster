@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">Recipe for Disaster</string>
 
     <!-- Start screen -->
@@ -45,8 +45,8 @@
     <string name="hint_alerts">Tap anything with a red ! to sort it out</string>
     <string name="hint_ready">All ready. Open the doors!</string>
     <string name="tonight_takings">Tonight %1$s</string>
-    <string name="hint_take_order">Table %1$d wants to order. Tap the table.</string>
-    <string name="hint_take_drinks">Table %1$d would like drinks. Tap the table.</string>
+    <string name="hint_take_order" tools:ignore="PluralsCandidate">Table %1$d wants to order. Tap the table.</string>
+    <string name="hint_take_drinks" tools:ignore="PluralsCandidate">Table %1$d would like drinks. Tap the table.</string>
     <string name="hint_pour_drinks">Tap the bar to pour the drinks.</string>
     <string name="hint_pouring">Pouring the drinks…</string>
     <string name="hint_serve_drinks">Take the drinks to table %1$d. Tap the table.</string>
@@ -55,7 +55,7 @@
     <string name="hint_pick_up">Table %1$d\'s food is ready. Tap the plate.</string>
     <string name="hint_serve">Take the food to table %1$d. Tap the table.</string>
     <string name="hint_door_waiting">Guests are waiting at the door! Clear table %1$d so they can sit.</string>
-    <string name="hint_clear">Table %1$d needs clearing. Tap it to pick up the dirty plates.</string>
+    <string name="hint_clear" tools:ignore="PluralsCandidate">Table %1$d needs clearing. Tap it to pick up the dirty plates.</string>
     <string name="hint_wash">Take the dirty plates to the dish station (top right).</string>
     <string name="hint_washing">Washing up…</string>
     <string name="hint_get_mop">Someone spilled! Tap the mop bucket, then tap the spill.</string>
@@ -151,21 +151,21 @@
     <string name="bill_lost">Today you lost</string>
     <string name="bill_fed">Guests fed</string>
     <string name="bill_fed_value">%1$d of %2$d</string>
-    <string name="bill_hungry_kitchen">%1$d went hungry (too few cooks)</string>
-    <string name="bill_hungry_stock">%1$d went hungry (out of food)</string>
-    <string name="bill_walked_out">%1$d walked out (nothing for them)</string>
-    <string name="bill_gave_up">%1$d gave up waiting</string>
-    <string name="bill_gave_up_table">%1$d gave up waiting for a table</string>
-    <string name="bill_gave_up_order">%1$d gave up waiting to order</string>
-    <string name="bill_gave_up_drinks">%1$d gave up waiting for drinks</string>
-    <string name="bill_gave_up_food">%1$d gave up waiting for food</string>
-    <string name="tip_table">%1$d left with no table free. Clear tables as soon as guests leave.</string>
-    <string name="tip_order">%1$d left before you took their order. Get to tables with a ? sooner.</string>
-    <string name="tip_food">%1$d left waiting for food. Pick plates up from the counter quickly.</string>
-    <string name="tip_drinks">%1$d left waiting for drinks. Take drinks orders, then tap the bar to pour them.</string>
-    <string name="tip_stock">%1$d went hungry because food ran out. Restock the pantry.</string>
-    <string name="tip_menu">%1$d found nothing on the menu for them. Try cheaper or different dishes.</string>
-    <string name="tip_cooks">%1$d went hungry because the kitchen couldn\'t keep up. Hire a cook.</string>
+    <string name="bill_hungry_kitchen" tools:ignore="PluralsCandidate">%1$d went hungry (too few cooks)</string>
+    <string name="bill_hungry_stock" tools:ignore="PluralsCandidate">%1$d went hungry (out of food)</string>
+    <string name="bill_walked_out" tools:ignore="PluralsCandidate">%1$d walked out (nothing for them)</string>
+    <string name="bill_gave_up" tools:ignore="PluralsCandidate">%1$d gave up waiting</string>
+    <string name="bill_gave_up_table" tools:ignore="PluralsCandidate">%1$d gave up waiting for a table</string>
+    <string name="bill_gave_up_order" tools:ignore="PluralsCandidate">%1$d gave up waiting to order</string>
+    <string name="bill_gave_up_drinks" tools:ignore="PluralsCandidate">%1$d gave up waiting for drinks</string>
+    <string name="bill_gave_up_food" tools:ignore="PluralsCandidate">%1$d gave up waiting for food</string>
+    <string name="tip_table" tools:ignore="PluralsCandidate">%1$d left with no table free. Clear tables as soon as guests leave.</string>
+    <string name="tip_order" tools:ignore="PluralsCandidate">%1$d left before you took their order. Get to tables with a ? sooner.</string>
+    <string name="tip_food" tools:ignore="PluralsCandidate">%1$d left waiting for food. Pick plates up from the counter quickly.</string>
+    <string name="tip_drinks" tools:ignore="PluralsCandidate">%1$d left waiting for drinks. Take drinks orders, then tap the bar to pour them.</string>
+    <string name="tip_stock" tools:ignore="PluralsCandidate">%1$d went hungry because food ran out. Restock the pantry.</string>
+    <string name="tip_menu" tools:ignore="PluralsCandidate">%1$d found nothing on the menu for them. Try cheaper or different dishes.</string>
+    <string name="tip_cooks" tools:ignore="PluralsCandidate">%1$d went hungry because the kitchen couldn\'t keep up. Hire a cook.</string>
     <string name="bill_reputation">Reputation</string>
     <string name="bill_details_show">Show the full bill</string>
     <string name="bill_earned">Meals sold</string>
@@ -284,7 +284,7 @@
     <string name="upgrade_buy">Buy a %1$s (%2$s)</string>
     <string name="upgrade_ordered">A new %1$s is going in this morning.</string>
     <string name="upgrade_best">This is the best oven money can buy.</string>
-    <string name="meter_value">%1$s %2$d out of 100</string>
+    <string name="meter_value" tools:ignore="PluralsCandidate">%1$s %2$d out of 100</string>
 
     <!-- Game over -->
     <string name="final_title">Final bill</string>
@@ -298,7 +298,7 @@
     <string name="game_back_to_start">Back to start</string>
     <string name="menu_button">Menu</string>
     <string name="stars_title">Your stars</string>
-    <string name="stars_body">Your reputation is %1$d out of 100. More stars bring more guests every night.\n\nStars go up when guests leave happy: good food, fair prices and quick service.\n\nThey go down when guests wait too long, go hungry, or the place is dirty. Bad reviews and inspections can knock them down too.</string>
+    <string name="stars_body" tools:ignore="PluralsCandidate">Your reputation is %1$d out of 100. More stars bring more guests every night.\n\nStars go up when guests leave happy: good food, fair prices and quick service.\n\nThey go down when guests wait too long, go hungry, or the place is dirty. Bad reviews and inspections can knock them down too.</string>
     <string name="costs_title">What it costs each day</string>
     <string name="costs_wage">%1$s\'s wage</string>
     <plurals name="costs_rent">
