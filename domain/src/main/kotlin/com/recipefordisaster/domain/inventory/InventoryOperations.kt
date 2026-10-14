@@ -37,13 +37,21 @@ object InventoryOperations {
      */
     fun applySpoilage(inventory: InventoryState, coldSpoilsFaster: Boolean = false): InventoryState {
         val updated = inventory.ingredients.mapValues { (_, ingredient) ->
-            // With the fridge broken, the cold stuff goes off three times as fast.
-            val rate = if (coldSpoilsFaster && com.recipefordisaster.domain.equipment.Fridge.isCold(ingredient)) (ingredient.spoilageRatePerDay * 3).coerceAtMost(1.0) else ingredient.spoilageRatePerDay
+            // With the fridge broken, the cold stuff goes off three times as fast, and the most perishable
+            // (the fish) doesn't last the night at all.
+            val rate = when {
+                !coldSpoilsFaster || !com.recipefordisaster.domain.equipment.Fridge.isCold(ingredient) -> ingredient.spoilageRatePerDay
+                ingredient.spoilageRatePerDay >= VERY_PERISHABLE -> 1.0
+                else -> (ingredient.spoilageRatePerDay * 3).coerceAtMost(1.0)
+            }
             val spoiled = ingredient.quantityOnHand * rate
             ingredient.copy(quantityOnHand = (ingredient.quantityOnHand - spoiled).coerceAtLeast(0.0))
         }
         return inventory.copy(ingredients = updated)
     }
+
+    /** Ingredients that go off this fast a day are gone by morning without a working fridge. */
+    const val VERY_PERISHABLE = 0.12
 
     fun totalStorageUsed(inventory: InventoryState): Double =
         inventory.ingredients.values.sumOf { it.quantityOnHand * it.storageSpaceRequired }

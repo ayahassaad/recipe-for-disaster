@@ -63,4 +63,13 @@ class InventoryOperationsTest {
         val cheeseRemaining = after.ingredients.getValue(cheese).quantityOnHand
         assertTrue(cheeseRemaining < flourRemaining)
     }
+
+    @Test
+    fun `with the fridge broken the fish is gone by morning, and other cold food goes off faster`() {
+        val start = com.recipefordisaster.domain.simulation.NewGameFactory.create(seed = 1L).inventory
+        val stocked = start.copy(ingredients = start.ingredients.mapValues { (_, i) -> i.copy(quantityOnHand = 10.0) })
+        val after = InventoryOperations.applySpoilage(stocked, coldSpoilsFaster = true).ingredients
+        assertEquals(0.0, after.getValue(com.recipefordisaster.domain.menu.RecipeBook.FISH).quantityOnHand, 0.001)
+        assertTrue(after.getValue(com.recipefordisaster.domain.menu.RecipeBook.CHEESE).quantityOnHand > 0.0)
+    }
 }
