@@ -91,4 +91,13 @@ class DifficultyTest {
         assertEquals(0f, share(8, com.recipefordisaster.domain.event.Severity.SEVERE), 0.001f)
         assertEquals(1f, share(20, com.recipefordisaster.domain.event.Severity.SEVERE), 0.001f)
     }
+
+    @Test
+    fun `a popular restaurant gets busier`() {
+        fun gap(reputation: Int) = Difficulty.dials(start.copy(day = 20, restaurant = start.restaurant.copy(reputation = reputation))).arrivalGap
+        assertEquals(gap(40), gap(60), 0.001f)
+        assertTrue(gap(80) < gap(60))
+        assertTrue(gap(100) < gap(80))
+        assertTrue(gap(100) >= gap(60) * 0.75f - 0.001f)
+    }
 }

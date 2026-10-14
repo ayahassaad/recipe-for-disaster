@@ -64,7 +64,8 @@ object Difficulty {
         val chaosAlong = ((state.day - CHAOS_FROM).toFloat() / (FULL_DAY - CHAOS_FROM)).coerceIn(0f, 1f)
         return Dials(
             patience = lerp(1.25f, 0.85f, p),
-            arrivalGap = lerp(1.25f, 0.85f, p),
+            // A popular restaurant is a busy one: the more stars, the faster guests come through the door.
+            arrivalGap = lerp(1.25f, 0.85f, p) * starRush(state.restaurant.reputation),
             // Something going wrong is half as likely on a quieter night.
             chaosChance = (CHAOS_START + (CHAOS_FULL - CHAOS_START) * chaosAlong) * (if (breather(state)) 0.5f else 1f),
             maxSpills = when {
@@ -94,6 +95,12 @@ object Difficulty {
         if (Progression.has(state, Feature.RAT) && state.day < Feature.RAT.day) return 1f
         return ((state.day - from + 1).toFloat() / Progression.RAMP_DAYS).coerceIn(0f, 1f)
     }
+
+    /** Above three stars, guests come in closer together: up to a quarter sooner at five stars. */
+    fun starRush(reputation: Int): Float = 1f - 0.25f * ((reputation - STARS_FROM) / (100f - STARS_FROM)).coerceIn(0f, 1f)
+
+    /** Where stars start to make the night harder. */
+    private const val STARS_FROM = 60
 
     /** A well-known restaurant draws guests who expect a lot: a little pickier at four stars, more at four and a half. */
     private fun starPickiness(reputation: Int) = when {
