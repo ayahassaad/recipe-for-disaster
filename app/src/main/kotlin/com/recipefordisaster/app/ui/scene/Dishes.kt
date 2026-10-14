@@ -17,6 +17,7 @@ internal fun Pen.drawDish(dish: DishId?, at: Point, left: Float = 1f) {
         "fries_of_destiny" -> drawFries(at, s)
         "existential_omelette" -> drawOmelette(at, s)
         "lasagna_situation" -> drawLasagna(at, s)
+        "fish_of_uncertain_origin" -> drawFish(at, s)
         else -> drawSomeFood(at, left, s)
     }
 }
@@ -85,6 +86,16 @@ private fun Pen.drawLasagna(at: Point, s: Float) {
     for (k in 0..1) box(at.x - w / 2, at.y - h / 2 + (0.45f + k * 0.6f) * s, w, 0.28f * s, Color(0xFFB8452F), radius = 0.1f) // sauce
     box(at.x - w / 2, at.y - h / 2, w, 0.4f * s, Color(0xFFFFE08A), radius = 0.2f) // cheese
     dot(at.x + 0.6f * s, at.y - h / 2 + 0.2f * s, 0.18f * s, Color(0xFFD9772F)) // a browned bit
+}
+
+/** A whole fish, eye and all, with a wedge of lemon. */
+private fun Pen.drawFish(at: Point, s: Float) {
+    val body = Color(0xFF9DB3C0)
+    oval(at.x - 0.2f * s, at.y, 1.3f * s, 0.65f * s, body)
+    shape(body) { moveTo(at.x + 0.9f * s, at.y); lineTo(at.x + 1.7f * s, at.y - 0.6f * s); lineTo(at.x + 1.7f * s, at.y + 0.6f * s); close() } // tail
+    line(at.x - 0.3f * s, at.y - 0.45f * s, at.x - 0.3f * s, at.y + 0.45f * s, Color(0x337A8C96), 0.15f) // gill
+    dot(at.x - 0.9f * s, at.y - 0.15f * s, 0.14f * s, Palette.ink) // eye
+    shape(Color(0xFFF2D44A)) { moveTo(at.x - 0.2f, at.y + 0.9f); lineTo(at.x + 0.8f, at.y + 0.9f); lineTo(at.x + 0.3f, at.y + 1.6f); close() } // lemon
 }
 
 /** A helping of something golden with a bit of salad: for any dish without a look of its own. */
