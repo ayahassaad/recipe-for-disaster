@@ -421,6 +421,7 @@ internal fun sceneModelFor(state: GameState, advice: List<Advice>, hiringOpen: B
         staff = working.map { StaffFigure(it.id, it.name, it.role, it.morale, it.stress) },
         chefMood = com.recipefordisaster.domain.service.ChefMood.of(state),
         barOpen = com.recipefordisaster.domain.progression.Progression.has(state, com.recipefordisaster.domain.progression.Feature.DRINKS),
+        decorations = state.decorations,
         fuseBox = com.recipefordisaster.domain.progression.Progression.has(state, com.recipefordisaster.domain.progression.Feature.POWER_CUT),
         // The mop comes out with the spills, or sooner if the floor needs a clean in the morning.
         mopOut = com.recipefordisaster.domain.progression.Progression.has(state, com.recipefordisaster.domain.progression.Feature.SPILLS) || SceneTarget.Mop in alerts,

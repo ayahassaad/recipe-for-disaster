@@ -179,6 +179,8 @@ internal fun Pen.drawRoom(
     aisles: List<Float> = listOf(50f),
     /** Whether the bar is open yet (it only goes in once drinks arrive). */
     bar: Boolean = true,
+    /** What the player has bought to make the room nicer. */
+    decorations: Set<com.recipefordisaster.domain.restaurant.Decoration> = emptySet(),
 ) {
     drawRect(Palette.wall, topLeft = p(0f, 0f), size = Size(u(SceneLayout.WIDTH), u(SceneLayout.HEIGHT)))
 
@@ -276,6 +278,7 @@ internal fun Pen.drawRoom(
         dot(door.center.x - 1.4f, door.center.y, 0.6f, Palette.gold)
         dot(door.center.x + 1.4f, door.center.y, 0.6f, Palette.gold)
     }
+    drawDecorations(decorations, time)
 }
 
 private val STAIN_SPOTS = listOf(

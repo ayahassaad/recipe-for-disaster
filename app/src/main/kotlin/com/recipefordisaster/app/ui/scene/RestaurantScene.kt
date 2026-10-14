@@ -74,6 +74,8 @@ data class SceneModel(
     val fridgeLevel: Int = 1,
     /** The restaurant's name, for the sign over the door. */
     val name: String = "",
+    /** What the player has bought to make the dining room nicer. */
+    val decorations: Set<com.recipefordisaster.domain.restaurant.Decoration> = emptySet(),
     /** Whether the bar is open (drinks have arrived): before then it isn't there at all. */
     val barOpen: Boolean = true,
     /** Whether the fuse box is on the wall: only once the power can go out. */
@@ -145,7 +147,7 @@ fun RestaurantScene(
             val pen = Pen(this, unit, origin)
             val time = clock
             with(pen) {
-                drawRoom(model.cleanliness, doorOpen = 0f, time = time, name = model.name, text = text, aisles = ServiceFloor.layout(model.tableCount).aisles, bar = model.barOpen)
+                drawRoom(model.cleanliness, doorOpen = 0f, time = time, name = model.name, text = text, aisles = ServiceFloor.layout(model.tableCount).aisles, bar = model.barOpen, decorations = model.decorations)
                 drawOven(model.ovenCondition, time, model.ovenOnFire, model.ovenLevel)
                 drawStove(false, time)
                 drawFridge(model.fridgeCondition, broken = model.fridgeCondition <= 0, struggling = false, level = model.fridgeLevel, time = time)
