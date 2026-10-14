@@ -16,6 +16,7 @@ internal fun Pen.drawDish(dish: DishId?, at: Point, left: Float = 1f) {
         "suspicious_salad" -> drawSalad(at, s)
         "fries_of_destiny" -> drawFries(at, s)
         "existential_omelette" -> drawOmelette(at, s)
+        "lasagna_situation" -> drawLasagna(at, s)
         else -> drawSomeFood(at, left, s)
     }
 }
@@ -74,6 +75,16 @@ private fun Pen.drawOmelette(at: Point, s: Float) {
     }
     shape(Color(0xFFE2B33C), stroke = 0.18f) { moveTo(at.x - 1.2f * s, at.y + 0.1f * s); quadTo(at.x, at.y - 0.9f * s, at.x + 1.2f * s, at.y + 0.1f * s) } // the fold
     for ((dx, dy) in listOf(-0.5f to -0.4f, 0.3f to -0.6f, 0.7f to -0.1f)) dot(at.x + dx * s, at.y + dy * s, 0.13f * s, Color(0xFF4E8A3A))
+}
+
+/** A square slice of lasagna: layers of pasta and sauce, melted cheese on top. */
+private fun Pen.drawLasagna(at: Point, s: Float) {
+    val w = 2.4f * s
+    val h = 1.8f * s
+    box(at.x - w / 2, at.y - h / 2, w, h, Color(0xFFF0C45C), radius = 0.2f) // pasta
+    for (k in 0..1) box(at.x - w / 2, at.y - h / 2 + (0.45f + k * 0.6f) * s, w, 0.28f * s, Color(0xFFB8452F), radius = 0.1f) // sauce
+    box(at.x - w / 2, at.y - h / 2, w, 0.4f * s, Color(0xFFFFE08A), radius = 0.2f) // cheese
+    dot(at.x + 0.6f * s, at.y - h / 2 + 0.2f * s, 0.18f * s, Color(0xFFD9772F)) // a browned bit
 }
 
 /** A helping of something golden with a bit of salad: for any dish without a look of its own. */
