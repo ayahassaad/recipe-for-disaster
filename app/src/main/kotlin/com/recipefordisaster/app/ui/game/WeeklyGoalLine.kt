@@ -29,14 +29,19 @@ import com.recipefordisaster.domain.goal.WeeklyGoal
 internal fun WeeklyGoalLine(goal: WeeklyGoal, day: Int, modifier: Modifier = Modifier) {
     val daysLeft = (goal.lastDay - day + 1).coerceAtLeast(1)
     val what = when (goal.kind) {
-        GoalKind.TAKINGS -> stringResource(R.string.goal_takings, coins(goal.target), coins(goal.progress))
-        GoalKind.GUESTS_FED -> stringResource(R.string.goal_guests, goal.target.toInt(), goal.progress.toInt())
-        GoalKind.STARS -> stringResource(R.string.goal_stars, stars(goal.target), stars(goal.progress))
+        GoalKind.TAKINGS -> stringResource(R.string.goal_takings, coins(goal.target))
+        GoalKind.GUESTS_FED -> stringResource(R.string.goal_guests, goal.target.toInt())
+        GoalKind.STARS -> stringResource(R.string.goal_stars, stars(goal.target))
+    }
+    val sofar = when (goal.kind) {
+        GoalKind.TAKINGS -> stringResource(R.string.goal_so_far, coins(goal.progress))
+        GoalKind.GUESTS_FED -> stringResource(R.string.goal_so_far, goal.progress.toString())
+        GoalKind.STARS -> stringResource(R.string.goal_now, stars(goal.progress))
     }
     val left = if (daysLeft == 1) stringResource(R.string.goal_last_day) else pluralStringResource(R.plurals.goal_days_left, daysLeft, daysLeft)
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            stringResource(R.string.goal_line, what, left, coins(goal.reward)),
+            stringResource(R.string.goal_line, what, coins(goal.reward)),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
@@ -52,6 +57,14 @@ internal fun WeeklyGoalLine(goal: WeeklyGoal, day: Int, modifier: Modifier = Mod
         ) {
             Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(fraction).background(LeafGreen))
         }
+        Text(
+            stringResource(R.string.goal_progress, sofar, left),
+            style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+        )
     }
 }
 
