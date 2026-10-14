@@ -88,4 +88,12 @@ class TableGrowthTest {
         assertTrue(ReputationModel.dailyReputationDelta(20, 80, day = 10, reputation = 90) < bad)
         assertEquals(ReputationModel.dailyReputationDelta(90, 80, day = 10, reputation = 50), ReputationModel.dailyReputationDelta(90, 80, day = 10, reputation = 90))
     }
+
+    @Test
+    fun `the landlord charges a famous restaurant more rent`() {
+        val r = com.recipefordisaster.domain.simulation.NewGameFactory.create(seed = 1L).restaurant.copy(tables = 6)
+        assertEquals(r.operatingCosts.rentPerDay, r.copy(reputation = 50).costsToday.rentPerDay)
+        assertTrue(r.copy(reputation = 90).costsToday.rentPerDay > r.copy(reputation = 60).costsToday.rentPerDay)
+        assertEquals(r.operatingCosts.rentPerDay * 120 / 100, r.copy(reputation = 100).costsToday.rentPerDay)
+    }
 }

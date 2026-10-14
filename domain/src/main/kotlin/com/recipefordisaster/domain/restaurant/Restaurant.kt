@@ -33,9 +33,13 @@ data class Restaurant(
     /**
      * What the restaurant pays each day. Rent in [operatingCosts] is for a full six-table room; a
      * smaller room pays for what it uses (so a new restaurant isn't sunk by rent on empty floor),
-     * and every extra table bought adds to it.
+     * and every extra table bought adds to it. Once the place is famous, the landlord charges more
+     * for it: up to a fifth more at five stars.
      */
-    val costsToday: OperatingCosts get() = operatingCosts.copy(rentPerDay = operatingCosts.rentPerDay * tables / 6)
+    val costsToday: OperatingCosts get() = operatingCosts.copy(rentPerDay = operatingCosts.rentPerDay * tables / 6 * fameRent / 100)
+
+    /** The share of the usual rent charged for a place this well known, in percent. */
+    val fameRent: Int get() = 100 + ((reputation - FAMOUS_RENT_FROM).coerceAtLeast(0) / 2)
 }
 
 @Serializable
@@ -52,6 +56,9 @@ enum class RestaurantStatus {
     BANKRUPT,
     CONDEMNED,
 }
+
+/** Above this reputation (three stars), the rent goes up with the restaurant's fame. */
+const val FAMOUS_RENT_FROM = 60
 
 /** What a restaurant is called if the player never named it. */
 const val DEFAULT_NAME = "The Leaky Ladle"
