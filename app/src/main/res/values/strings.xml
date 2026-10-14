@@ -193,7 +193,7 @@
     <!-- %1$s is one of the goal_ lines below, %2$s the days left, %3$s the reward. -->
     <string name="goal_line">Goal: %1$s · %2$s · win %3$s</string>
     <string name="goal_takings">take %1$s (%2$s so far)</string>
-    <string name="goal_guests">feed %1$d guests (%2$d so far)</string>
+    <string name="goal_guests" tools:ignore="PluralsCandidate">feed %1$d guests (%2$d so far)</string>
     <string name="goal_stars">reach %1$s stars (now %2$s)</string>
     <string name="goal_last_day">last day</string>
     <string name="goal_reached">You reached this week\'s goal! Reward: %1$s</string>
@@ -210,7 +210,7 @@
     <string name="decor_owned">Yours</string>
     <string name="decor_buy">Buy (%1$s)</string>
     <string name="staff_train">Train them (%1$s)</string>
-    <string name="staff_training">Training this morning: +%1$d skill</string>
+    <string name="staff_training" tools:ignore="PluralsCandidate">Training this morning: +%1$d skill</string>
     <string name="staff_fire">Let go</string>
     <string name="mood_happy">%1$s looks happy</string>
     <string name="mood_ok">%1$s looks okay</string>
