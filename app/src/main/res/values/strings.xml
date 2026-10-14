@@ -375,6 +375,9 @@
     <string name="feature_inspector">the health inspector might visit. Keep the floor clean!</string>
     <string name="feature_power_cut">the power can cut out. Tap the fuse box by the door.</string>
     <string name="feature_double_trouble">some nights, two things will go wrong.</string>
+    <string name="menu_variety_more">A big menu: %1$d%% more guests come tonight.</string>
+    <string name="menu_variety_fewer">A small menu: %1$d%% fewer guests come tonight. Serve more dishes to draw more people.</string>
+    <string name="menu_variety_usual">More dishes on the menu bring more guests.</string>
     <string name="dish_note_burger">Takes a while to cook, but most guests are happy with it.</string>
     <string name="dish_note_soup">Cooks at an ordinary pace. Cheap, and free of every allergen.</string>
     <string name="dish_note_salad">The quickest dish to make: handy on a busy night.</string>

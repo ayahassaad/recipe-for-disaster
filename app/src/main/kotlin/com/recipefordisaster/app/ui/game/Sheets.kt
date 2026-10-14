@@ -207,6 +207,17 @@ private fun MenuSheet(uiState: GameUiState.Playing, actions: GameActions) {
     // Diets nothing on tonight's menu suits: guests with them read the menu at the door and leave.
     val serving = morning.menu.filter { it.available }
     val leftOut = DIETS_SHOWN.filter { diet -> serving.isNotEmpty() && serving.all { it.violates(diet) } }
+    // How the size of the menu changes how many guests come.
+    val variety = com.recipefordisaster.domain.customer.CustomerFlow.menuVarietyPercent(serving.size)
+    Text(
+        when {
+            variety > 0 -> stringResource(R.string.menu_variety_more, variety)
+            variety < 0 -> stringResource(R.string.menu_variety_fewer, -variety)
+            else -> stringResource(R.string.menu_variety_usual)
+        },
+        style = MaterialTheme.typography.bodyMedium,
+        color = if (variety < 0) DisasterRed else if (variety > 0) LeafGreen else MaterialTheme.colorScheme.onSurface,
+    )
     if (leftOut.isNotEmpty()) {
         Text(
             stringResource(R.string.menu_nothing_for, leftOut.map { dietLabel(it) }.joinToString(", ")),
