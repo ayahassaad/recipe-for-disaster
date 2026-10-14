@@ -100,4 +100,11 @@ class DifficultyTest {
         assertTrue(gap(100) < gap(80))
         assertTrue(gap(100) >= gap(60) * 0.75f - 0.001f)
     }
+
+    @Test
+    fun `guests at a famous restaurant are less patient`() {
+        fun patience(reputation: Int) = Difficulty.dials(start.copy(day = 20, restaurant = start.restaurant.copy(reputation = reputation))).patience
+        assertEquals(patience(30), patience(60), 0.001f)
+        assertTrue(patience(90) < patience(60))
+    }
 }

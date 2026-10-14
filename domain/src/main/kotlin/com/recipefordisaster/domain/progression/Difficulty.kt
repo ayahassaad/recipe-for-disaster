@@ -63,7 +63,8 @@ object Difficulty {
         val p = pressure(state)
         val chaosAlong = ((state.day - CHAOS_FROM).toFloat() / (FULL_DAY - CHAOS_FROM)).coerceIn(0f, 1f)
         return Dials(
-            patience = lerp(1.25f, 0.85f, p),
+            // ...and its guests are used to good service, so they won't wait as long for it.
+            patience = lerp(1.25f, 0.85f, p) * starPatience(state.restaurant.reputation),
             // A popular restaurant is a busy one: the more stars, the faster guests come through the door.
             arrivalGap = lerp(1.25f, 0.85f, p) * starRush(state.restaurant.reputation),
             // Something going wrong is half as likely on a quieter night.
@@ -98,6 +99,9 @@ object Difficulty {
 
     /** Above three stars, guests come in closer together: up to a quarter sooner at five stars. */
     fun starRush(reputation: Int): Float = 1f - 0.25f * ((reputation - STARS_FROM) / (100f - STARS_FROM)).coerceIn(0f, 1f)
+
+    /** Above three stars, guests are less patient: a fifth less at five stars. */
+    fun starPatience(reputation: Int): Float = 1f - 0.2f * ((reputation - STARS_FROM) / (100f - STARS_FROM)).coerceIn(0f, 1f)
 
     /** Where stars start to make the night harder. */
     private const val STARS_FROM = 60
