@@ -11,6 +11,7 @@ import com.recipefordisaster.domain.inventory.InventoryOperations
 import com.recipefordisaster.domain.inventory.InventoryState
 import com.recipefordisaster.domain.menu.Dish
 import com.recipefordisaster.domain.menu.DishId
+import com.recipefordisaster.domain.menu.RecipeBook
 import com.recipefordisaster.domain.menu.violates
 import com.recipefordisaster.domain.progression.Difficulty
 import com.recipefordisaster.domain.progression.Feature
@@ -187,6 +188,8 @@ data class ServiceNight(
         val sippedFor: Float = 0f,
         /** Whether they'll have a drink before their food (before the bar opens, nobody does). */
         val wantsDrinks: Boolean = true,
+        /** Each guest's favourite dish, by their index in [arrivalOrder] (not everyone has one). */
+        val favourites: Map<Int, DishId> = emptyMap(),
     ) {
         val seated: Boolean get() = stage in Stage.DECIDING..Stage.LEAVING_ANGRY
         val occupiesTable: Boolean get() = table != null && stage in Stage.WALKING_TO_TABLE..Stage.LEAVING_ANGRY
@@ -1424,9 +1427,12 @@ data class ServiceNight(
                 null
             }
 
+            // Who has a favourite dish (rolled after everything else, so nothing above changes).
+            val withFavourites = withFamilies.map { it.withFavourites((state.menu + RecipeBook.dishes).distinctBy { d -> d.id }, rng) }
+
             return ServiceNight(
                 time = 0f,
-                parties = withFamilies,
+                parties = withFavourites,
                 chefMood = ChefMood.of(state),
                 pickiness = dials.pickiness,
                 chefLuck = chefLuck,
@@ -1496,6 +1502,32 @@ data class ServiceNight(
         }
 
         private const val AVERAGE_PARTY = 1.67f
+
+        /** About this share of ordinary guests have a favourite dish. */
+        private const val FAVOURITE_SHARE = 0.6f
+
+        /**
+         * Gives each guest in the party a favourite, out of every dish there is (on the menu or not):
+         * children love fries, the critic wants the fish, the celebrity the lasagna, and most other
+         * guests have one of their own. If their favourite is on tonight's menu, it's what they'll order.
+         */
+        private fun Party.withFavourites(dishes: List<Dish>, rng: RandomSource): Party {
+            fun known(id: DishId) = id.takeIf { wanted -> dishes.any { it.id == wanted } }
+            val favourites = guests.mapIndexedNotNull { seat, guest ->
+                val favourite = when {
+                    seat == 0 && special == SpecialGuest.CRITIC -> known(RecipeBook.FISH_DISH)
+                    seat == 0 && special == SpecialGuest.CELEBRITY -> known(RecipeBook.LASAGNA_DISH)
+                    seat == 1 && family -> known(RecipeBook.FRIES_DISH)
+                    else -> null
+                } ?: dishes.takeIf { it.isNotEmpty() && rng.nextFloat() < FAVOURITE_SHARE }?.let { it[rng.nextInt(it.size)].id }
+                favourite?.let { guest to it }
+            }.toMap()
+            val ordered = guests.zip(preferences).map { (guest, prefs) ->
+                val favourite = favourites[guest]
+                if (favourite != null && favourite in prefs) listOf(favourite) + (prefs - favourite) else prefs
+            }
+            return copy(favourites = favourites, preferences = ordered)
+        }
 
         /** What a guest would order, best first: dishes they can eat and afford, ranked by popularity and value with a roll of the dice. */
         private fun rankDishes(customer: Customer, menu: List<Dish>, rng: RandomSource): List<DishId> {

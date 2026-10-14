@@ -23,9 +23,13 @@ object RecipeBook {
     val FISH = IngredientId("questionable_fish")
     val POTATOES = IngredientId("potatoes")
 
+    val FRIES_DISH = DishId("fries_of_destiny")
+    val LASAGNA_DISH = DishId("lasagna_situation")
+    val FISH_DISH = DishId("fish_of_uncertain_origin")
+
     val dishes: List<Dish> = listOf(
         Dish(
-            id = DishId("fries_of_destiny"),
+            id = FRIES_DISH,
             name = "Fries of Destiny",
             recipe = Recipe(ingredientRequirements = mapOf(POTATOES to 0.3), preparationTimeMinutes = 6),
             sellingPrice = 9,
@@ -45,7 +49,7 @@ object RecipeBook {
             allergens = setOf(Allergen.EGGS, Allergen.DAIRY),
         ),
         Dish(
-            id = DishId("lasagna_situation"),
+            id = LASAGNA_DISH,
             name = "The Lasagna Situation",
             recipe = Recipe(
                 ingredientRequirements = mapOf(FLOUR to 0.15, MYSTERY_MEAT to 0.15, CHEESE to 0.1),
@@ -58,7 +62,7 @@ object RecipeBook {
             allergens = setOf(Allergen.GLUTEN, Allergen.DAIRY),
         ),
         Dish(
-            id = DishId("fish_of_uncertain_origin"),
+            id = FISH_DISH,
             name = "Fish of Uncertain Origin",
             recipe = Recipe(ingredientRequirements = mapOf(FISH to 0.25, LETTUCE to 0.05), preparationTimeMinutes = 12),
             sellingPrice = 25,
