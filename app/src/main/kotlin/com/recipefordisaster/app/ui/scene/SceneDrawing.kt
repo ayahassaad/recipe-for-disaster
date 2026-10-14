@@ -240,7 +240,8 @@ internal fun Pen.drawRoom(
 
     drawCounter()
     if (bar) drawBar(text)
-    drawPlant(Point(5f, 50f), time)
+    // (The piano, once there is one, stands in the first plant's corner.)
+    if (com.recipefordisaster.domain.restaurant.Decoration.PIANO !in decorations) drawPlant(Point(5f, 50f), time)
     drawPlant(Point(95f, 50f), time)
     drawPlant(Point(95f, 131f), time)
 

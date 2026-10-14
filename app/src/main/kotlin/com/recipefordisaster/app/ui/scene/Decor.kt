@@ -11,6 +11,38 @@ private val PAINTINGS = listOf(Rect(61.5f, 141.6f, 66.5f, 147f), Rect(91f, 141.2
 internal fun Pen.drawDecorations(decorations: Set<Decoration>, time: Float) {
     if (Decoration.PAINTINGS in decorations) drawPaintings()
     if (Decoration.FAIRY_LIGHTS in decorations) drawFairyLights(time)
+    if (Decoration.PIANO in decorations) drawPiano(time)
+}
+
+/** Where the piano stands: in the corner by the kitchen, where a plant used to be. */
+internal val PIANO = Rect(1f, 45f, 12.5f, 53.5f)
+
+/** An upright piano seen from above, lid and keys, with a note or two floating up from it. */
+private fun Pen.drawPiano(time: Float) {
+    val p = PIANO
+    oval(p.center.x, p.bottom + 0.4f, p.width / 2, 0.8f, Palette.shadow)
+    box(p, Color(0xFF2B1D16), radius = 0.8f)
+    box(p.left + 0.6f, p.top + 0.6f, p.width - 1.2f, p.height * 0.55f, Color(0xFF3E2A1F), radius = 0.5f) // the lid
+    // The keys, along the side facing the room.
+    val keysTop = p.bottom - 2.4f
+    box(p.left + 0.5f, keysTop, p.width - 1f, 1.9f, Color(0xFFF7F1E3), radius = 0.2f)
+    var x = p.left + 1.2f
+    var k = 0
+    while (x < p.right - 1f) {
+        if (k % 7 != 2 && k % 7 != 6) box(x - 0.2f, keysTop, 0.45f, 1.1f, Palette.ink, radius = 0.05f)
+        x += 0.85f
+        k++
+    }
+    dot(p.left + 2f, p.top + 1.6f, 0.5f, Palette.gold) // a candlestick on top
+    // A note drifting up now and then.
+    val t = (time * 0.4f) % 1f
+    if (t < 0.7f) {
+        val nx = p.right - 2f + t * 2.5f
+        val ny = p.top + 1f - t * 5f
+        val ink = Palette.ink.copy(alpha = 1f - t / 0.7f)
+        dot(nx, ny, 0.45f, ink)
+        line(nx + 0.4f, ny, nx + 0.4f, ny - 1.6f, ink, 0.18f)
+    }
 }
 
 /** The bulbs' colours, in turn along the string. */
