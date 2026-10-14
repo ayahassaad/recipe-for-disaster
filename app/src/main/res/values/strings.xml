@@ -190,6 +190,16 @@
     <string name="staff_sick">Off sick</string>
     <string name="staff_tired">Exhausted</string>
     <string name="staff_day_off">Day off</string>
+    <!-- %1$s is one of the goal_ lines below, %2$s the days left, %3$s the reward. -->
+    <string name="goal_line">Goal: %1$s · %2$s · win %3$s</string>
+    <string name="goal_takings">take %1$s (%2$s so far)</string>
+    <string name="goal_guests">feed %1$d guests (%2$d so far)</string>
+    <string name="goal_stars">reach %1$s stars (now %2$s)</string>
+    <string name="goal_last_day">last day</string>
+    <plurals name="goal_days_left">
+        <item quantity="one">%1$d day left</item>
+        <item quantity="other">%1$d days left</item>
+    </plurals>
     <string name="decor_title">Make it nicer</string>
     <string name="decor_pitch">Decorations are yours for good, and every guest enjoys their evening a little more for them.</string>
     <string name="decor_paintings">Paintings on the walls</string>

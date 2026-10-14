@@ -291,6 +291,10 @@ private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, onMe
         val newTonight = remember(morning) { com.recipefordisaster.domain.progression.Progression.arrivingOn(morning, morning.day).firstOrNull() }
         val quietNight = remember(morning) { com.recipefordisaster.domain.progression.Difficulty.breather(morning) }
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
+            // Something to aim for this week.
+            morning.weeklyGoal?.takeIf { it.openOn(morning.day) }?.let { goal ->
+                WeeklyGoalLine(goal, morning.day, modifier = Modifier.padding(bottom = 8.dp))
+            }
             Text(
                 text = when {
                     noFood -> stringResource(R.string.hint_no_food)
