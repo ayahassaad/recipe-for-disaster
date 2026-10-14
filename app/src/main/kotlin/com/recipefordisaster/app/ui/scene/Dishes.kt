@@ -15,6 +15,7 @@ internal fun Pen.drawDish(dish: DishId?, at: Point, left: Float = 1f) {
         "mystery_soup" -> drawSoup(at, s)
         "suspicious_salad" -> drawSalad(at, s)
         "fries_of_destiny" -> drawFries(at, s)
+        "existential_omelette" -> drawOmelette(at, s)
         else -> drawSomeFood(at, left, s)
     }
 }
@@ -62,6 +63,17 @@ private fun Pen.drawFries(at: Point, s: Float) {
         lineTo(at.x + 0.75f * s, at.y + 0.9f * s); lineTo(at.x - 0.75f * s, at.y + 0.9f * s); close()
     }
     dot(at.x, at.y + 0.35f * s, 0.22f * s, Color(0xFFFFF4DC)) // the logo
+}
+
+/** A folded omelette with a sprinkle of herbs. */
+private fun Pen.drawOmelette(at: Point, s: Float) {
+    shape(Color(0xFFF5D25A)) {
+        moveTo(at.x - 1.5f * s, at.y + 0.3f * s)
+        quadTo(at.x, at.y - 1.6f * s, at.x + 1.5f * s, at.y + 0.3f * s)
+        close()
+    }
+    shape(Color(0xFFE2B33C), stroke = 0.18f) { moveTo(at.x - 1.2f * s, at.y + 0.1f * s); quadTo(at.x, at.y - 0.9f * s, at.x + 1.2f * s, at.y + 0.1f * s) } // the fold
+    for ((dx, dy) in listOf(-0.5f to -0.4f, 0.3f to -0.6f, 0.7f to -0.1f)) dot(at.x + dx * s, at.y + dy * s, 0.13f * s, Color(0xFF4E8A3A))
 }
 
 /** A helping of something golden with a bit of salad: for any dish without a look of its own. */
