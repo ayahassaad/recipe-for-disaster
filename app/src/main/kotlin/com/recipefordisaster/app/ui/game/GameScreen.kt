@@ -906,7 +906,7 @@ private fun CostsDialog(state: GameState, onClose: () -> Unit) {
     val staff = state.employees.filter { it.status != EmployeeStatus.QUIT && it.status != EmployeeStatus.FIRED }
     val lines = buildList {
         staff.forEach { add(stringResource(R.string.costs_wage, it.name) to it.salaryPerDay) }
-        add(stringResource(R.string.costs_rent, state.restaurant.tables) to costs.rentPerDay)
+        add(pluralStringResource(R.plurals.costs_rent, state.restaurant.tables, state.restaurant.tables) to costs.rentPerDay)
         add(stringResource(R.string.costs_bills) to costs.utilitiesPerDay + costs.miscPerDay)
         state.equipment.forEach { add(stringResource(R.string.costs_upkeep, it.name) to it.maintenanceCostPerDay) }
     }
