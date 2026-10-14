@@ -13,6 +13,7 @@ internal fun Pen.drawDish(dish: DishId?, at: Point, left: Float = 1f) {
     when (dish?.value) {
         "the_regular_burger" -> drawBurger(at, s)
         "mystery_soup" -> drawSoup(at, s)
+        "suspicious_salad" -> drawSalad(at, s)
         else -> drawSomeFood(at, left, s)
     }
 }
@@ -35,6 +36,16 @@ private fun Pen.drawSoup(at: Point, s: Float) {
     dot(at.x - 0.4f * s, at.y - 0.3f * s, 0.3f * s, Color(0xFFB98C5A))
     dot(at.x + 0.5f * s, at.y + 0.2f * s, 0.2f * s, Color(0xFF6DA34D))
     line(at.x + 0.6f, at.y - 0.4f, at.x + 1.9f, at.y - 1.3f, Palette.steelDark, 0.3f) // spoon handle
+}
+
+/** A heap of leaves with a tomato and crumbs of cheese. */
+private fun Pen.drawSalad(at: Point, s: Float) {
+    val leaf = Color(0xFF6DA34D)
+    val pale = Color(0xFF9CCB6B)
+    for ((dx, dy) in listOf(-0.7f to 0.2f, 0.6f to 0.3f, 0f to -0.4f, -0.2f to 0.5f, 0.5f to -0.3f)) oval(at.x + dx * s, at.y + dy * s, 0.7f * s, 0.5f * s, leaf)
+    oval(at.x - 0.3f * s, at.y - 0.1f * s, 0.5f * s, 0.35f * s, pale)
+    dot(at.x + 0.6f * s, at.y - 0.1f * s, 0.38f * s, Color(0xFFD94B3B)) // tomato
+    for ((dx, dy) in listOf(-0.6f to -0.3f, 0.1f to 0.4f)) dot(at.x + dx * s, at.y + dy * s, 0.17f * s, Color(0xFFFFF6D8)) // cheese
 }
 
 /** A helping of something golden with a bit of salad: for any dish without a look of its own. */
