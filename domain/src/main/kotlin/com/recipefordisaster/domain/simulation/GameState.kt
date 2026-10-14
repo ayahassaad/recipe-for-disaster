@@ -69,6 +69,8 @@ data class GameState(
     val introductionsSeen: Set<com.recipefordisaster.domain.progression.Feature> = emptySet(),
     /** What the player has bought to make the dining room nicer. */
     val decorations: Set<com.recipefordisaster.domain.restaurant.Decoration> = emptySet(),
+    /** This week's goal, from the second week on (see [com.recipefordisaster.domain.goal.WeeklyGoals]). */
+    val weeklyGoal: com.recipefordisaster.domain.goal.WeeklyGoal? = null,
 )
 
 @Serializable

@@ -42,4 +42,18 @@ class WeeklyGoalsTest {
         assertEquals(0L, paid)
         assertFalse(after.met)
     }
+
+    @Test
+    fun `the day's takings count towards the goal, and the reward is paid in cash`() {
+        val engine = com.recipefordisaster.domain.simulation.DefaultDayTickEngine(com.recipefordisaster.domain.event.EventEngine(emptyList()))
+        // The night before the second week: the first goal is set for the morning.
+        val first = engine.advanceDay(start.copy(day = 7), com.recipefordisaster.domain.simulation.PlayerDecisions(), com.recipefordisaster.domain.simulation.SeededRandomSource(1L)).newState
+        assertEquals(8, first.weeklyGoal?.startDay)
+        // A goal of a single coin is reached on its first day.
+        val easy = first.copy(weeklyGoal = WeeklyGoal(GoalKind.TAKINGS, target = 1, reward = 250, startDay = 8))
+        val withGoal = engine.advanceDay(easy, com.recipefordisaster.domain.simulation.PlayerDecisions(), com.recipefordisaster.domain.simulation.SeededRandomSource(2L)).newState
+        val without = engine.advanceDay(easy.copy(weeklyGoal = null), com.recipefordisaster.domain.simulation.PlayerDecisions(), com.recipefordisaster.domain.simulation.SeededRandomSource(2L)).newState
+        assertEquals(true, withGoal.weeklyGoal?.met)
+        assertEquals(without.restaurant.cash + 250, withGoal.restaurant.cash)
+    }
 }

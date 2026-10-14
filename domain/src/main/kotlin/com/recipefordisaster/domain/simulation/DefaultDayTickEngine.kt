@@ -175,6 +175,16 @@ class DefaultDayTickEngine(
         val celebrityBuzz = if (serviceResult.specialVisits.any { it.guest == SpecialGuest.CELEBRITY && it.pleased }) CELEBRITY_BUZZ else 0
         val newReputation = (start.restaurant.reputation + reputationDelta + specialDelta).coerceIn(0, 100)
 
+        // This week's goal: today's takings and guests count towards it, and reaching it pays a reward.
+        val (goalAfter, goalReward) = start.weeklyGoal
+            ?.let { com.recipefordisaster.domain.goal.WeeklyGoals.afterDay(it, state.day, financials.revenue, customersFed, newReputation) }
+            ?: (null to 0L)
+        if (goalReward > 0) {
+            dayLog += SimulationLogEntry(state.day, "You reached this week's goal! The reward: $goalReward coins.", LogTone.GOOD)
+        } else if (goalAfter != null && !goalAfter.met && state.day == goalAfter.lastDay) {
+            dayLog += SimulationLogEntry(state.day, "This week's goal slipped away. There's a new one tomorrow.", LogTone.BAD)
+        }
+
         dayLog += SimulationLogEntry(
             day = state.day,
             message = "Served $customersFed of ${arrivals.size} customers. " +
@@ -214,7 +224,7 @@ class DefaultDayTickEngine(
         val stateBeforeEvent = start.copy(
             day = nextDay,
             restaurant = start.restaurant.copy(
-                cash = newCash,
+                cash = newCash + goalReward,
                 reputation = newReputation,
                 cleanliness = newCleanliness,
                 currentDay = nextDay,
@@ -231,7 +241,11 @@ class DefaultDayTickEngine(
             applicants = applicants,
             recentSatisfaction = averageSatisfaction,
             pendingDemandModifierPercent = celebrityBuzz,
-        ).withStatusChecked()
+            weeklyGoal = goalAfter,
+        ).withStatusChecked().let { s ->
+            // A new week, a new goal.
+            if (com.recipefordisaster.domain.goal.WeeklyGoals.startsAWeek(nextDay)) s.copy(weeklyGoal = com.recipefordisaster.domain.goal.WeeklyGoals.newGoal(s)) else s
+        }
 
         fun summaryFor(end: GameState) = DaySummary(
             day = state.day,
