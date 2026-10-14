@@ -184,6 +184,17 @@ object DecisionApplier {
             }
         }
 
+        for (decoration in decisions.decorationsToBuy.sortedBy { it.ordinal }) {
+            if (decoration in current.decorations) continue
+            if (!canAfford(decoration.cost)) {
+                note("Couldn't afford the ${decoration.name.lowercase().replace('_', ' ')}.", LogTone.BAD)
+                continue
+            }
+            spending = spending.copy(upgrades = spending.upgrades + decoration.cost)
+            current = current.copy(decorations = current.decorations + decoration)
+            note("The ${decoration.name.lowercase().replace('_', ' ')} went in. The place looks lovely.", LogTone.GOOD)
+        }
+
         if (decisions.deepClean) {
             if (canAfford(DEEP_CLEAN_COST)) {
                 spending = spending.copy(cleaning = spending.cleaning + DEEP_CLEAN_COST)

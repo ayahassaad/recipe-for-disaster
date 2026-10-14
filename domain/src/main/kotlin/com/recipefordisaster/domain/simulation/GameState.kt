@@ -67,6 +67,8 @@ data class GameState(
     val featuresMetEarly: Set<com.recipefordisaster.domain.progression.Feature>? = null,
     /** Features the player has had explained to them (the pop-up the first time each one appears). */
     val introductionsSeen: Set<com.recipefordisaster.domain.progression.Feature> = emptySet(),
+    /** What the player has bought to make the dining room nicer. */
+    val decorations: Set<com.recipefordisaster.domain.restaurant.Decoration> = emptySet(),
 )
 
 @Serializable
@@ -137,6 +139,8 @@ data class PlayerDecisions(
     val deepClean: Boolean = false,
     /** Buy one more table (only possible once the free ones have all arrived). */
     val buyTable: Boolean = false,
+    /** Decorations to buy for the dining room. */
+    val decorationsToBuy: Set<com.recipefordisaster.domain.restaurant.Decoration> = emptySet(),
 )
 
 data class DayResult(
