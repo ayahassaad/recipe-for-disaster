@@ -845,6 +845,9 @@ private fun EndOfNightPanel(
                 Text(stringResource(line), style = MaterialTheme.typography.titleMedium, color = if (visit.pleased) LeafGreen else DisasterRed, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
             }
             // How the kitchen's mood showed tonight.
+            if (report.favourites > 0) {
+                Text(pluralStringResource(R.plurals.favourites_served, report.favourites, report.favourites), style = MaterialTheme.typography.bodyMedium, color = LeafGreen, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
+            }
             if (report.chefsSpecials > 0) {
                 Text(pluralStringResource(R.plurals.chefs_specials, report.chefsSpecials, report.chefsSpecials), style = MaterialTheme.typography.bodyMedium, color = LeafGreen, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
             }

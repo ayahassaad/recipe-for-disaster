@@ -104,6 +104,8 @@ data class DayReport(
     /** Tables whose food a grumpy chef burnt, and tables a happy chef made a chef's special for. */
     val burnt: Int = 0,
     val chefsSpecials: Int = 0,
+    /** How many guests got their favourite dish. */
+    val favourites: Int = 0,
 )
 
 /**
@@ -212,7 +214,7 @@ class GameViewModel(
             val report = result.summary?.let { summary ->
                 result.newState.ledger.history.lastOrNull()?.let { books -> DayReport(
                     summary, books, result.event, session.morningSpending, session.setup.morning.state, finalNight.gaveUpCounts(), finalNight.specialVisits,
-                    burnt = finalNight.burntPlates, chefsSpecials = finalNight.chefsSpecials,
+                    burnt = finalNight.burntPlates, chefsSpecials = finalNight.chefsSpecials, favourites = finalNight.favouritesServed,
                 ) }
             }
             _uiState.value = GameUiState.Playing(newState, dayLog = result.log, lastEvent = result.event, report = report)

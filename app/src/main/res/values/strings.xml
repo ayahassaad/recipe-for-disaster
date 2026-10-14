@@ -375,6 +375,10 @@
     <string name="feature_inspector">the health inspector might visit. Keep the floor clean!</string>
     <string name="feature_power_cut">the power can cut out. Tap the fuse box by the door.</string>
     <string name="feature_double_trouble">some nights, two things will go wrong.</string>
+    <plurals name="favourites_served">
+        <item quantity="one">%1$d guest got their favourite dish</item>
+        <item quantity="other">%1$d guests got their favourite dish</item>
+    </plurals>
     <plurals name="chefs_specials">
         <item quantity="one">The chef was in a great mood: one table got a chef\'s special!</item>
         <item quantity="other">The chef was in a great mood: %d tables got a chef\'s special!</item>
