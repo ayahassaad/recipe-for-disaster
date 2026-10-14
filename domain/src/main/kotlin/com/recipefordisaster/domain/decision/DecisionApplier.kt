@@ -101,6 +101,18 @@ object DecisionApplier {
             note("Hired ${applicant.name} as a ${applicant.role.name.lowercase()}.", LogTone.GOOD)
         }
 
+        for (id in decisions.training) {
+            val person = current.employees.firstOrNull { it.id == id && com.recipefordisaster.domain.employee.Training.canTrain(it) } ?: continue
+            val cost = com.recipefordisaster.domain.employee.Training.cost(person)
+            if (!canAfford(cost)) {
+                note("Couldn't afford to train ${person.name}.", LogTone.BAD)
+                continue
+            }
+            spending = spending.copy(staffing = spending.staffing + cost)
+            current = current.copy(employees = current.employees.map { if (it.id == id) com.recipefordisaster.domain.employee.Training.train(it) else it })
+            note("${person.name} went on a training course and came back better at the job.", LogTone.GOOD)
+        }
+
         val resting = decisions.restDays.filter { id -> current.employees.any { it.id == id && it.status == EmployeeStatus.ACTIVE } }
         if (resting.isNotEmpty()) {
             current = current.copy(
