@@ -1,5 +1,6 @@
 package com.recipefordisaster.app.ui.sound
 
+import android.app.Application
 import android.content.Context
 import android.media.AudioAttributes
 import android.media.MediaPlayer
@@ -24,9 +25,10 @@ enum class Sfx(val res: Int, val loudness: Float = 0.8f) {
 
 /**
  * Plays the sound effects and the background music, and remembers whether the player has turned
- * either off. One instance for the whole app (see [Sounds.get]).
+ * either off. One instance for the whole app (see [Sounds.get]), holding on to the app itself rather
+ * than any one screen, so no screen is kept around after it closes.
  */
-class Sounds private constructor(private val context: Context) {
+class Sounds private constructor(private val context: Application) {
 
     private val prefs = context.getSharedPreferences("sound", Context.MODE_PRIVATE)
     private val pool: SoundPool = SoundPool.Builder()
@@ -76,7 +78,7 @@ class Sounds private constructor(private val context: Context) {
     companion object {
         @Volatile private var instance: Sounds? = null
         fun get(context: Context): Sounds = instance ?: synchronized(this) {
-            instance ?: Sounds(context.applicationContext).also { instance = it }
+            instance ?: Sounds(context.applicationContext as Application).also { instance = it }
         }
     }
 }
