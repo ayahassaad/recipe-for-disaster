@@ -829,7 +829,7 @@ private fun EndOfNightPanel(
                 modifier = Modifier.fillMaxWidth(),
             )
             Text(
-                stringResource(R.string.end_fed, report.summary.customersFed, report.summary.customersArrived),
+                pluralStringResource(R.plurals.end_fed, report.summary.customersArrived, report.summary.customersFed, report.summary.customersArrived),
                 style = MaterialTheme.typography.bodyLarge,
                 color = ReceiptInk,
                 textAlign = TextAlign.Center,

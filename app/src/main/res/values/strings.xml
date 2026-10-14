@@ -114,7 +114,10 @@
     <string name="night_mop_bucket">Mop bucket: pick up or put back the mop</string>
     <string name="night_spill">Spill on the floor: mop it up</string>
     <string name="night_you">YOU</string>
-    <string name="end_fed">%1$d of %2$d guests fed</string>
+    <plurals name="end_fed">
+        <item quantity="one">%1$d of %2$d guest fed</item>
+        <item quantity="other">%1$d of %2$d guests fed</item>
+    </plurals>
     <string name="scene_menu_sign" translatable="false">MENU</string>
     <string name="scene_hiring_sign">HELP WANTED</string>
     <string name="scene_hiring_sign_cook">COOK NEEDED</string>
