@@ -753,8 +753,11 @@ data class ServiceNight(
     /** Which of tonight's plates the chef's mood touches: the same ones every time the night is played. */
     private fun touchedByMood(party: Party, chance: Float): Boolean = (party.id * 0.618f + chefLuck) % 1f < chance
 
-    /** A grumpy chef burns some plates (each one only once). */
-    private fun burns(party: Party): Boolean = chefMood == ChefMood.GRUMPY && !party.burnt && touchedByMood(party, BURN_CHANCE)
+    /** A grumpy chef burns some plates (each one only once), and the slow, fiddly dishes twice as often. */
+    private fun burns(party: Party): Boolean {
+        val fiddly = party.orders.filterNotNull().any { id -> dishPace(menu.firstOrNull { it.id == id }) >= FIDDLY_PACE }
+        return chefMood == ChefMood.GRUMPY && !party.burnt && touchedByMood(party, BURN_CHANCE * (if (fiddly) 2f else 1f))
+    }
 
     /** How many tables' food got burnt tonight. */
     val burntPlates: Int get() = parties.count { it.burnt }
@@ -1181,6 +1184,9 @@ data class ServiceNight(
 
         /** The share of plates a grumpy chef burns. */
         private const val BURN_CHANCE = 0.3f
+
+        /** Dishes this slow or slower (the lasagna) are the ones a grumpy chef burns most. */
+        private const val FIDDLY_PACE = 1.4f
 
         /** The share of plates a happy chef makes special, how much more guests enjoy one, and the extra tip each leaves. */
         private const val CHEFS_SPECIAL_CHANCE = 0.3f
