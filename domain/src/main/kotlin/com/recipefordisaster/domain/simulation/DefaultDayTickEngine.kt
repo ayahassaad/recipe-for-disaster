@@ -255,6 +255,7 @@ class DefaultDayTickEngine(
             unfedOutOfStock = serviceResult.missedCount(MissedMealReason.OUT_OF_STOCK),
             walkedOut = serviceResult.missedCount(MissedMealReason.NOTHING_SUITABLE),
             gaveUpWaiting = serviceResult.missedCount(MissedMealReason.TIRED_OF_WAITING),
+            goalReward = goalReward,
             averageSatisfaction = averageSatisfaction,
             reputationBefore = state.restaurant.reputation,
             reputationAfter = end.restaurant.reputation,

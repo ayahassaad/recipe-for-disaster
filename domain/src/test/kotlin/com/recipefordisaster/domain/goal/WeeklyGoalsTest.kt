@@ -55,5 +55,6 @@ class WeeklyGoalsTest {
         val without = engine.advanceDay(easy.copy(weeklyGoal = null), com.recipefordisaster.domain.simulation.PlayerDecisions(), com.recipefordisaster.domain.simulation.SeededRandomSource(2L)).newState
         assertEquals(true, withGoal.weeklyGoal?.met)
         assertEquals(without.restaurant.cash + 250, withGoal.restaurant.cash)
+        assertEquals(250L, engine.advanceDay(easy, com.recipefordisaster.domain.simulation.PlayerDecisions(), com.recipefordisaster.domain.simulation.SeededRandomSource(2L)).summary?.goalReward)
     }
 }

@@ -196,6 +196,7 @@
     <string name="goal_guests">feed %1$d guests (%2$d so far)</string>
     <string name="goal_stars">reach %1$s stars (now %2$s)</string>
     <string name="goal_last_day">last day</string>
+    <string name="goal_reached">You reached this week\'s goal! Reward: %1$s</string>
     <plurals name="goal_days_left">
         <item quantity="one">%1$d day left</item>
         <item quantity="other">%1$d days left</item>
