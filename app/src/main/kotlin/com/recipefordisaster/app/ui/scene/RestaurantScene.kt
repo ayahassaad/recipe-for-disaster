@@ -153,6 +153,8 @@ fun RestaurantScene(
                 drawPantry(model.pantryFullness, model.pantryJars)
                 drawTables(ServiceFloor.layout(model.tableCount))
                 drawLampGlow(evening, ServiceFloor.layout(model.tableCount))
+                // The candles stand on the tables, so people go in front of them.
+                drawLamps(evening, ServiceFloor.layout(model.tableCount), time)
                 drawMenuBoard(text, labels.menu)
                 if (model.mopOut) drawMopBucket()
                 if (model.hiring) drawHiringSign(text, labels.hiring)
@@ -175,11 +177,10 @@ fun RestaurantScene(
                 // You: ready for the day, or after service, pleased or fed up with how it went.
                 playerLook?.let { drawIdlePlayer(playerIdleSpot(ServiceFloor.layout(model.tableCount)), it, playerPose, time) }
 
-                // In the morning the sun streams in; after closing it's late: the evening light, with the candles still lit.
+                // In the morning the sun streams in; after closing it's late: the evening light, the candles still lit.
                 if (evening <= 0f) drawMorningSun(time)
                 if (evening > 0f) {
                     drawEveningLight(evening)
-                    drawLamps(evening, ServiceFloor.layout(model.tableCount), time)
                 }
 
                 // "This needs you" markers.

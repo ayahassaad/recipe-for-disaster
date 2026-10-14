@@ -1036,7 +1036,7 @@ internal fun Pen.drawLampGlow(dark: Float, layout: TableLayout) {
     }
 }
 
-/** A candle on each table, lit as it gets dark. Drawn over [drawEveningLight], so the flames glow. */
+/** A candle on each table, lit as it gets dark. Drawn with the tables, so people pass in front of it. */
 internal fun Pen.drawLamps(dark: Float, layout: TableLayout, time: Float) {
     val on = lampsOn(dark)
     if (on <= 0f) return
