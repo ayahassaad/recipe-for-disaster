@@ -1062,22 +1062,12 @@ internal fun eveningOf(time: Float, lastArrival: Float): Float = (time / (lastAr
 
 private const val EVENING_AFTER_LAST = 30f
 
-/** A served plate: food and a garnish. */
-internal fun Pen.drawPlate(at: Point) {
+/** A served plate with [dish] on it (or something tasty, when it's not known which). */
+internal fun Pen.drawPlate(at: Point, dish: com.recipefordisaster.domain.menu.DishId? = null) {
     dot(at, 2.3f, Color.White)
     ring(at.x, at.y, 2.3f, Color(0x33000000), 0.2f)
     ring(at.x, at.y, 1.6f, Color(0x22000000), 0.15f)
-    drawFood(at)
-}
-
-/** Just the food, for putting on a plate that's already there (like the place settings on a table). */
-internal fun Pen.drawFood(at: Point, left: Float = 1f) {
-    // [left] is how much is still on the plate, 1 to start with: it goes down bite by bite.
-    val s = (0.3f + 0.7f * left).coerceIn(0.3f, 1f)
-    oval(at.x - 0.3f, at.y, 1.3f * s, 0.9f * s, Color(0xFFC8762F))
-    oval(at.x - 0.3f, at.y - 0.3f * s, 1.1f * s, 0.4f * s, Color(0xFFE09A4F))
-    if (left > 0.4f) dot(at.x + 0.9f, at.y + 0.5f, 0.5f, Color(0xFF6DA34D))
-    if (left > 0.7f) dot(at.x + 1.2f, at.y - 0.3f, 0.35f, Color(0xFFD94B3B))
+    drawDish(dish, at)
 }
 
 internal fun Pen.drawCoins(text: TextMeasurer, at: Point, progress: Float, amount: Long) {

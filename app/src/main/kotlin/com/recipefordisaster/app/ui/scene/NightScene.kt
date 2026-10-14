@@ -308,7 +308,7 @@ fun NightScene(
                                         val mood = if (eating) 80 else (75 - waitedFraction * 70).toInt()
                                         // The food goes on the plate already laid at their place, not on a second plate.
                                         val eaten = if (eating) ((time - party.stageSince) / EAT_SECONDS).coerceIn(0f, 1f) else 0f
-                                        if (eating && party.orders.getOrNull(g) != null) drawFood(Point(c.x + (if (g == 0) -4.2f else 4.2f), c.y), left = 1f - eaten)
+                                        if (eating && party.orders.getOrNull(g) != null) drawDish(party.orders[g], Point(c.x + (if (g == 0) -4.2f else 4.2f), c.y), left = 1f - eaten)
                                         if (eating && party.chefsSpecial && party.orders.getOrNull(g) != null) drawSpecialStar(Point(c.x + (if (g == 0) -4.2f else 4.2f), c.y))
                                         val eatingPlate = Point(c.x + (if (g == 0) -4.2f else 4.2f), c.y)
                                         // A fresh plate steams for the first few seconds.
@@ -356,7 +356,7 @@ fun NightScene(
                                     if (party.guests.size == 2 && waitedFraction < 0.6f && party.stage in Stage.ORDER_TAKEN..Stage.EATING) {
                                         drawChatter(text, c, party.id, clock)
                                     }
-                                    drawTableBubble(text, c, party.stage, waitedFraction, clock)
+                                    drawTableBubble(text, c, party.stage, waitedFraction, clock, party.mainDish())
                                 }
                             }
                         }
@@ -456,7 +456,7 @@ fun NightScene(
                                     val since = night.parties.firstOrNull { it.id == item.partyId }?.let { time - it.stageSince } ?: 1f
                                     val hop = if (since < 0.35f) kotlin.math.sin(since / 0.35f * PI_F) * 2.2f else 0f
                                     val plateAt = Point(hand.x, hand.y - hop)
-                                    drawPlate(plateAt)
+                                    drawPlate(plateAt, night.parties.firstOrNull { it.id == item.partyId }?.mainDish())
                                     drawSteam(plateAt, clock, item.partyId)
                                     if (night.parties.firstOrNull { it.id == item.partyId }?.chefsSpecial == true) drawSpecialStar(plateAt)
                                     // The table number travels with the plate, so you always know where it's going.
@@ -836,7 +836,7 @@ private fun Pen.drawBubbleGlass(at: Point, full: Boolean) {
 }
 
 /** The speech bubble over a table: "?" to order, a plate while they wait for food, with a patience bar underneath. */
-private fun Pen.drawTableBubble(text: TextMeasurer, table: Point, stage: Stage, waited: Float, clock: Float) {
+private fun Pen.drawTableBubble(text: TextMeasurer, table: Point, stage: Stage, waited: Float, clock: Float, dish: com.recipefordisaster.domain.menu.DishId? = null) {
     // No bubble while they eat, while they're still choosing, or while they sip their drinks.
     if (stage == Stage.EATING || stage == Stage.DECIDING || stage == Stage.DRINKING) return
     val c = Point(table.x, table.y - 13.5f)
@@ -856,7 +856,7 @@ private fun Pen.drawTableBubble(text: TextMeasurer, table: Point, stage: Stage, 
         // A full glass: waiting for the drinks to come.
         Stage.DRINKS_ORDERED -> drawBubbleGlass(Point(c.x, c.y), full = true)
         Stage.READY_AT_PASS -> {
-            drawPlate(Point(c.x, c.y))
+            drawPlate(Point(c.x, c.y), dish)
             dot(c.x + 3.2f, c.y - 3.2f, 1.3f, Palette.gold) // a little "ding"
         }
         else -> {
@@ -897,6 +897,9 @@ private fun Pen.drawTickets(text: TextMeasurer, night: ServiceNight) {
 }
 
 /** Finished plates on the counter, each with a flag showing which table it's for. */
+/** The dish to show on a table's plate while it's carried: the first one they ordered. */
+private fun ServiceNight.Party.mainDish(): com.recipefordisaster.domain.menu.DishId? = orders.firstOrNull { it != null }
+
 /** Plates waiting on the counter, oldest first (as many as fit). */
 private fun readyPlates(night: ServiceNight) = night.platesOnCounter
 
@@ -906,7 +909,7 @@ private fun plateSpot(i: Int) = ServiceFloor.plate(i).toPoint()
 private fun Pen.drawReadyPlates(text: TextMeasurer, night: ServiceNight, clock: Float) {
     readyPlates(night).forEachIndexed { i, party ->
         val at = plateSpot(i)
-        drawPlate(at)
+        drawPlate(at, party.mainDish())
         drawSteam(at, clock, party.id)
         if (party.chefsSpecial) drawSpecialStar(at)
         drawNumberFlag(text, at, (party.table ?: 0) + 1)
