@@ -12,6 +12,7 @@ internal fun Pen.drawDish(dish: DishId?, at: Point, left: Float = 1f) {
     val s = (0.3f + 0.7f * left).coerceIn(0.3f, 1f)
     when (dish?.value) {
         "the_regular_burger" -> drawBurger(at, s)
+        "mystery_soup" -> drawSoup(at, s)
         else -> drawSomeFood(at, left, s)
     }
 }
@@ -24,6 +25,16 @@ private fun Pen.drawBurger(at: Point, s: Float) {
     oval(at.x + 0.3f * s, at.y - 0.2f * s, 1.1f * s, 0.25f * s, Color(0xFFF2C230)) // cheese
     oval(at.x, at.y - 0.55f * s, 1.4f * s, 0.75f * s, Color(0xFFE0A860)) // top bun
     for (k in -1..1) dot(at.x + k * 0.55f * s, at.y - 0.8f * s + kotlin.math.abs(k) * 0.15f * s, 0.12f * s, Color(0xFFFFF4DC))
+}
+
+/** A bowl of soup, murky as its name, with a spoon in it. */
+private fun Pen.drawSoup(at: Point, s: Float) {
+    dot(at, 1.6f, Color(0xFFF7F1E3)) // the bowl
+    ring(at.x, at.y, 1.6f, Color(0x33000000), 0.15f)
+    dot(at, 1.25f * s, Color(0xFF9A6B3F)) // the soup, going down as it's eaten
+    dot(at.x - 0.4f * s, at.y - 0.3f * s, 0.3f * s, Color(0xFFB98C5A))
+    dot(at.x + 0.5f * s, at.y + 0.2f * s, 0.2f * s, Color(0xFF6DA34D))
+    line(at.x + 0.6f, at.y - 0.4f, at.x + 1.9f, at.y - 1.3f, Palette.steelDark, 0.3f) // spoon handle
 }
 
 /** A helping of something golden with a bit of salad: for any dish without a look of its own. */
