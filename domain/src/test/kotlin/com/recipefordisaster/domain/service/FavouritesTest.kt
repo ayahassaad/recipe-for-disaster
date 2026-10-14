@@ -38,4 +38,24 @@ class FavouritesTest {
             n.parties.filter { it.family }.forEach { assertEquals(RecipeBook.FRIES_DISH, it.favourites[it.guests[1]]) }
         }
     }
+
+    @Test
+    fun `a guest given their favourite is happier and tips more`() {
+        val n = open()
+        val party = n.parties.first { p -> p.favourites.isNotEmpty() && p.favourites.values.first() in p.preferences[p.guests.indexOf(p.favourites.keys.first())] }
+        val guest = party.favourites.keys.first()
+        val dish = party.favourites.getValue(guest)
+        fun eaten(favourites: Map<Int, com.recipefordisaster.domain.menu.DishId>): ServiceNight {
+            val orders = party.guests.map { if (it == guest) dish else party.preferences[party.guests.indexOf(it)].firstOrNull() }
+            val seated = n.copy(time = 100f, parties = n.parties.map {
+                if (it.id == party.id) it.copy(stage = ServiceNight.Stage.EATING, table = 0, seatedAt = 95f, orderedAt = 96f, until = 100f, orders = orders, favourites = favourites) else it
+            })
+            return seated.advance(0.05f)
+        }
+        val loved = eaten(party.favourites)
+        val plain = eaten(emptyMap())
+        assertTrue(loved.results.getValue(guest).satisfaction > plain.results.getValue(guest).satisfaction)
+        assertTrue(loved.parties.first { it.id == party.id }.tip >= plain.parties.first { it.id == party.id }.tip)
+        assertTrue(loved.favouritesServed >= 1)
+    }
 }

@@ -759,6 +759,11 @@ data class ServiceNight(
     /** How many tables' food got burnt tonight. */
     val burntPlates: Int get() = parties.count { it.burnt }
 
+    /** How many guests got their favourite dish tonight. */
+    val favouritesServed: Int get() = parties.sumOf { party ->
+        party.guests.zip(party.orders).count { (guest, dish) -> dish != null && party.favourites[guest] == dish && results[guest]?.dish?.id == dish }
+    }
+
     /** How many tables got a chef's special tonight. */
     val chefsSpecials: Int get() = parties.count { it.chefsSpecial }
 
@@ -780,7 +785,9 @@ data class ServiceNight(
                     val mess = (night.messesOnFloor.size + bother).coerceAtMost(MAX_MESS_PENALTIES) * MESS_PENALTY -
                         // ...while a visit from the cat makes their evening.
                         (if (party.table in night.catVisited) CAT_JOY else 0)
-                    val treat = if (party.chefsSpecial) CHEFS_SPECIAL_JOY else 0
+                    val treat = (if (party.chefsSpecial) CHEFS_SPECIAL_JOY else 0) +
+                        // Getting their favourite dish makes anyone's night.
+                        (if (party.favourites[guest] == dishId) FAVOURITE_JOY else 0)
                     val satisfaction = (ServiceSimulator.resolveSatisfaction(customer, dish, waitedMinutes, kitchenQualityBonus) - mess + treat - night.pickiness).coerceIn(0, 100)
                         results = results + (guest to CustomerServiceOutcome(customer, dish, satisfaction, waitedMinutes))
                     }
@@ -1077,7 +1084,9 @@ data class ServiceNight(
         }
         // A chef's special earns a little extra on top, however long it took.
         val extra = if (party.chefsSpecial) CHEFS_SPECIAL_TIP else 0L
-        return party.guests.sumOf { guest -> if ((results[guest]?.satisfaction ?: 0) >= 55) perGuest + extra else 0L }
+        // So does serving someone their favourite dish.
+        fun favourite(guest: Int) = if (party.favourites[guest] != null && party.favourites[guest] == party.orders.getOrNull(party.guests.indexOf(guest))) FAVOURITE_TIP else 0L
+        return party.guests.sumOf { guest -> if ((results[guest]?.satisfaction ?: 0) >= 55) perGuest + extra + favourite(guest) else 0L }
     }
 
     private fun missed(guest: Int, reason: MissedMealReason) =
@@ -1502,6 +1511,10 @@ data class ServiceNight(
         }
 
         private const val AVERAGE_PARTY = 1.67f
+
+        /** How much happier a guest is with their favourite dish, and the extra tip they leave for it. */
+        private const val FAVOURITE_JOY = 10
+        private const val FAVOURITE_TIP = 2L
 
         /** About this share of ordinary guests have a favourite dish. */
         private const val FAVOURITE_SHARE = 0.6f
