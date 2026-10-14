@@ -123,7 +123,16 @@
     <string name="scene_hiring_sign_cook">COOK NEEDED</string>
     <string name="scene_hiring_sign_server">SERVER WANTED</string>
     <string name="scene_hiring_sign_dishwasher">DISHWASHER WANTED</string>
-    <string name="need_cook">You need another cook. Your kitchen can cook about %1$d meals, but about %2$d guests are coming.</string>
+    <!-- %1$s is need_cook_meals, %2$s is need_cook_guests. -->
+    <string name="need_cook">You need another cook. Your kitchen can cook about %1$s, but %2$s.</string>
+    <plurals name="need_cook_meals">
+        <item quantity="one">%1$d meal</item>
+        <item quantity="other">%1$d meals</item>
+    </plurals>
+    <plurals name="need_cook_guests">
+        <item quantity="one">about %1$d guest is coming</item>
+        <item quantity="other">about %1$d guests are coming</item>
+    </plurals>
     <string name="need_server">You need another server. There are too many guests for your floor staff to look after.</string>
     <string name="need_dishwasher">You need a dishwasher. The place is getting dirty and nobody\'s keeping up with it.</string>
     <string name="need_none">You have enough staff for now. Everyone you hire adds to your daily costs.</string>

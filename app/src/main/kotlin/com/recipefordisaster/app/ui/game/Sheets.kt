@@ -313,7 +313,11 @@ private fun HiringSheet(uiState: GameUiState.Playing, actions: GameActions) {
     SectionTitle(stringResource(R.string.hiring_title))
     Text(
         text = when (need) {
-            MorningAdvisor.Need.COOK -> stringResource(R.string.need_cook, outlook.kitchenCapacity, outlook.expectedCustomers)
+            MorningAdvisor.Need.COOK -> stringResource(
+                R.string.need_cook,
+                pluralStringResource(R.plurals.need_cook_meals, outlook.kitchenCapacity, outlook.kitchenCapacity),
+                pluralStringResource(R.plurals.need_cook_guests, outlook.expectedCustomers, outlook.expectedCustomers),
+            )
             MorningAdvisor.Need.SERVER -> stringResource(R.string.need_server)
             MorningAdvisor.Need.DISHWASHER -> stringResource(R.string.need_dishwasher)
             null -> stringResource(R.string.need_none)
