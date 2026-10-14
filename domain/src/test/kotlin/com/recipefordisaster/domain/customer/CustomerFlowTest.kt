@@ -51,4 +51,17 @@ class CustomerFlowTest {
 
         assertEquals(a, b)
     }
+
+    @Test
+    fun `a bigger menu draws more guests and a tiny one fewer`() {
+        org.junit.Assert.assertEquals(0, CustomerFlow.menuVarietyPercent(3))
+        org.junit.Assert.assertTrue(CustomerFlow.menuVarietyPercent(1) < 0)
+        org.junit.Assert.assertTrue(CustomerFlow.menuVarietyPercent(6) > CustomerFlow.menuVarietyPercent(4))
+        val state = com.recipefordisaster.domain.simulation.NewGameFactory.create(seed = 3L)
+        val bigger = state.copy(menu = state.menu + com.recipefordisaster.domain.menu.RecipeBook.dishes)
+        org.junit.Assert.assertTrue(
+            com.recipefordisaster.domain.simulation.OutlookCalculator.forTonight(bigger).expectedCustomers >
+                com.recipefordisaster.domain.simulation.OutlookCalculator.forTonight(state).expectedCustomers,
+        )
+    }
 }

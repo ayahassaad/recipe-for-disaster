@@ -27,6 +27,17 @@ object CustomerFlow {
         return (0 until demand).map { generateCustomer(rng, it) }
     }
 
+    /**
+     * How a menu's size changes how many people come, in percent: a bigger choice draws more kinds of
+     * guests, and a tiny one puts people off. Three dishes is the usual.
+     */
+    fun menuVarietyPercent(dishesServing: Int): Int = when {
+        dishesServing <= 0 -> 0
+        dishesServing == 1 -> -15
+        dishesServing == 2 -> -5
+        else -> ((dishesServing - 3) * 6).coerceAtMost(24)
+    }
+
     internal fun calculateDemand(restaurant: Restaurant, rng: RandomSource, demandModifierPercent: Int = 0): Int {
         val reputationFactor = restaurant.reputation.coerceIn(0, 100) / 100.0
         val modifier = (100 + demandModifierPercent).coerceAtLeast(0) / 100.0

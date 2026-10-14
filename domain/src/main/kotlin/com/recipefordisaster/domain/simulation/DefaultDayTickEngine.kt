@@ -68,7 +68,9 @@ class DefaultDayTickEngine(
      */
     fun openService(state: GameState, decisions: PlayerDecisions, rng: RandomSource): ServiceSetup {
         val morning = DecisionApplier.apply(state, decisions)
-        val arrivals = CustomerFlow.generateArrivals(morning.state.restaurant, rng, morning.state.pendingDemandModifierPercent)
+        // A bigger menu draws more guests (and a tiny one fewer).
+        val variety = CustomerFlow.menuVarietyPercent(morning.state.menu.count { it.available })
+        val arrivals = CustomerFlow.generateArrivals(morning.state.restaurant, rng, morning.state.pendingDemandModifierPercent + variety)
         return ServiceSetup(original = state, morning = morning, arrivals = arrivals)
     }
 
