@@ -10,6 +10,34 @@ private val PAINTINGS = listOf(Rect(61.5f, 141.6f, 66.5f, 147f), Rect(91f, 141.2
 /** The decorations the player has bought, in their places around the dining room. */
 internal fun Pen.drawDecorations(decorations: Set<Decoration>, time: Float) {
     if (Decoration.PAINTINGS in decorations) drawPaintings()
+    if (Decoration.FAIRY_LIGHTS in decorations) drawFairyLights(time)
+}
+
+/** The bulbs' colours, in turn along the string. */
+private val BULBS = listOf(Color(0xFFFFE27A), Color(0xFFFF9A8B), Color(0xFF9AD8FF), Color(0xFFB5F2A0))
+
+/**
+ * A string of little coloured bulbs along the top of the front wall, swagging between hooks and
+ * twinkling. (Not across the sign over the door.)
+ */
+private fun Pen.drawFairyLights(time: Float) {
+    val hooks = listOf(0f, 10f, 20f, 30f) to listOf(70f, 80f, 90f, 100f)
+    var bulb = 0
+    for (run in listOf(hooks.first, hooks.second)) {
+        run.zipWithNext().forEach { (a, b) ->
+            shape(Color(0xFF3A3A3A), stroke = 0.15f) { moveTo(a, 139.6f); quadTo((a + b) / 2, 141.8f, b, 139.6f) }
+            for (k in 1..4) {
+                val t = k / 5f
+                val x = a + (b - a) * t
+                val y = 139.6f + 4f * t * (1f - t) * 1.1f
+                val twinkle = 0.6f + 0.4f * kotlin.math.sin(time * 3f + bulb * 1.7f)
+                val colour = BULBS[bulb % BULBS.size]
+                dot(x, y + 0.5f, 1.1f, colour.copy(alpha = 0.25f * twinkle))
+                dot(x, y + 0.5f, 0.45f, colour.copy(alpha = 0.6f + 0.4f * twinkle))
+                bulb++
+            }
+        }
+    }
 }
 
 /** Two little framed pictures: a sunset over hills, and a bowl of fruit. */
