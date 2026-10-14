@@ -340,6 +340,12 @@ fun NightScene(
                                         // Whatever their hands are doing, they only ever have the one pair: the arms are drawn doing it.
                                         drawGuest(sitAt, guest, mood, angry = waitedFraction > 0.75f, walkPhase = null, g, bob = guestBob, child = child, armsBusy = hands in Hands.WITH_ARMS, seated = true)
                                         if (g == 0) party.special?.let { drawSpecialLook(seat, it, clock, guestBob) }
+                                        // Dreaming of their favourite while they read the menu (when it's on it), and a heart when it comes.
+                                        party.favourites[guest]?.let { favourite ->
+                                            val onMenu = night.menu.any { it.id == favourite && it.available }
+                                            if (party.stage == Stage.DECIDING && onMenu) drawFavouriteThought(sitAt, favourite, if (g == 0) -1f else 1f, clock + guest)
+                                            if (eating && party.orders.getOrNull(g) == favourite) drawFavouriteHeart(sitAt, clock + guest)
+                                        }
                                         // A child's hands are drawn as small as the child.
                                         val handsPen = if (child) around(Point(sitAt.x, sitAt.y + 3.6f), CHILD_SIZE) else this
                                         val sleeve = guestSleeve(party, g, guest)
@@ -745,6 +751,25 @@ private fun Pen.drawDrink(at: Point, drink: Drink, level: Float) {
             }
         }
     }
+}
+
+/** A little thought cloud over a guest's head with their favourite dish in it, out to the side away from the table. */
+private fun Pen.drawFavouriteThought(at: Point, dish: com.recipefordisaster.domain.menu.DishId, side: Float, clock: Float) {
+    val c = Point(at.x + side * 5.5f, at.y - 11f + sin(clock * 2f) * 0.3f)
+    dot(at.x + side * 2.6f, at.y - 7f, 0.5f, Color.White)
+    dot(at.x + side * 3.8f, at.y - 8.6f, 0.8f, Color.White)
+    for ((dx, dy) in listOf(-1.6f to 0.3f, 1.6f to 0.3f, 0f to -1f, 0f to 0.9f)) dot(c.x + dx, c.y + dy, 2f, Color.White)
+    drawDish(dish, Point(c.x, c.y + 0.2f))
+}
+
+/** A heart floating up from a guest enjoying their favourite. */
+private fun Pen.drawFavouriteHeart(at: Point, clock: Float) {
+    val t = (clock * 0.5f) % 1f
+    val c = Point(at.x + 2.8f, at.y - 8f - t * 3f)
+    val heart = Color(0xFFE85D75).copy(alpha = 1f - t)
+    dot(c.x - 0.55f, c.y, 0.7f, heart)
+    dot(c.x + 0.55f, c.y, 0.7f, heart)
+    shape(heart) { moveTo(c.x - 1.2f, c.y + 0.2f); lineTo(c.x + 1.2f, c.y + 0.2f); lineTo(c.x, c.y + 1.6f); close() }
 }
 
 /** About how long guests take over their food (ServiceNight's eating time), for the plate emptying. */
