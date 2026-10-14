@@ -15,7 +15,10 @@
     <string name="start_continue_game">Continue</string>
 
     <!-- Money -->
-    <string name="coins">%1$s coins</string>
+    <plurals name="coins">
+        <item quantity="one">%1$s coin</item>
+        <item quantity="other">%1$s coins</item>
+    </plurals>
     <string name="coins_per_day">%1$s a day</string>
     <string name="undo">Undo</string>
     <string name="cant_afford">Not enough money</string>

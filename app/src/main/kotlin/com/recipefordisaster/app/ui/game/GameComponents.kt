@@ -52,9 +52,10 @@ fun moneyColor(amount: Long): Color = if (amount >= 0) LeafGreen else DisasterRe
 
 private val numberFormat: NumberFormat = NumberFormat.getIntegerInstance()
 
-/** "1,500 coins" — grouping follows the device locale. */
+/** "1,500 coins" (or "1 coin") — grouping follows the device locale. */
 @Composable
-fun coins(amount: Long): String = stringResource(R.string.coins, numberFormat.format(amount))
+fun coins(amount: Long): String =
+    androidx.compose.ui.res.pluralStringResource(R.plurals.coins, kotlin.math.abs(amount).coerceAtMost(Int.MAX_VALUE.toLong()).toInt(), numberFormat.format(amount))
 
 /** "+79 coins" / "-120 coins". */
 @Composable
