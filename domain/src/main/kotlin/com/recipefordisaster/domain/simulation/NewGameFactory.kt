@@ -113,7 +113,8 @@ object NewGameFactory {
                     Ingredient(cheeseId, "Cheese", quantityOnHand = 5.0, unit = "kg", purchasePricePerUnit = 5, spoilageRatePerDay = 0.06, storageSpaceRequired = 1.0),
                     // Not used by the starting menu — only by RecipeBook dishes
                     // the player can add — so they start empty.
-                    Ingredient(RecipeBook.EGGS, "Eggs", quantityOnHand = 0.0, unit = "kg", purchasePricePerUnit = 3, spoilageRatePerDay = 0.06, storageSpaceRequired = 1.0),
+                    // Eggs don't keep: an omelette restaurant has to restock often.
+                    Ingredient(RecipeBook.EGGS, "Eggs", quantityOnHand = 0.0, unit = "kg", purchasePricePerUnit = 3, spoilageRatePerDay = 0.1, storageSpaceRequired = 1.0),
                     Ingredient(RecipeBook.FISH, "Questionable Fish", quantityOnHand = 0.0, unit = "kg", purchasePricePerUnit = 8, spoilageRatePerDay = 0.15, storageSpaceRequired = 1.0),
                     Ingredient(RecipeBook.POTATOES, "Potatoes", quantityOnHand = 0.0, unit = "kg", purchasePricePerUnit = 1, spoilageRatePerDay = 0.02, storageSpaceRequired = 1.0),
                 ).associateBy { it.id },
