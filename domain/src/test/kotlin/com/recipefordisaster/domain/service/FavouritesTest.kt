@@ -58,4 +58,12 @@ class FavouritesTest {
         assertTrue(loved.parties.first { it.id == party.id }.tip >= plain.parties.first { it.id == party.id }.tip)
         assertTrue(loved.favouritesServed >= 1)
     }
+
+    @Test
+    fun `guests enjoy a nicely decorated room more`() {
+        val plain = open()
+        val decorated = open(start.copy(decorations = com.recipefordisaster.domain.restaurant.Decoration.entries.toSet()))
+        assertEquals(9, decorated.decorJoy)
+        assertEquals(0, plain.decorJoy)
+    }
 }

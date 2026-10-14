@@ -74,6 +74,8 @@ data class ServiceNight(
     val gaveUpAt: Map<Int, WaitedFor> = emptyMap(),
     /** Whether the restaurant cat is about tonight. */
     val cat: Boolean = false,
+    /** How much more every guest enjoys their evening for the decorations in the room. */
+    val decorJoy: Int = 0,
     /** Tables the cat has sat by tonight: guests there enjoy it. */
     val catVisited: Set<Int> = emptySet(),
     /** When the cat last knocked a plate off the counter, and whose it was. */
@@ -788,7 +790,7 @@ data class ServiceNight(
                     val mess = (night.messesOnFloor.size + bother).coerceAtMost(MAX_MESS_PENALTIES) * MESS_PENALTY -
                         // ...while a visit from the cat makes their evening.
                         (if (party.table in night.catVisited) CAT_JOY else 0)
-                    val treat = (if (party.chefsSpecial) CHEFS_SPECIAL_JOY else 0) +
+                    val treat = night.decorJoy + (if (party.chefsSpecial) CHEFS_SPECIAL_JOY else 0) +
                         // Getting their favourite dish makes anyone's night.
                         (if (party.favourites[guest] == dishId) FAVOURITE_JOY else 0)
                     val satisfaction = (ServiceSimulator.resolveSatisfaction(customer, dish, waitedMinutes, kitchenQualityBonus) - mess + treat - night.pickiness).coerceIn(0, 100)
@@ -1465,6 +1467,7 @@ data class ServiceNight(
                 fridgeBreaksAt = fridgeBreaksAt,
                 chaos = chaos,
                 cat = catTonight,
+                decorJoy = com.recipefordisaster.domain.restaurant.Decoration.joyOf(state.decorations),
                 laterChaos = laterChaos,
                 introduced = state.introductionsSeen,
                 fridgeBroken = fridgeBrokenAtOpen,
