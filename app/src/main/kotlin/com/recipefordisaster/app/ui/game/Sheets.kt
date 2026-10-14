@@ -23,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -510,7 +511,7 @@ private fun TablesSheet(uiState: GameUiState.Playing, actions: GameActions) {
     val have = uiState.state.restaurant.tables
     val buying = uiState.plan.buyTable
     SectionTitle(stringResource(R.string.tables_title))
-    Text(stringResource(R.string.tables_have, if (buying) have + 1 else have), style = MaterialTheme.typography.bodyLarge)
+    Text((if (buying) have + 1 else have).let { pluralStringResource(R.plurals.tables_have, it, it) }, style = MaterialTheme.typography.bodyLarge)
     val price = TableGrowth.nextTablePrice(have)
     when {
         buying -> {

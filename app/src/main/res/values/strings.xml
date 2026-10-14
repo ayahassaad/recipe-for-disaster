@@ -249,7 +249,10 @@
     <string name="diet_vegan">vegan</string>
     <string name="scene_tables">Tables: see how many you have, or buy more</string>
     <string name="tables_title">Tables</string>
-    <string name="tables_have">You have %1$d tables.</string>
+    <plurals name="tables_have">
+        <item quantity="one">You have %1$d table.</item>
+        <item quantity="other">You have %1$d tables.</item>
+    </plurals>
     <string name="tables_free_coming">A new table arrives free each morning until you have %1$d.</string>
     <string name="tables_pitch">Another table means more guests every night, and more to run around for.</string>
     <string name="tables_buy">Buy table %1$d (%2$s)</string>
