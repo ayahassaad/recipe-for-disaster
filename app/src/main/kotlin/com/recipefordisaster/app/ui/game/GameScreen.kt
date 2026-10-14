@@ -614,7 +614,7 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
                 Chalkboard {
                     Text(stringResource(R.string.closing_time), style = MaterialTheme.typography.headlineMedium, color = ChalkWhite, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                     Text(
-                        stringResource(R.string.closing_time_fed, result.outcomes.count { it.dish != null }, result.outcomes.size),
+                        pluralStringResource(R.plurals.closing_time_fed, result.outcomes.size, result.outcomes.count { it.dish != null }, result.outcomes.size),
                         style = MaterialTheme.typography.bodyLarge,
                         color = ChalkWhite.copy(alpha = 0.85f),
                         textAlign = TextAlign.Center,
