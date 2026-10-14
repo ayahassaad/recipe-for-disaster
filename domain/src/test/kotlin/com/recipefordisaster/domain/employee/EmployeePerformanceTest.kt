@@ -90,4 +90,12 @@ class EmployeePerformanceTest {
         assertEquals(EmployeeStatus.SICK, dayOne.status)
         assertEquals(EmployeeStatus.ACTIVE, dayTwo.status)
     }
+
+    @Test
+    fun `every ten days on the job they get better and ask for a raise`() {
+        var worker = cook(stress = 0)
+        val wage = worker.salaryPerDay
+        repeat(10) { worker = EmployeePerformance.applyEndOfDayStress(worker.copy(stress = 0), staffingRatio = 2.0) }
+        assertEquals(wage + EmployeePerformance.RAISE_PER_STEP, worker.salaryPerDay)
+    }
 }

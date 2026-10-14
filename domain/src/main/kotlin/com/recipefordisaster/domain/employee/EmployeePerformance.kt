@@ -45,6 +45,9 @@ object EmployeePerformance {
      */
     const val COMFORTABLE_STAFFING_RATIO = 8.0
 
+    /** How much someone's daily wage goes up each time they get better at the job (every ten days worked). */
+    const val RAISE_PER_STEP = 2L
+
     /** How much more stressed everyone is after any shift, before counting how busy it was. */
     const val DAILY_FATIGUE = 4
 
@@ -79,6 +82,8 @@ object EmployeePerformance {
             morale = (employee.morale + moraleDrift).coerceIn(0, 100),
             experienceDays = experience,
             skill = (employee.skill + skillGain).coerceIn(0, 95),
+            // Getting better at the job, they ask for a little more money too.
+            salaryPerDay = employee.salaryPerDay + skillGain * RAISE_PER_STEP,
         )
     }
 
