@@ -61,11 +61,14 @@ class EmployeePerformanceTest {
     }
 
     @Test
-    fun `a quiet well-staffed day lets stress recover`() {
+    fun `even a quiet day is a little tiring, a busy one far more, and only a day off clears it`() {
         val before = cook(stress = 50)
-        val after = EmployeePerformance.applyEndOfDayStress(before, staffingRatio = 2.0)
+        val quiet = EmployeePerformance.applyEndOfDayStress(before, staffingRatio = 2.0)
+        val busy = EmployeePerformance.applyEndOfDayStress(before, staffingRatio = 14.0)
 
-        assertTrue(after.stress < before.stress)
+        assertTrue(quiet.stress in (before.stress + 1)..(before.stress + 3))
+        assertTrue(busy.stress > quiet.stress + 10)
+        assertTrue(EmployeePerformance.returnFromDayOff(busy.copy(status = EmployeeStatus.ON_BREAK)).stress < before.stress)
     }
 
     @Test

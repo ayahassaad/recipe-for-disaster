@@ -45,6 +45,9 @@ object EmployeePerformance {
      */
     const val COMFORTABLE_STAFFING_RATIO = 8.0
 
+    /** How much more stressed everyone is after any shift, before counting how busy it was. */
+    const val DAILY_FATIGUE = 4
+
     /**
      * Stress change at the end of a working day — heavier when the shift was
      * busy relative to how much staff was on hand. This is the "exhausted
@@ -58,7 +61,9 @@ object EmployeePerformance {
     fun applyEndOfDayStress(employee: Employee, staffingRatio: Double): Employee {
         if (employee.status != EmployeeStatus.ACTIVE) return employee
 
-        val stressChange = ((staffingRatio - COMFORTABLE_STAFFING_RATIO) * 3.0).toInt().coerceIn(-6, 20)
+        // Every shift tires people out a little, however many helpers there are; a short-staffed one far
+        // more. Only a day off really clears it.
+        val stressChange = DAILY_FATIGUE + ((staffingRatio - COMFORTABLE_STAFFING_RATIO) * 3.0).toInt().coerceIn(-3, 20)
         // Overworked days, or simply running on fumes, erode morale; calmer ones slowly recover it.
         val moraleDrift = when {
             employee.stress > 90 -> -5
