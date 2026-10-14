@@ -227,7 +227,6 @@
     <string name="stock_unused">Not needed</string>
     <string name="stock_amount">%1$s %2$s</string>
     <string name="stock_bought">+%1$s today</string>
-    <string name="buy_more">+5</string>
     <string name="buy_more_label">Buy 5 more %1$s</string>
     <string name="menu_title">Menu</string>
     <string name="menu_fair">Fair price %1$s</string>
