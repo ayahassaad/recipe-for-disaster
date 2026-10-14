@@ -375,6 +375,13 @@
     <string name="feature_inspector">the health inspector might visit. Keep the floor clean!</string>
     <string name="feature_power_cut">the power can cut out. Tap the fuse box by the door.</string>
     <string name="feature_double_trouble">some nights, two things will go wrong.</string>
+    <string name="dish_note_burger">Takes a while to cook, but most guests are happy with it.</string>
+    <string name="dish_note_soup">Cooks at an ordinary pace. Cheap, and free of every allergen.</string>
+    <string name="dish_note_salad">The quickest dish to make: handy on a busy night.</string>
+    <string name="dish_note_fries">Quick to cook and cheap. Children love them.</string>
+    <string name="dish_note_omelette">Quick to cook, but eggs go off fast: keep them stocked.</string>
+    <string name="dish_note_lasagna">Slow to cook, and a grumpy cook burns it easily. The celebrity\'s favourite.</string>
+    <string name="dish_note_fish">Pricey and slow. The critic\'s favourite, but it\'s gone by morning if the fridge breaks.</string>
     <plurals name="favourites_served">
         <item quantity="one">%1$d guest got their favourite dish</item>
         <item quantity="other">%1$d guests got their favourite dish</item>

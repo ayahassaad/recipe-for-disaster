@@ -235,6 +235,7 @@ private fun MenuSheet(uiState: GameUiState.Playing, actions: GameActions) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(dish.name, style = MaterialTheme.typography.titleMedium)
                     Text(coins(dish.sellingPrice) + " · " + stringResource(R.string.new_dish_needs, needs), style = MaterialTheme.typography.bodyMedium)
+                    dishNote(dish)?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary) }
                     if (suits.isNotEmpty()) {
                         Text(stringResource(R.string.menu_suits, suits.map { dietLabel(it) }.joinToString(", ")), style = MaterialTheme.typography.bodyMedium, color = LeafGreen)
                     }
@@ -276,6 +277,7 @@ private fun DishRow(dish: Dish, plateCost: Double, onDown: () -> Unit, onUp: () 
             OutlinedButton(onClick = onUp, modifier = Modifier.semantics { contentDescription = upLabel }) { Text("+") }
         }
         Text(stringResource(R.string.menu_fair, coins(dish.referencePrice)), style = MaterialTheme.typography.bodySmall)
+        dishNote(dish)?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary) }
         // What each plate costs in ingredients, and who can't eat it.
         val cost = kotlin.math.ceil(plateCost).toLong()
         Text(stringResource(R.string.menu_plate_cost, coins(cost), coins(dish.sellingPrice - cost)), style = MaterialTheme.typography.bodySmall)
@@ -285,6 +287,19 @@ private fun DishRow(dish: Dish, plateCost: Double, onDown: () -> Unit, onUp: () 
         }
     }
 }
+
+/** What's special about a dish: how quick it is to cook, who loves it, and what can go wrong with it. */
+@Composable
+private fun dishNote(dish: Dish): String? = when (dish.id.value) {
+    "the_regular_burger" -> R.string.dish_note_burger
+    "mystery_soup" -> R.string.dish_note_soup
+    "suspicious_salad" -> R.string.dish_note_salad
+    "fries_of_destiny" -> R.string.dish_note_fries
+    "existential_omelette" -> R.string.dish_note_omelette
+    "lasagna_situation" -> R.string.dish_note_lasagna
+    "fish_of_uncertain_origin" -> R.string.dish_note_fish
+    else -> null
+}?.let { stringResource(it) }
 
 /** The diets the game can actually check a dish against (vegetarian and vegan aren't modelled yet). */
 private val DIETS_SHOWN = listOf(
