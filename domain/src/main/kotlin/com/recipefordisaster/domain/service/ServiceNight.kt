@@ -743,8 +743,9 @@ data class ServiceNight(
         return night
     }
 
-    /** How long the kitchen takes to cook a table's order. */
-    private fun cookTime(orders: List<DishId?>): Float = secondsPerDish * orders.count { it != null } + COOK_BASE
+    /** How long the kitchen takes to cook a table's order: quick dishes come out sooner than slow ones. */
+    internal fun cookTime(orders: List<DishId?>): Float =
+        secondsPerDish * orders.filterNotNull().sumOf { id -> dishPace(menu.firstOrNull { it.id == id }).toDouble() }.toFloat() + COOK_BASE
 
     /** Which of tonight's plates the chef's mood touches: the same ones every time the night is played. */
     private fun touchedByMood(party: Party, chance: Float): Boolean = (party.id * 0.618f + chefLuck) % 1f < chance
@@ -1232,6 +1233,15 @@ data class ServiceNight(
         private const val MAX_MESS_PENALTIES = 3
         private const val LEAVE = 1.6f
         private const val COOK_BASE = 2f
+
+        /** A dish that takes this many minutes to prepare cooks at the kitchen's usual pace. */
+        private const val USUAL_PREP_MINUTES = 8f
+
+        /**
+         * How long [dish] takes compared with the usual: a salad is quick, a lasagna slow. Only half of
+         * it depends on the dish, so a slow dish is a wait but never a disaster.
+         */
+        fun dishPace(dish: Dish?): Float = if (dish == null) 1f else 0.5f + 0.5f * dish.recipe.preparationTimeMinutes / USUAL_PREP_MINUTES
         private const val FOOD_PATIENCE = 1.8f
         /** A sensible minimum from sitting down to being served; only waiting beyond it counts against you. */
         private const val EXPECTED_SERVICE = 10f

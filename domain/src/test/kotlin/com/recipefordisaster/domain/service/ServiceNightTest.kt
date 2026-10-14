@@ -791,4 +791,13 @@ class ServiceNightTest {
             }
         }
     }
+
+    @Test
+    fun `quick dishes cook sooner than slow ones`() {
+        val n = open()
+        val salad = n.menu.first { it.name == "Suspicious Salad" }
+        val burger = n.menu.first { it.name == "The Regular Burger" }
+        assertTrue(n.cookTime(listOf(salad.id)) < n.cookTime(listOf(burger.id)))
+        assertTrue(ServiceNight.dishPace(com.recipefordisaster.domain.menu.RecipeBook.dishes.first { it.name == "The Lasagna Situation" }) > 1.3f)
+    }
 }
