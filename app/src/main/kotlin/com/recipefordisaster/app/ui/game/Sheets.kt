@@ -246,7 +246,7 @@ private fun MenuSheet(uiState: GameUiState.Playing, actions: GameActions) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(dish.name, style = MaterialTheme.typography.titleMedium)
                     Text(coins(dish.sellingPrice) + " · " + stringResource(R.string.new_dish_needs, needs), style = MaterialTheme.typography.bodyMedium)
-                    dishNote(dish)?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary) }
+                    dishNote(dish)?.let { Text(it, style = MaterialTheme.typography.bodyMedium, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     if (suits.isNotEmpty()) {
                         Text(stringResource(R.string.menu_suits, suits.map { dietLabel(it) }.joinToString(", ")), style = MaterialTheme.typography.bodyMedium, color = LeafGreen)
                     }
@@ -288,7 +288,7 @@ private fun DishRow(dish: Dish, plateCost: Double, onDown: () -> Unit, onUp: () 
             OutlinedButton(onClick = onUp, modifier = Modifier.semantics { contentDescription = upLabel }) { Text("+") }
         }
         Text(stringResource(R.string.menu_fair, coins(dish.referencePrice)), style = MaterialTheme.typography.bodySmall)
-        dishNote(dish)?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary) }
+        dishNote(dish)?.let { Text(it, style = MaterialTheme.typography.bodySmall, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         // What each plate costs in ingredients, and who can't eat it.
         val cost = kotlin.math.ceil(plateCost).toLong()
         Text(stringResource(R.string.menu_plate_cost, coins(cost), coins(dish.sellingPrice - cost)), style = MaterialTheme.typography.bodySmall)
