@@ -190,6 +190,14 @@
     <string name="staff_sick">Off sick</string>
     <string name="staff_tired">Exhausted</string>
     <string name="staff_day_off">Day off</string>
+    <string name="decor_title">Make it nicer</string>
+    <string name="decor_pitch">Decorations are yours for good, and every guest enjoys their evening a little more for them.</string>
+    <string name="decor_paintings">Paintings on the walls</string>
+    <string name="decor_fairy_lights">Fairy lights</string>
+    <string name="decor_piano">A piano</string>
+    <string name="decor_joy">Guests enjoy it +%1$d</string>
+    <string name="decor_owned">Yours</string>
+    <string name="decor_buy">Buy (%1$s)</string>
     <string name="staff_train">Train them (%1$s)</string>
     <string name="staff_training">Training this morning: +%1$d skill</string>
     <string name="staff_fire">Let go</string>

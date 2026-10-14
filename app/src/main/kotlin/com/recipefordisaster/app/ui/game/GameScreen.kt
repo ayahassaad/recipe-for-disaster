@@ -103,6 +103,7 @@ data class GameActions(
     val onToggleUpgrade: (EquipmentId) -> Unit = {},
     val onToggleDeepClean: () -> Unit = {},
     val onToggleBuyTable: () -> Unit = {},
+    val onToggleDecoration: (com.recipefordisaster.domain.restaurant.Decoration) -> Unit = {},
 )
 
 fun GameViewModel.actions(): GameActions = GameActions(
@@ -125,6 +126,7 @@ fun GameViewModel.actions(): GameActions = GameActions(
     onToggleUpgrade = ::toggleUpgrade,
     onToggleDeepClean = ::toggleDeepClean,
     onToggleBuyTable = ::toggleBuyTable,
+    onToggleDecoration = ::toggleDecoration,
 )
 
 /**

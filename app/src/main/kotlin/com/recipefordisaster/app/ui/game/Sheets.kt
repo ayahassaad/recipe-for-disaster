@@ -565,7 +565,41 @@ private fun TablesSheet(uiState: GameUiState.Playing, actions: GameActions) {
             BigAction(stringResource(R.string.tables_buy, have + 1, coins(price)), enabled = uiState.cashNow >= price, onClick = actions.onToggleBuyTable)
         }
     }
+    DecorationsSection(uiState, actions)
 }
+
+/** Things to save up for: each makes every guest enjoy their evening a little more, for good. */
+@Composable
+private fun DecorationsSection(uiState: GameUiState.Playing, actions: GameActions) {
+    SectionTitle(stringResource(R.string.decor_title))
+    Text(stringResource(R.string.decor_pitch), style = MaterialTheme.typography.bodyLarge)
+    com.recipefordisaster.domain.restaurant.Decoration.entries.forEach { decoration ->
+        val owned = decoration in uiState.state.decorations
+        val buying = decoration in uiState.plan.decorationsToBuy
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(decorationName(decoration), style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.decor_joy, decoration.joy), style = MaterialTheme.typography.bodyMedium, color = LeafGreen)
+            }
+            when {
+                owned -> Text(stringResource(R.string.decor_owned), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                buying -> OutlinedButton(onClick = { actions.onToggleDecoration(decoration) }) { Text(stringResource(R.string.undo)) }
+                else -> FilledTonalButton(onClick = { actions.onToggleDecoration(decoration) }, enabled = uiState.cashNow >= decoration.cost) {
+                    Text(stringResource(R.string.decor_buy, coins(decoration.cost)))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun decorationName(decoration: com.recipefordisaster.domain.restaurant.Decoration): String = stringResource(
+    when (decoration) {
+        com.recipefordisaster.domain.restaurant.Decoration.PAINTINGS -> R.string.decor_paintings
+        com.recipefordisaster.domain.restaurant.Decoration.FAIRY_LIGHTS -> R.string.decor_fairy_lights
+        com.recipefordisaster.domain.restaurant.Decoration.PIANO -> R.string.decor_piano
+    },
+)
 
 @Composable
 private fun roleDescription(role: com.recipefordisaster.domain.employee.Role): String = stringResource(
