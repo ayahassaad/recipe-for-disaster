@@ -302,7 +302,8 @@
     <string name="staff_energy">Energy</string>
     <string name="staff_skill">Skill</string>
     <string name="broken">Broken. The kitchen works at half speed.</string>
-    <string name="fix">Fix (%1$s)</string>
+    <string name="fix">Fix up to 100%% (%1$s)</string>
+    <string name="fix_upkeep">Looking after it costs less than fixing it once it breaks.</string>
     <string name="fine">Working fine</string>
     <string name="scene_fridge">Fridge</string>
     <string name="fridge_broken">Broken! Cold food spoils fast and dishes that need it can\'t be made.</string>
