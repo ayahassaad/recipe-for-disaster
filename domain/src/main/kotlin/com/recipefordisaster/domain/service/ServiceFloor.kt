@@ -96,13 +96,13 @@ object ServiceFloor {
     const val AISLE_X = 50f
 
     /**
-     * Where parties wait inside the door when every table is taken: in a line along the front wall,
-     * clear of the bottom row of tables and their chairs.
+     * Where parties wait inside the door when every table is taken: in a line in front of the door, between
+     * the two bottom tables and standing clear of the name sign over the door (so their feet stop above it).
      */
-    fun queueSpot(index: Int): FloorPoint = FloorPoint(30f + (index % QUEUE_ROW) * 6.6f, 135.5f - (index / QUEUE_ROW) * 5f)
+    fun queueSpot(index: Int): FloorPoint = FloorPoint(AISLE_X - (QUEUE_ROW - 1) / 2f * 6.6f + (index % QUEUE_ROW) * 6.6f, 130.5f - (index / QUEUE_ROW) * 5f)
 
-    /** How many fit in one line along the front wall. */
-    private const val QUEUE_ROW = 7
+    /** How many fit in one line in front of the door. */
+    private const val QUEUE_ROW = 5
 
     /** Walking from one spot to another along the aisles: across to the centre aisle, along it, then across. */
     fun route(from: FloorPoint, to: FloorPoint, aisles: List<Float> = listOf(AISLE_X)): List<FloorPoint> {
