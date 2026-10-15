@@ -346,6 +346,9 @@ data class ServiceNight(
 
     val player: Waiter get() = waiters.first { it.isPlayer }
 
+    /** Whether the player's list of stops is full, so one more tap would be ignored. */
+    val queueFull: Boolean get() = player.queue.size >= MAX_QUEUED
+
     /** Coins taken so far tonight. */
     val takings: Long get() = results.values.sumOf { it.dish?.sellingPrice ?: 0 } + tips + drinkTakings
 
@@ -465,7 +468,7 @@ data class ServiceNight(
         if (errand == Errand.VisitFridge && !fridgeBroken) return this
         if (errand == Errand.VisitChaos && activeChaos == null) return this
         if (me.errand == null) return send(me.id, errand)
-        if (errand == me.errand || errand in me.queue || me.queue.size >= MAX_QUEUED) return this
+        if (errand == me.errand || errand in me.queue || queueFull) return this
         return copy(waiters = waiters.map { if (it.isPlayer) it.copy(queue = it.queue + errand) else it })
     }
 
