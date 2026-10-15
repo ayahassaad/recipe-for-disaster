@@ -355,7 +355,7 @@
     <string name="job_bartender">Looks after the drinks: takes the orders, pours them at the bar and carries them over.</string>
     <string name="paused_title">Paused</string>
     <string name="paused_resume">Tap anywhere to carry on</string>
-    <string name="leave_title">Leave the restaurant?</string>
+    <string name="leave_title">Settings</string>
     <string name="leave_body">Your game is saved. Tap Continue on the start screen to carry on.</string>
     <string name="leave_body_night">Tonight is saved right where you are. Tap Continue on the start screen to carry on.</string>
     <string name="leave_body_morning">Your game is saved, but this morning\'s changes (buying, hiring and so on) won\'t be kept.</string>
