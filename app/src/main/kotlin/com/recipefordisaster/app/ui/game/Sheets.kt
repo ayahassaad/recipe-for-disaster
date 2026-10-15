@@ -92,7 +92,11 @@ private fun EquipmentSheet(equipment: com.recipefordisaster.domain.equipment.Equ
     when {
         upgrading -> {}
         repairing -> OutlinedButton(onClick = { actions.onToggleRepair(equipment.id) }) { Text(stringResource(R.string.undo)) }
-        cost > 0 -> BigAction(stringResource(R.string.fix, coins(cost)), enabled = uiState.cashNow >= cost) { actions.onToggleRepair(equipment.id) }
+        cost > 0 -> {
+            BigAction(stringResource(R.string.fix, coins(cost)), enabled = uiState.cashNow >= cost) { actions.onToggleRepair(equipment.id) }
+            // Not broken yet: say why paying now is worth it.
+            if (!EquipmentOperations.isBroken(equipment)) Text(stringResource(R.string.fix_upkeep), style = MaterialTheme.typography.bodyMedium)
+        }
         else -> Text(stringResource(R.string.fine), style = MaterialTheme.typography.bodyLarge)
     }
 
