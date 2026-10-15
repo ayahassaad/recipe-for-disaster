@@ -312,12 +312,14 @@ private fun dishNote(dish: Dish): String? = when (dish.id.value) {
     else -> null
 }?.let { stringResource(it) }
 
-/** The diets the game can actually check a dish against (vegetarian and vegan aren't modelled yet). */
+/** The diets the game checks a dish against. */
 private val DIETS_SHOWN = listOf(
     com.recipefordisaster.domain.customer.DietaryRequirement.GLUTEN_FREE,
     com.recipefordisaster.domain.customer.DietaryRequirement.LACTOSE_INTOLERANT,
     com.recipefordisaster.domain.customer.DietaryRequirement.NUT_ALLERGY,
     com.recipefordisaster.domain.customer.DietaryRequirement.SHELLFISH_ALLERGY,
+    com.recipefordisaster.domain.customer.DietaryRequirement.VEGETARIAN,
+    com.recipefordisaster.domain.customer.DietaryRequirement.VEGAN,
 )
 
 @Composable
