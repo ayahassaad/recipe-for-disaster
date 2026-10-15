@@ -491,6 +491,13 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
     val buzz = com.recipefordisaster.app.ui.sound.Buzz.get(androidx.compose.ui.platform.LocalContext.current)
     var night by remember(session) { mutableStateOf(session.opening) }
     var clock by remember { mutableFloatStateOf(0f) }
+    // When a tap was turned away because your list of stops is full, so the scene can say so for a moment.
+    var listFullAt by remember(session) { mutableFloatStateOf(-10f) }
+    fun tap(action: (ServiceNight) -> ServiceNight) {
+        val before = night
+        night = action(before)
+        if (night === before && before.queueFull) listFullAt = clock
+    }
     // Paused: time stands still, nothing can be tapped, and a sign says how to carry on.
     var paused by remember(session) { mutableStateOf(false) }
     val model = remember(session) { sceneModelFor(session.setup.morning.state, emptyList(), hiringOpen = false) }
@@ -571,15 +578,15 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
                 model = model,
                 labels = labels,
                 clock = clock,
-                onTapTable = { night = night.tapTable(it) },
-                onTapCounter = { night = night.tapChef() },
-                onTapPlate = { id -> night = night.tapPlate(id) },
-                onTapDishStation = { night = night.tapDishStation() },
-                onTapMopBucket = { night = night.tapMopBucket() },
-                onTapMess = { id -> night = night.tapMess(id) },
-                onTapFridge = { night = night.tapFridge() },
-                onTapChaos = { night = night.tapChaos() },
-                onTapBar = { night = night.tapBar() },
+                onTapTable = { tap { n -> n.tapTable(it) } },
+                onTapCounter = { tap { n -> n.tapChef() } },
+                onTapPlate = { id -> tap { n -> n.tapPlate(id) } },
+                onTapDishStation = { tap { n -> n.tapDishStation() } },
+                onTapMopBucket = { tap { n -> n.tapMopBucket() } },
+                onTapMess = { id -> tap { n -> n.tapMess(id) } },
+                onTapFridge = { tap { n -> n.tapFridge() } },
+                onTapChaos = { tap { n -> n.tapChaos() } },
+                onTapBar = { tap { n -> n.tapBar() } },
                 modifier = Modifier.fillMaxSize(),
                 // For the first few nights, point at what the hint is talking about; and later, at whatever is still new.
                 focus = NightHint.of(night).let { hint ->
@@ -591,6 +598,20 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
                 zoomOn = if (paused) null else night.introductionDue()?.let { introductionSpot(night, it) },
                 zoomTargetY = night.introductionDue()?.let { if (explainAtTop(introductionSpot(night, it))) 0.72f else 0.28f } ?: 0.28f,
             )
+            // A tap turned away because five stops are already lined up.
+            if (clock - listFullAt < LIST_FULL_NOTICE) {
+                Text(
+                    text = stringResource(R.string.night_list_full, ServiceNight.MAX_QUEUED),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = ChalkWhite,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 12.dp, start = 24.dp, end = 24.dp)
+                        .background(Color(0xCC2B2B2B), androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            }
             // Everyone fed tonight: confetti!
             if (night.finished) {
                 val r = night.result().outcomes
@@ -648,6 +669,9 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
 
 /** For this many days, the night scene points at what to tap next. */
 private const val GUIDED_DAYS = 3
+
+/** Seconds the "your list is full" note stays up. */
+private const val LIST_FULL_NOTICE = 2f
 
 /** Seconds the "Closing time!" sign stays up before the bill. */
 private const val CLOSING_PAUSE = 2.5f
