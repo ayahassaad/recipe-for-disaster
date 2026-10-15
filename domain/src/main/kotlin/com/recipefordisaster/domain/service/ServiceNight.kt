@@ -687,7 +687,22 @@ data class ServiceNight(
         return night
     }
 
-    /** A party gives up: everyone without a result leaves hungry, and any ticket or plate of theirs disappears. */
+    /**
+     * What's left in someone's hands when a party walks out: their food or drinks can't be served any more,
+     * so it becomes a stack of dirty dishes to take to the dish station (one stack, even if it was both).
+     */
+    private fun List<HandItem>.withoutOrderOf(partyId: Int, table: Int?): List<HandItem> {
+        var stacked = table != null && HandItem.DirtyDishes(table) in this
+        return mapNotNull { item ->
+            when {
+                item != HandItem.Plate(partyId) && item != HandItem.Drinks(partyId) -> item
+                table == null || stacked -> null
+                else -> HandItem.DirtyDishes(table).also { stacked = true }
+            }
+        }
+    }
+
+    /** A party gives up: everyone without a result leaves hungry, and any ticket of theirs disappears; food in hand goes to be washed. */
     private fun stormOut(partyId: Int, reason: MissedMealReason): ServiceNight {
         val party = parties.first { it.id == partyId }
         var results = results
@@ -698,7 +713,7 @@ data class ServiceNight(
             specialVisits = specialVisits,
             results = results,
             waiters = waiters.map {
-                it.copy(tickets = it.tickets - partyId, drinkOrders = it.drinkOrders - partyId, hands = it.hands - HandItem.Plate(partyId) - HandItem.Drinks(partyId))
+                it.copy(tickets = it.tickets - partyId, drinkOrders = it.drinkOrders - partyId, hands = it.hands.withoutOrderOf(partyId, party.table))
             },
         ).updateParty(partyId) {
             if (inLine) it.copy(stage = Stage.DONE, stageSince = time) else it.copy(stage = Stage.LEAVING_ANGRY, stageSince = time, until = time + LEAVE, heldBy = null)
