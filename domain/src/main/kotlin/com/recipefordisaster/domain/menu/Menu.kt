@@ -53,5 +53,8 @@ fun Dish.violates(requirement: DietaryRequirement): Boolean = when (requirement)
     DietaryRequirement.NUT_ALLERGY -> Allergen.NUTS in allergens
     DietaryRequirement.SHELLFISH_ALLERGY -> Allergen.SHELLFISH in allergens
     DietaryRequirement.LACTOSE_INTOLERANT -> Allergen.DAIRY in allergens
-    DietaryRequirement.VEGETARIAN, DietaryRequirement.VEGAN -> false // TODO(Phase 3): needs an explicit ingredient-level meat/animal-product model, not just allergens.
+    DietaryRequirement.VEGETARIAN -> usesAny(RecipeBook.MEAT_AND_FISH)
+    DietaryRequirement.VEGAN -> usesAny(RecipeBook.ANIMAL_PRODUCTS)
 }
+
+private fun Dish.usesAny(ingredients: Set<IngredientId>): Boolean = recipe.ingredientRequirements.keys.any { it in ingredients }

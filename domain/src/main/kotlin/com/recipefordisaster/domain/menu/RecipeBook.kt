@@ -23,6 +23,12 @@ object RecipeBook {
     val FISH = IngredientId("questionable_fish")
     val POTATOES = IngredientId("potatoes")
 
+    /** What a vegetarian won't eat. */
+    val MEAT_AND_FISH: Set<IngredientId> = setOf(MYSTERY_MEAT, FISH)
+
+    /** What a vegan won't eat: meat and fish, plus eggs and cheese. */
+    val ANIMAL_PRODUCTS: Set<IngredientId> = MEAT_AND_FISH + setOf(EGGS, CHEESE)
+
     val FRIES_DISH = DishId("fries_of_destiny")
     val LASAGNA_DISH = DishId("lasagna_situation")
     val FISH_DISH = DishId("fish_of_uncertain_origin")
