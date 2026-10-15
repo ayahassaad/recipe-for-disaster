@@ -345,6 +345,7 @@ private fun HiringSheet(uiState: GameUiState.Playing, actions: GameActions) {
                 pluralStringResource(R.plurals.need_cook_guests, outlook.expectedCustomers, outlook.expectedCustomers),
             )
             MorningAdvisor.Need.SERVER -> stringResource(R.string.need_server)
+            MorningAdvisor.Need.BARTENDER -> stringResource(R.string.need_bartender)
             MorningAdvisor.Need.DISHWASHER -> stringResource(R.string.need_dishwasher)
             null -> stringResource(R.string.need_none)
         },
@@ -381,6 +382,7 @@ private fun HiringSheet(uiState: GameUiState.Playing, actions: GameActions) {
 private fun roleMatches(role: com.recipefordisaster.domain.employee.Role, need: MorningAdvisor.Need) = when (need) {
     MorningAdvisor.Need.COOK -> role == com.recipefordisaster.domain.employee.Role.COOK
     MorningAdvisor.Need.SERVER -> role == com.recipefordisaster.domain.employee.Role.SERVER || role == com.recipefordisaster.domain.employee.Role.MANAGER
+    MorningAdvisor.Need.BARTENDER -> role == com.recipefordisaster.domain.employee.Role.BARTENDER
     MorningAdvisor.Need.DISHWASHER -> role == com.recipefordisaster.domain.employee.Role.DISHWASHER
 }
 

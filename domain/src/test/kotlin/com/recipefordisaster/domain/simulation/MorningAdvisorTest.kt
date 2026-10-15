@@ -140,4 +140,18 @@ class MorningAdvisorTest {
         assertTrue(MorningAdvisor.onlyCookExhausted(exhausted))
         assertEquals(MorningAdvisor.Need.COOK, MorningAdvisor.staffNeed(exhausted))
     }
+
+    @Test
+    fun `a busy night with the bar open and no bartender asks for one`() {
+        val server = start.applicants.first { it.role == com.recipefordisaster.domain.employee.Role.SERVER }
+            .copy(status = com.recipefordisaster.domain.employee.EmployeeStatus.ACTIVE)
+        val busy = start.copy(day = 10, employees = start.employees + server, restaurant = start.restaurant.copy(reputation = 100, cleanliness = 90))
+        assertEquals(MorningAdvisor.Need.BARTENDER, MorningAdvisor.staffNeed(busy))
+    }
+
+    @Test
+    fun `no bartender is asked for before the bar opens`() {
+        val early = start.copy(day = 2, restaurant = start.restaurant.copy(reputation = 100))
+        assertTrue(MorningAdvisor.staffNeed(early) != MorningAdvisor.Need.BARTENDER)
+    }
 }

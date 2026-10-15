@@ -461,6 +461,7 @@ private fun sceneLabels(need: MorningAdvisor.Need? = null): SceneLabels {
             when (need) {
                 MorningAdvisor.Need.COOK -> R.string.scene_hiring_sign_cook
                 MorningAdvisor.Need.SERVER -> R.string.scene_hiring_sign_server
+                MorningAdvisor.Need.BARTENDER -> R.string.scene_hiring_sign_bartender
                 MorningAdvisor.Need.DISHWASHER -> R.string.scene_hiring_sign_dishwasher
                 null -> R.string.scene_hiring_sign
             },

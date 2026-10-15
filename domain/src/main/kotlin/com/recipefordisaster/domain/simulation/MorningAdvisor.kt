@@ -9,6 +9,8 @@ import com.recipefordisaster.domain.equipment.EquipmentOperations
 import com.recipefordisaster.domain.inventory.Ingredient
 import com.recipefordisaster.domain.inventory.IngredientId
 import com.recipefordisaster.domain.menu.Dish
+import com.recipefordisaster.domain.progression.Feature
+import com.recipefordisaster.domain.progression.Progression
 import kotlin.math.ceil
 import kotlin.math.roundToLong
 
@@ -95,6 +97,9 @@ object MorningAdvisor {
 
     private const val RESTOCK_NIGHTS = 2
 
+    /** Guests expected in a night above which the player alone can't keep the drinks coming. */
+    private const val BARTENDER_CROWD = 12
+
     /**
      * Everything [adviceFor] suggests buying, as one shopping list — what a
      * single "restock everything" button buys.
@@ -116,7 +121,7 @@ object MorningAdvisor {
     }
 
     /** What the restaurant is short of, if anything — so the hiring sign can say what kind of help is wanted. */
-    enum class Need { COOK, SERVER, DISHWASHER }
+    enum class Need { COOK, SERVER, BARTENDER, DISHWASHER }
 
     /** Stress at which a worker is flagged as needing a day off. */
     const val TIRED_STRESS = 60
@@ -139,6 +144,8 @@ object MorningAdvisor {
             onlyCookExhausted(state) -> Need.COOK
             // The player waits tables too, so a server is only needed once the room is too busy for them.
             outlook.expectedCustomers > (floorStaff + 1) * 12 -> Need.SERVER
+            // Once the bar is open, a busy room is too much to pour drinks for on your own.
+            Progression.has(state, Feature.DRINKS) && working.none { it.role == Role.BARTENDER } && outlook.expectedCustomers > BARTENDER_CROWD -> Need.BARTENDER
             state.restaurant.cleanliness < 55 && working.none { it.role == Role.DISHWASHER } -> Need.DISHWASHER
             else -> null
         }
