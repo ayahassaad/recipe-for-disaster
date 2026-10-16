@@ -816,18 +816,9 @@ private fun ResultsPlay(
 @Composable
 private fun lostTip(report: DayReport): String? {
     val s = report.summary
-    val reasons = buildMap {
-        report.gaveUp[ServiceNight.WaitedFor.TABLE]?.let { put(R.string.tip_table, it) }
-        report.gaveUp[ServiceNight.WaitedFor.DRINKS]?.let { put(R.string.tip_drinks, it) }
-        report.gaveUp[ServiceNight.WaitedFor.ORDER]?.let { put(R.string.tip_order, it) }
-        report.gaveUp[ServiceNight.WaitedFor.FOOD]?.let { put(R.string.tip_food, it) }
-        if (report.gaveUp.isEmpty() && s.gaveUpWaiting > 0) put(R.string.tip_order, s.gaveUpWaiting)
-        if (s.unfedOutOfStock > 0) put(R.string.tip_stock, s.unfedOutOfStock)
-        if (s.walkedOut > 0) put(R.string.tip_menu, s.walkedOut)
-        if (s.unfedKitchenFull > 0) put(R.string.tip_cooks, s.unfedKitchenFull)
-    }
-    val (tip, count) = reasons.maxByOrNull { it.value } ?: return null
-    return stringResource(tip, count)
+    val working = report.startOfService.employees.filter { it.status == com.recipefordisaster.domain.employee.EmployeeStatus.ACTIVE }.map { it.role }.toSet()
+    val tip = biggestLoss(report.gaveUp, s.gaveUpWaiting, s.unfedOutOfStock, s.walkedOut, s.unfedKitchenFull, working) ?: return null
+    return stringResource(tip.text, tip.count)
 }
 
 /** The receipt that slides up over the restaurant once the last guest has left. */
