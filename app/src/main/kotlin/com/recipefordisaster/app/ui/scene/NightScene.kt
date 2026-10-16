@@ -41,6 +41,8 @@ data class NightLabels(
     val counter: String,
     /** A plate on the counter: "Food for table N". */
     val plate: (table: Int) -> String = { "" },
+    /** A tray of drinks waiting on the bar: "Drinks for table N". */
+    val tray: (table: Int) -> String = { "" },
     val wantsToOrder: String,
     val waitingForFood: String,
     /** The bar, where drinks are poured, and the table states around drinks. */
@@ -113,6 +115,8 @@ fun NightScene(
     onTapChaos: () -> Unit = {},
     /** The bar: pour the drinks you've taken orders for. */
     onTapBar: () -> Unit = {},
+    /** A tray of drinks on the bar, by party id: pick it up. */
+    onTapTray: (Int) -> Unit = {},
     /** Yourself: undo your last tap. */
     onTapPlayer: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -218,6 +222,7 @@ fun NightScene(
                     drawTipJar(text, night, clock)
                     drawTickets(text, night)
                     drawReadyPlates(text, night, clock)
+                    drawReadyTrays(text, night)
                     drawDishStation(text, labels.dishSign, night, clock)
 
                     // Tables guests have left: dirty plates, crumbs and a crumpled napkin until someone clears them.
@@ -391,6 +396,7 @@ fun NightScene(
                             is NightFocus.Table -> tablePoints[f.table] to 16f * scale
                             NightFocus.Chef -> SceneLayout.cookSpot(0).let { Point(it.x, it.y - 3f) } to 9f
                             is NightFocus.Plate -> (readyPlates(night).indexOfFirst { it.id == f.partyId }.takeIf { it >= 0 }?.let { plateSpot(it) } ?: return@let) to 4.5f
+                            is NightFocus.Tray -> (night.traysOnBar.indexOfFirst { it.id == f.partyId }.takeIf { it >= 0 }?.let { ServiceFloor.tray(it).toPoint() } ?: return@let) to 4.5f
                             NightFocus.DishStation -> Point(87f, SceneLayout.counter.top + 1f) to 9f
                             NightFocus.Fridge -> SceneLayout.fridge.center to 10f
                             NightFocus.Bar -> SceneLayout.bar.center to 8f
@@ -411,6 +417,7 @@ fun NightScene(
                             ServiceNight.Errand.VisitPass -> ServiceFloor.pass
                             ServiceNight.Errand.HandIn -> ServiceFloor.chef
                             is ServiceNight.Errand.PickUp -> night.platesOnCounter.indexOfFirst { it.id == errand.partyId }.takeIf { it >= 0 }?.let { ServiceFloor.plateStand(it) }
+                            is ServiceNight.Errand.PickUpDrinks -> night.traysOnBar.indexOfFirst { it.id == errand.partyId }.takeIf { it >= 0 }?.let { ServiceFloor.trayStand(it) }
                             ServiceNight.Errand.VisitDishStation -> ServiceFloor.dishStation
                             ServiceNight.Errand.VisitFridge -> ServiceFloor.fridge
                             ServiceNight.Errand.VisitMopBucket -> ServiceFloor.mopBucket
@@ -604,6 +611,10 @@ fun NightScene(
         TapArea(Rect(78f, 0f, SceneLayout.WIDTH, SceneLayout.counter.bottom + 2f), unit, origin, labels.dishStation, onTapDishStation)
         // The bar sits in the chef's end of the counter, so its tap goes on top.
         if (model.barOpen) TapArea(Rect(SceneLayout.bar.left, SceneLayout.bar.top, SceneLayout.bar.right, SceneLayout.counter.bottom + 2f), unit, origin, labels.bar, onTapBar)
+        night.traysOnBar.forEachIndexed { i, party ->
+            val at = ServiceFloor.tray(i)
+            TapArea(Rect(at.x - 3f, at.y - 6f, at.x + 4.5f, at.y + 3f), unit, origin, labels.tray((party.table ?: 0) + 1)) { onTapTray(party.id) }
+        }
         readyPlates(night).forEachIndexed { i, party ->
             val at = plateSpot(i)
             TapArea(Rect(at.x - 3.4f, at.y - 6f, at.x + 4f, at.y + 3f), unit, origin, labels.plate((party.table ?: 0) + 1)) { onTapPlate(party.id) }
@@ -940,6 +951,15 @@ private fun readyPlates(night: ServiceNight) = night.platesOnCounter
 /** Where the [i]th waiting plate sits on the counter (the same spot the player walks to). */
 private fun plateSpot(i: Int) = ServiceFloor.plate(i).toPoint()
 
+/** Trays of poured drinks waiting on the bar, each with its table's number, until someone carries them over. */
+private fun Pen.drawReadyTrays(text: TextMeasurer, night: ServiceNight) {
+    night.traysOnBar.forEachIndexed { i, party ->
+        val at = ServiceFloor.tray(i).toPoint()
+        drawDrinksTray(at, party)
+        drawNumberFlag(text, Point(at.x, at.y + 1f), (party.table ?: 0) + 1)
+    }
+}
+
 private fun Pen.drawReadyPlates(text: TextMeasurer, night: ServiceNight, clock: Float) {
     readyPlates(night).forEachIndexed { i, party ->
         val at = plateSpot(i)
@@ -1136,6 +1156,7 @@ sealed interface NightFocus {
     data class Table(val table: Int) : NightFocus
     data object Chef : NightFocus
     data class Plate(val partyId: Int) : NightFocus
+    data class Tray(val partyId: Int) : NightFocus
     data object DishStation : NightFocus
     data object Fridge : NightFocus
     data object Chaos : NightFocus
