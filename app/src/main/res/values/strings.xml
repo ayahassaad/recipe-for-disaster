@@ -143,7 +143,7 @@
     </plurals>
     <string name="need_server">You need another server. There are too many guests for your floor staff to look after.</string>
     <string name="need_bartender">You need a bartender. The bar is open and the room is too busy for you to pour every drink yourself.</string>
-    <string name="need_dishwasher">You need a dishwasher. The place is getting dirty and nobody\'s keeping up with it.</string>
+    <string name="need_dishwasher">You need a dishwasher. The place is getting dirty and nobody\'s clearing up.</string>
     <string name="hiring_clumsy" tools:ignore="PluralsCandidate">New staff are clumsy for their first %1$d shifts and will trip and drop a tray. Someone has to mop up after them.</string>
     <string name="need_none">You have enough staff for now. Everyone you hire adds to your daily costs.</string>
     <string name="recommended">Recommended</string>
@@ -356,9 +356,9 @@
     <string name="pause_button">Pause</string>
     <string name="hire_button">Hire</string>
     <string name="job_cook">Cooks the food. More cooks means more dishes at once.</string>
-    <string name="job_server">Carries food out to the tables and clears them when the guests have gone.</string>
-    <string name="job_dishwasher">Clears tables, washes up, mops spills and fixes the fridge.</string>
-    <string name="job_manager">Helps carry food out and clear tables, like a server.</string>
+    <string name="job_server">Carries food and drinks out to the tables. Doesn\'t clear them: that\'s a dishwasher\'s job.</string>
+    <string name="job_dishwasher">Clears tables and washes up. Doesn\'t mop or fix anything: that\'s you.</string>
+    <string name="job_manager">Helps carry food and drinks out to the tables, like a server.</string>
     <string name="job_host">Greets guests at the door: they wait longer, and one more party fits inside.</string>
     <string name="job_busser">Clears tables and washes up, so you don\'t have to.</string>
     <string name="job_bartender">Looks after the drinks: takes the orders, pours them at the bar and carries them over.</string>
