@@ -97,7 +97,7 @@ object RecipeBook {
     fun unlockDay(dish: Dish): Int = unlockDays[dish.id] ?: 1
 
     /** Whether [dish] can be added to the menu now. */
-    fun isUnlocked(state: GameState, dish: Dish): Boolean = state.day >= unlockDay(dish)
+    fun isUnlocked(state: GameState, dish: Dish): Boolean = state.everythingFromTheStart || state.day >= unlockDay(dish)
 
     /** Recipes not yet on the given menu. */
     fun notYetOn(menu: List<Dish>): List<Dish> {

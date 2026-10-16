@@ -78,7 +78,8 @@ object Progression {
     fun ensure(state: GameState): GameState =
         if (state.featuresMetEarly != null) state else state.copy(featuresMetEarly = legacy(state.day))
 
-    private fun metEarly(state: GameState): Set<Feature> = state.featuresMetEarly ?: legacy(state.day)
+    private fun metEarly(state: GameState): Set<Feature> =
+        if (state.everythingFromTheStart) Feature.entries.toSet() else state.featuresMetEarly ?: legacy(state.day)
 
     private fun legacy(day: Int): Set<Feature> = Feature.entries.filter { f -> f.legacyDay != null && day >= f.legacyDay }.toSet()
 }

@@ -65,6 +65,11 @@ data class GameState(
      * from before then, until it's loaded.
      */
     val featuresMetEarly: Set<com.recipefordisaster.domain.progression.Feature>? = null,
+    /**
+     * Everything switched on from the start: no slow arrival of new things, every dish available. For
+     * players who'd rather have the whole game at once.
+     */
+    val everythingFromTheStart: Boolean = false,
     /** Features the player has had explained to them (the pop-up the first time each one appears). */
     val introductionsSeen: Set<com.recipefordisaster.domain.progression.Feature> = emptySet(),
     /** What the player has bought to make the dining room nicer. */
