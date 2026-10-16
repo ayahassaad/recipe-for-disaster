@@ -67,6 +67,7 @@ import com.recipefordisaster.domain.equipment.EquipmentId
 import com.recipefordisaster.domain.inventory.IngredientId
 import com.recipefordisaster.domain.menu.DishId
 import com.recipefordisaster.domain.restaurant.RestaurantStatus
+import com.recipefordisaster.domain.menu.RecipeBook
 import com.recipefordisaster.domain.simulation.Advice
 import com.recipefordisaster.domain.simulation.DailyCosts
 import com.recipefordisaster.domain.simulation.GameState
@@ -306,6 +307,10 @@ private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, onMe
         // Something new turning up tonight, or one of the quieter nights.
         val newTonight = remember(morning) { com.recipefordisaster.domain.progression.Progression.arrivingOn(morning, morning.day).firstOrNull() }
         val quietNight = remember(morning) { com.recipefordisaster.domain.progression.Difficulty.breather(morning) }
+        // A new dish to put on the menu today (the day it unlocks).
+        val newDish = remember(morning) {
+            RecipeBook.dishes.firstOrNull { RecipeBook.unlockDay(it) == morning.day && !morning.everythingFromTheStart && morning.menu.none { m -> m.id == it.id } }
+        }
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
             // Something to aim for this week.
             morning.weeklyGoal?.takeIf { it.openOn(morning.day) }?.let { goal ->
@@ -318,6 +323,7 @@ private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, onMe
                     collapsing != null -> stringResource(R.string.hint_collapsing, collapsing.name)
                     tired != null -> stringResource(R.string.hint_tired, tired.name)
                     newTonight != null -> stringResource(R.string.new_tonight, stringResource(featureLine(newTonight)))
+                    newDish != null -> stringResource(R.string.hint_new_dish, newDish.name)
                     model.alerts.isEmpty() && quietNight -> stringResource(R.string.hint_quiet_night)
                     model.alerts.isEmpty() -> stringResource(R.string.hint_ready)
                     else -> stringResource(R.string.hint_alerts)

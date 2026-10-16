@@ -41,6 +41,7 @@
     <string name="open_doors">Open the doors</string>
 
     <!-- The restaurant scene -->
+    <string name="hint_new_dish">New dish unlocked: %1$s. Tap the menu sign to add it.</string>
     <string name="hint_no_food">The pantry is empty! Tap the pantry and buy food before you open.</string>
     <string name="hint_collapsing">%1$s is about to collapse! Tap them and give them a day off.</string>
     <string name="hint_collapsing_only_cook">%1$s is about to collapse! Hire a second cook, then give them a day off.</string>
