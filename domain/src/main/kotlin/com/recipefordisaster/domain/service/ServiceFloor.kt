@@ -84,6 +84,15 @@ object ServiceFloor {
     /** Where the player stands to pick up the [i]th waiting plate: in front of the counter. */
     fun plateStand(i: Int): FloorPoint = FloorPoint(plate(i).x, pass.y)
 
+    /** How many poured trays fit on the bar. */
+    const val TRAYS_ON_BAR = 3
+
+    /** The [i]th tray of drinks waiting on the bar. */
+    fun tray(i: Int): FloorPoint = FloorPoint(25f + i * 4.5f, 41f)
+
+    /** Where you stand to pick up the [i]th tray: in front of the bar. */
+    fun trayStand(i: Int): FloorPoint = FloorPoint(tray(i).x, bar.y)
+
     /** The dish station at the right end of the counter, where dirty plates are washed. */
     val dishStation = FloorPoint(86f, 49f)
 

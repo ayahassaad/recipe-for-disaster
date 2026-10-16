@@ -191,6 +191,11 @@ data class ServiceNight(
         val chefsSpecial: Boolean = false,
         /** When they ordered their drinks. */
         val drinksOrderedAt: Float = 0f,
+        /**
+         * When their drinks were poured and put on the bar (null: not waiting there). The tray sits with their
+         * table number on it until the player or a server carries it over.
+         */
+        val trayAt: Float? = null,
         /** How long they sat sipping their drinks: time spent enjoying a drink isn't time spent waiting. */
         val sippedFor: Float = 0f,
         /** Whether they'll have a drink before their food (before the bar opens, nobody does). */
@@ -341,6 +346,9 @@ data class ServiceNight(
      * up, it closes anyway [TIDY_UP_LIMIT] seconds after the last guest goes, so it can't hang.
      */
     val finished: Boolean get() = guestsGone && (tidy || time - (parties.maxOfOrNull { it.stageSince } ?: 0f) > TIDY_UP_LIMIT)
+
+    /** Drink trays waiting on the bar, oldest first (as many as fit), each marked with its table's number. */
+    val traysOnBar: List<Party> get() = parties.filter { it.stage == Stage.DRINKS_ORDERED && it.trayAt != null }.sortedBy { it.trayAt }.take(ServiceFloor.TRAYS_ON_BAR)
 
     /** Plates waiting on the counter, oldest first, as many as fit. */
     val platesOnCounter: List<Party> get() = parties.filter { it.stage == Stage.READY_AT_PASS }.sortedBy { it.stageSince }.take(ServiceFloor.PLATES_ON_COUNTER)
