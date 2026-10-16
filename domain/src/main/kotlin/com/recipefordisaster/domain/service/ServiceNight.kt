@@ -81,6 +81,11 @@ data class ServiceNight(
     /** When the cat last knocked a plate off the counter, and whose it was. */
     val catKnockAt: Float = -100f,
     val catKnockTable: Int? = null,
+    /** When each new hire (by id) will trip and drop their tray tonight, if they will (see [NewHireTrips]). */
+    val tripAt: Map<String, Float> = emptyMap(),
+    /** The new hires who've already tripped tonight, and when it last happened. */
+    val tripped: Set<String> = emptySet(),
+    val lastTripAt: Float = -100f,
     /** Tonight's chaotic moment, if there is one (rolled when the doors open). */
     val chaos: Chaos? = null,
     /** How tonight's special guests found it, as they leave. */
@@ -545,6 +550,7 @@ data class ServiceNight(
         night = night.runKitchen(dt)
         night = night.finishMeals()
         night = night.moveWaiters()
+        night = night.tripStep()
         night = night.directStaff()
         if (night.time > HARD_STOP) night = night.closeUp()
         return night
@@ -590,6 +596,46 @@ data class ServiceNight(
             }
         }
         return night
+    }
+
+    /** New hires who are due a trip drop their tray the next time they're out carrying something. */
+    private fun tripStep(): ServiceNight {
+        var night = this
+        for ((id, at) in tripAt) {
+            if (id in night.tripped || time < at) continue
+            val waiter = night.waiters.firstOrNull { it.id == id } ?: continue
+            if (waiter.hands.none { it != HandItem.Mop } || waiter.errand?.isWalk != true) continue
+            night = night.trip(waiter)
+        }
+        return night
+    }
+
+    /**
+     * [waiter] trips and drops everything they carry: food goes back to the kitchen to be made again, drinks
+     * are asked for again, dirty plates are broken, and there's a mess on the floor for someone to mop.
+     */
+    private fun trip(waiter: Waiter): ServiceNight {
+        val here = waiter.position(time)
+        var night = this
+        waiter.hands.forEach { item ->
+            when (item) {
+                is HandItem.Plate -> night = night.updateParty(item.partyId) { it.copy(stage = Stage.IN_KITCHEN, stageSince = time, heldBy = null) }
+                is HandItem.Drinks -> night = night.updateParty(item.partyId) { it.copy(stage = Stage.WANTS_DRINKS, stageSince = time) }
+                is HandItem.DirtyDishes, HandItem.Mop -> {}
+            }
+        }
+        val spot = ServiceFloor.spillSpots
+            .filter { spot -> messesOnFloor.none { it.at.distanceTo(spot) < 1f } }
+            .minByOrNull { it.distanceTo(here) } ?: here
+        val mess = Mess(id = (messes.maxOfOrNull { it.id } ?: -1) + 1, at = spot, appearsAt = time)
+        return night.copy(
+            waiters = night.waiters.map {
+                if (it.id == waiter.id) it.copy(hands = it.hands.filter { item -> item == HandItem.Mop }, errand = null, route = listOf(here), routeStart = time, routeEnd = time) else it
+            },
+            messes = night.messes + mess,
+            tripped = night.tripped + waiter.id,
+            lastTripAt = time,
+        )
     }
 
     /** Chaos that sorts itself out after a while (the lights come back, the rat wanders off), and a second lot later on. */
@@ -1498,6 +1544,7 @@ data class ServiceNight(
                 pickiness = dials.pickiness,
                 chefLuck = chefLuck,
                 waiters = waiters,
+                tripAt = NewHireTrips.planFor(state),
                 inventory = state.inventory,
                 kitchenSlots = slots,
                 secondsPerDish = secondsPerDish,
