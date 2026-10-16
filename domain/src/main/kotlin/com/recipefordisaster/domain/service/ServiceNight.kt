@@ -224,8 +224,7 @@ data class ServiceNight(
 
     /**
      * Who a waiter is: the player, a hired server running food, a hired
-     * dishwasher (clears tables, washes up and mops), a busser (clears
-     * tables and washes up, but doesn't mop), or a bartender (drinks).
+     * dishwasher or busser (clears tables and washes up), or a bartender (drinks).
      */
     enum class Kind { PLAYER, RUNNER, DISHWASHER, BUSSER, BARTENDER }
 
@@ -1101,18 +1100,12 @@ data class ServiceNight(
         for (waiter in waiters.filter { !it.isPlayer && it.errand == null }) {
             val next: Errand? = when (waiter.kind) {
                 Kind.DISHWASHER, Kind.BUSSER -> {
-                    // A table (or a spill) nobody else is already on their way to.
-                    val plans = night.waiters.flatMap { listOfNotNull(it.errand) + it.queue }
-                    val claimed = plans.filterIsInstance<Errand.VisitTable>().map { it.table }.toSet()
-                    val claimedMesses = plans.mapNotNull { (it as? Errand.CleanMess)?.messId ?: (it as? Errand.Mopping)?.messId }.toSet()
+                    // Clearing is the whole job: a table nobody else is already on their way to, and the dishes to the sink.
+                    // (Spills and the fridge are left to you.)
+                    val claimed = night.waiters.flatMap { listOfNotNull(it.errand) + it.queue }.filterIsInstance<Errand.VisitTable>().map { it.table }.toSet()
                     val table = night.dirtyTables.firstOrNull { it !in claimed }
-                    // Only dishwashers bring a mop; bussers stick to tables and dishes.
-                    val mess = if (waiter.kind == Kind.DISHWASHER) night.messesOnFloor.firstOrNull { it.id !in claimedMesses } else null
                     when {
-                        // A dishwasher sees to a broken fridge before anything else.
-                        waiter.kind == Kind.DISHWASHER && night.fridgeBroken && !night.fridgeBeingFixed -> Errand.VisitFridge
                         waiter.dirtyDishes.isNotEmpty() && (waiter.freeHands == 0 || table == null) -> Errand.VisitDishStation
-                        mess != null -> Errand.CleanMess(mess.id)
                         table != null && waiter.freeHands > 0 -> Errand.VisitTable(table)
                         else -> null
                     }

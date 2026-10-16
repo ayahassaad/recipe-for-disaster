@@ -105,13 +105,14 @@ class FridgeTest {
     }
 
     @Test
-    fun `a hired dishwasher fixes a broken fridge`() {
+    fun `a hired dishwasher leaves a broken fridge for you to fix`() {
         val washer = start.applicants.first().copy(role = com.recipefordisaster.domain.employee.Role.DISHWASHER)
         val state = withFridge(start.copy(employees = start.employees + washer), 10)
         val night = (1L..40L).map { open(state, it) }.first { it.fridgeBreaksAt != null }
         var n = waitFor(night) { it.fridgeBroken }
-        n = waitFor(n) { !it.fridgeBroken }
-        assertFalse(n.fridgeBroken)
+        repeat(600) { n = n.advance(0.1f) }
+        assertTrue(n.fridgeBroken)
+        assertFalse(n.fridgeBeingFixed)
     }
 
     @Test

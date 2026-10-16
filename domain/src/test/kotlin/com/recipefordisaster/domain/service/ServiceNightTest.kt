@@ -271,11 +271,12 @@ class ServiceNightTest {
     }
 
     @Test
-    fun `a hired dishwasher mops spills on their own`() {
+    fun `a hired dishwasher leaves spills for you to mop`() {
         val washer = start.applicants.first().copy(role = com.recipefordisaster.domain.employee.Role.DISHWASHER)
-        val night = play(open(start.copy(day = 4, employees = start.employees + washer)), ::busyPlayer)
-        assertTrue(night.messes.isNotEmpty())
-        assertTrue("spills left: ${night.messesOnFloor}", night.messesOnFloor.isEmpty())
+        val spill = ServiceNight.Mess(0, ServiceFloor.spillSpots.first(), appearsAt = 0f)
+        var night = open(start.copy(day = 4, employees = start.employees + washer)).copy(messes = listOf(spill))
+        repeat(600) { night = night.advance(0.1f) }
+        assertTrue("spill should still be there", night.messesOnFloor.isNotEmpty())
     }
 
     @Test
