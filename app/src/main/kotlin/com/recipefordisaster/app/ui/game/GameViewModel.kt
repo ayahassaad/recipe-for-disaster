@@ -230,6 +230,15 @@ class GameViewModel(
         viewModelScope.launch { gameRepository.save(named) }
     }
 
+    /** Switches everything on from the start (or back to new things arriving one at a time), and saves. Morning only. */
+    fun setEverythingFromTheStart(on: Boolean) {
+        val current = _uiState.value as? GameUiState.Playing ?: return
+        if (current.report != null || current.night != null || current.state.everythingFromTheStart == on) return
+        val updated = current.state.copy(everythingFromTheStart = on)
+        _uiState.value = current.copy(state = updated, preview = DecisionApplier.apply(updated, current.plan))
+        viewModelScope.launch { gameRepository.save(updated) }
+    }
+
     /** Leaves the results screen for the next morning. */
     fun nextMorning() {
         _uiState.update { current -> if (current is GameUiState.Playing) current.copy(report = null) else current }
