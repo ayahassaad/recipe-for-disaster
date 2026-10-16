@@ -53,6 +53,7 @@
     <string name="hint_take_drinks" tools:ignore="PluralsCandidate">Table %1$d would like drinks. Tap the table.</string>
     <string name="hint_pour_drinks">Tap the bar to pour the drinks.</string>
     <string name="hint_pouring">Pouring the drinks…</string>
+    <string name="hint_pick_up_drinks" tools:ignore="PluralsCandidate">Table %1$d\'s drinks are on the bar. Tap the tray to pick them up.</string>
     <string name="hint_serve_drinks">Take the drinks to table %1$d. Tap the table.</string>
     <string name="hint_drinking">Table %1$d is having a drink and reading the menu…</string>
     <string name="hint_hand_in">Take the order to the chef. Tap the chef.</string>

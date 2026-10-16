@@ -713,6 +713,7 @@ private fun nightHint(night: ServiceNight): String = when (val hint = NightHint.
     is NightHint.TakeDrinks -> stringResource(R.string.hint_take_drinks, hint.table + 1)
     NightHint.PourDrinks -> stringResource(R.string.hint_pour_drinks)
     NightHint.Pouring -> stringResource(R.string.hint_pouring)
+    is NightHint.PickUpDrinks -> stringResource(R.string.hint_pick_up_drinks, hint.table + 1)
     is NightHint.ServeDrinks -> stringResource(R.string.hint_serve_drinks, hint.table + 1)
     is NightHint.Drinking -> stringResource(R.string.hint_drinking, hint.table + 1)
     NightHint.Wash -> stringResource(R.string.hint_wash)
