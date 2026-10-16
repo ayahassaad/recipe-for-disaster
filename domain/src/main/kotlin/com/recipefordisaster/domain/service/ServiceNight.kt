@@ -1155,11 +1155,15 @@ data class ServiceNight(
                     }
                 }
                 else -> {
-                    // Servers only carry: food out to the tables. Taking orders is left to you (and a bartender), and clearing to dishwashers.
+                    // Servers only carry: food and drink trays out to the tables. Taking orders is left to you (and a bartender), and clearing to dishwashers.
+                    // A tray is left for you for a few seconds, and isn't taken if you've said you're coming for it.
+                    val claimedTrays = night.waiters.flatMap { listOfNotNull(it.errand) + it.queue }.filterIsInstance<Errand.PickUpDrinks>().map { it.partyId }.toSet()
+                    val tray = night.traysOnBar.firstOrNull { it.id !in claimedTrays && time - (it.trayAt ?: time) >= RUNNER_DELAY }
                     when {
                         waiter.plates.isNotEmpty() -> night.parties.first { it.id == waiter.plates.first() }.table?.let { Errand.Serve(it) }
                         // (Anything to do with drinks a server already had in hand from before is still seen through.)
                         waiter.drinks.isNotEmpty() -> night.parties.first { it.id == waiter.drinks.first() }.table?.let { Errand.Serve(it) }
+                        tray != null && waiter.freeHands > 0 -> Errand.PickUpDrinks(tray.id)
                         waiter.drinkOrders.isNotEmpty() && waiter.freeHands > 0 -> Errand.VisitBar
                         night.parties.any { it.stage == Stage.READY_AT_PASS && time - it.stageSince >= RUNNER_DELAY } && waiter.freeHands > 0 -> Errand.VisitPass
                         else -> null
