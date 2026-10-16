@@ -60,6 +60,8 @@ data class NightLabels(
     val chaos: String = "",
     val spill: String,
     val you: String,
+    /** Tapping yourself while you have somewhere to go: take back your last stop. */
+    val undo: String = "",
     val menu: String,
 )
 
@@ -111,6 +113,8 @@ fun NightScene(
     onTapChaos: () -> Unit = {},
     /** The bar: pour the drinks you've taken orders for. */
     onTapBar: () -> Unit = {},
+    /** Yourself: undo your last tap. */
+    onTapPlayer: () -> Unit = {},
     modifier: Modifier = Modifier,
     /** Something to point at with a pulsing ring, for players still learning what to tap. */
     focus: NightFocus? = null,
@@ -619,6 +623,11 @@ fun NightScene(
         // Spills last, so they sit on top of the tables' tap areas.
         night.messesOnFloor.forEach { mess ->
             TapArea(Rect(mess.at.x - 6f, mess.at.y - 4f, mess.at.x + 6f, mess.at.y + 4f), unit, origin, labels.spill) { onTapMess(mess.id) }
+        }
+        // You, last of all, on top of everything: tap yourself to take back the last stop you lined up.
+        if (night.canUndo) {
+            val me = night.player.position(night.time)
+            TapArea(Rect(me.x - 4f, me.y - 7f, me.x + 4f, me.y + 5f), unit, origin, labels.undo, onTapPlayer)
         }
     }
 }
