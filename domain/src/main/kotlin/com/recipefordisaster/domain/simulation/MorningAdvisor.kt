@@ -108,17 +108,23 @@ object MorningAdvisor {
         adviceFor(state).filterIsInstance<Advice.Restock>().associate { it.ingredient.id to it.suggestedQuantity }
 
     /**
-     * Roughly how many nights the current stock of an ingredient lasts at
-     * tonight's expected demand. `null` if tonight's menu doesn't use it.
+     * Roughly how much of an ingredient tonight's expected crowd will use. `null` if tonight's menu
+     * doesn't use it.
      */
-    fun nightsOfStock(state: GameState, ingredient: Ingredient): Double? {
+    fun nightlyUse(state: GameState, ingredient: Ingredient): Double? {
         val serving = state.menu.filter { it.available }
         if (serving.isEmpty()) return null
         val perCustomer = serving.sumOf { it.recipe.ingredientRequirements[ingredient.id] ?: 0.0 } / serving.size
         if (perCustomer <= 0.0) return null
-        val perNight = perCustomer * OutlookCalculator.forTonight(state).expectedCustomers.coerceAtLeast(1)
-        return ingredient.quantityOnHand / perNight
+        return perCustomer * OutlookCalculator.forTonight(state).expectedCustomers.coerceAtLeast(1)
     }
+
+    /**
+     * Roughly how many nights the current stock of an ingredient lasts at
+     * tonight's expected demand. `null` if tonight's menu doesn't use it.
+     */
+    fun nightsOfStock(state: GameState, ingredient: Ingredient): Double? =
+        nightlyUse(state, ingredient)?.let { ingredient.quantityOnHand / it }
 
     /** What the restaurant is short of, if anything — so the hiring sign can say what kind of help is wanted. */
     enum class Need { COOK, SERVER, BARTENDER, DISHWASHER }
