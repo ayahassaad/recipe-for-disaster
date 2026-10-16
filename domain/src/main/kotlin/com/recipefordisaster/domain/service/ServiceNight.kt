@@ -449,6 +449,32 @@ data class ServiceNight(
     /** Go and fix the fridge (only does anything while it's broken). */
     fun tapFridge(): ServiceNight = enqueue(Errand.VisitFridge)
 
+    /** Whether there's a stop lined up, or a walk still on its way, for [undoLastTap] to take back. */
+    val canUndo: Boolean get() = player.queue.isNotEmpty() || player.errand?.isWalk == true
+
+    /**
+     * Take back the last thing you tapped: the last stop lined up, or, with none lined up, the walk you're
+     * on (you stop where you are). Jobs already under way, like washing up or mopping, aren't interrupted.
+     */
+    fun undoLastTap(): ServiceNight {
+        val me = player
+        return when {
+            me.queue.isNotEmpty() -> copy(waiters = waiters.map { if (it.isPlayer) it.copy(queue = it.queue.dropLast(1)) else it })
+            me.errand?.isWalk == true -> copy(waiters = waiters.map {
+                if (it.isPlayer) it.copy(errand = null, route = listOf(it.position(time)), routeStart = time, routeEnd = time) else it
+            })
+            else -> this
+        }
+    }
+
+    /** A trip to somewhere, as opposed to a job done once there. */
+    private val Errand.isWalk: Boolean
+        get() = when (this) {
+            is Errand.VisitTable, Errand.VisitPass, Errand.HandIn, is Errand.PickUp, is Errand.Serve, Errand.VisitDishStation,
+            Errand.VisitMopBucket, is Errand.CleanMess, Errand.VisitChaos, Errand.VisitBar, Errand.VisitFridge -> true
+            Errand.Wash, is Errand.Mopping, Errand.Rest, Errand.HandleChaos, is Errand.Pour, Errand.FixFridge -> false
+        }
+
     /** The fridge is about to give up: its light is flickering. */
     val fridgeStruggling: Boolean get() = !fridgeBroken && fridgeBreaksAt != null && time >= fridgeBreaksAt - FRIDGE_WARNING && time < fridgeBreaksAt
 
