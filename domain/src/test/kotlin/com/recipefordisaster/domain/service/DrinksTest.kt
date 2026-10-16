@@ -164,6 +164,21 @@ class DrinksTest {
         assertTrue(n.player.drinkOrders.isEmpty() && n.player.drinks.isEmpty())
         assertEquals(1, n.waiters.count { it.kind == ServiceNight.Kind.BARTENDER })
     }
+
+    @Test
+    fun `a server carries a poured tray to the right table`() {
+        val bartender = start.applicants.first().copy(role = com.recipefordisaster.domain.employee.Role.BARTENDER)
+        val server = start.applicants.first { it.role == com.recipefordisaster.domain.employee.Role.SERVER }.copy(status = com.recipefordisaster.domain.employee.EmployeeStatus.ACTIVE)
+        var n = open(start.copy(employees = start.employees + bartender + server))
+        n = waitFor(n) { night -> night.traysOnBar.isNotEmpty() }
+        val tray = n.traysOnBar.first()
+
+        // Nobody but the server does anything about it.
+        n = waitFor(n) { night -> night.parties.first { it.id == tray.id }.stage == Stage.DRINKING }
+
+        assertEquals(Stage.DRINKING, n.parties.first { it.id == tray.id }.stage)
+        assertTrue(n.player.drinks.isEmpty())
+    }
 }
 
 /** A quick player who looks after the drinks as well as the food. */
