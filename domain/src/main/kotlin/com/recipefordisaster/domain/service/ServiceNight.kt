@@ -351,6 +351,8 @@ data class ServiceNight(
      */
     val finished: Boolean get() = guestsGone && (tidy || time - (parties.maxOfOrNull { it.stageSince } ?: 0f) > TIDY_UP_LIMIT)
 
+    private val trayCount: Int get() = parties.count { it.stage == Stage.DRINKS_ORDERED && it.trayAt != null }
+
     /** Drink trays waiting on the bar, oldest first (as many as fit), each marked with its table's number. */
     val traysOnBar: List<Party> get() = parties.filter { it.stage == Stage.DRINKS_ORDERED && it.trayAt != null }.sortedBy { it.trayAt }.take(ServiceFloor.TRAYS_ON_BAR)
 
@@ -1032,14 +1034,19 @@ data class ServiceNight(
                 }
             }
             Errand.VisitBar -> {
-                // Pour as many rounds as there are free hands for, a moment each.
-                val rounds = waiter.drinkOrders.take(waiter.freeHands)
+                // Pour as many rounds as there are free hands for (a bartender: as many as fit on the bar), a moment each.
+                val room = if (waiter.kind == Kind.BARTENDER) ServiceFloor.TRAYS_ON_BAR - night.trayCount else waiter.freeHands
+                val rounds = waiter.drinkOrders.take(minOf(waiter.freeHands, room))
                 if (rounds.isNotEmpty()) {
                     updateWaiter { it.copy(route = listOf(it.position(time)), routeStart = time, routeEnd = time + POUR * rounds.size, errand = Errand.Pour(rounds)) }
                 }
             }
-            is Errand.Pour -> updateWaiter {
-                it.copy(drinkOrders = it.drinkOrders - errand.partyIds.toSet(), hands = it.hands + errand.partyIds.map { id -> HandItem.Drinks(id) })
+            is Errand.Pour -> if (waiter.kind == Kind.BARTENDER) {
+                // A bartender stays behind the bar: each round goes on a tray, with the table's number on it, for someone to carry over.
+                updateWaiter { it.copy(drinkOrders = it.drinkOrders - errand.partyIds.toSet()) }
+                errand.partyIds.forEach { id -> night = night.updateParty(id) { it.copy(trayAt = time, heldBy = null) } }
+            } else {
+                updateWaiter { it.copy(drinkOrders = it.drinkOrders - errand.partyIds.toSet(), hands = it.hands + errand.partyIds.map { id -> HandItem.Drinks(id) }) }
             }
             Errand.VisitPass -> {
                 // Hand in tickets…
@@ -1139,9 +1146,10 @@ data class ServiceNight(
                     // The bartender sees to every table that wants a drink and that you're not already on your way to.
                     val claimed = night.waiters.flatMap { listOfNotNull(it.errand) + it.queue }.filterIsInstance<Errand.VisitTable>().map { it.table }.toSet()
                     val thirsty = night.parties.filter { it.stage == Stage.WANTS_DRINKS && it.table !in claimed }.minByOrNull { it.stageSince }?.table
+                    // They take the orders and pour; carrying the trays over is for you and the servers.
+                    val barHasRoom = night.trayCount < ServiceFloor.TRAYS_ON_BAR
                     when {
-                        waiter.drinks.isNotEmpty() -> night.parties.first { it.id == waiter.drinks.first() }.table?.let { Errand.Serve(it) }
-                        waiter.drinkOrders.isNotEmpty() && (waiter.freeHands == 0 || thirsty == null) -> Errand.VisitBar
+                        waiter.drinkOrders.isNotEmpty() && barHasRoom && thirsty == null -> Errand.VisitBar
                         thirsty != null && waiter.freeHands > 0 -> Errand.VisitTable(thirsty)
                         else -> null
                     }

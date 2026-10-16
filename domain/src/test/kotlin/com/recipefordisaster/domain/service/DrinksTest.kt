@@ -150,12 +150,17 @@ class DrinksTest {
     }
 
     @Test
-    fun `a bartender takes the drinks orders, pours them and brings them over`() {
+    fun `a bartender takes the drinks orders and pours them onto trays, but doesn't carry them over`() {
         val bartender = start.applicants.first().copy(role = com.recipefordisaster.domain.employee.Role.BARTENDER)
         var n = open(start.copy(employees = start.employees + bartender))
-        n = waitFor(n) { night -> night.parties.any { it.stage == Stage.DRINKING } }
-        assertTrue(n.parties.any { it.stage == Stage.DRINKING })
-        // You never had to lift a finger for it.
+        n = waitFor(n) { night -> night.traysOnBar.isNotEmpty() }
+        assertTrue(n.traysOnBar.isNotEmpty())
+        // The tray stays on the bar, with its table's number, until someone carries it.
+        val tray = n.traysOnBar.first()
+        assertTrue(tray.table != null)
+        val later = waitFor(n) { it.time > n.time + 3f }
+        assertTrue(later.waiters.filter { it.kind == ServiceNight.Kind.BARTENDER }.all { it.drinks.isEmpty() })
+        // You never had to lift a finger to take or pour them.
         assertTrue(n.player.drinkOrders.isEmpty() && n.player.drinks.isEmpty())
         assertEquals(1, n.waiters.count { it.kind == ServiceNight.Kind.BARTENDER })
     }
