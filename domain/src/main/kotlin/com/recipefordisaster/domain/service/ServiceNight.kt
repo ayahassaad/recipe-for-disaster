@@ -1129,17 +1129,13 @@ data class ServiceNight(
                     }
                 }
                 else -> {
-                    // Servers carry food out and clear tables; taking orders and drinks are left to you (and a bartender).
-                    val claimed = night.waiters.flatMap { listOfNotNull(it.errand) + it.queue }.filterIsInstance<Errand.VisitTable>().map { it.table }.toSet()
-                    val stale = night.dirtyTables.firstOrNull { it !in claimed && time - (night.dirtiedAt[it] ?: time) >= RUNNER_CLEAR_DELAY }
+                    // Servers only carry: food out to the tables. Taking orders is left to you (and a bartender), and clearing to dishwashers.
                     when {
                         waiter.plates.isNotEmpty() -> night.parties.first { it.id == waiter.plates.first() }.table?.let { Errand.Serve(it) }
                         // (Anything to do with drinks a server already had in hand from before is still seen through.)
                         waiter.drinks.isNotEmpty() -> night.parties.first { it.id == waiter.drinks.first() }.table?.let { Errand.Serve(it) }
                         waiter.drinkOrders.isNotEmpty() && waiter.freeHands > 0 -> Errand.VisitBar
                         night.parties.any { it.stage == Stage.READY_AT_PASS && time - it.stageSince >= RUNNER_DELAY } && waiter.freeHands > 0 -> Errand.VisitPass
-                        waiter.dirtyDishes.isNotEmpty() -> Errand.VisitDishStation
-                        stale != null && waiter.freeHands > 0 -> Errand.VisitTable(stale)
                         else -> null
                     }
                 }
@@ -1315,7 +1311,6 @@ data class ServiceNight(
         private const val DRINKS_ALLOWANCE = 8f
 
         /** How long a table sits dirty before a server with nothing else to do clears it. */
-        private const val RUNNER_CLEAR_DELAY = 2f
         private const val GUEST_SPEED = 32f
         private const val PLAYER_SPEED = 60f
         private const val STAFF_SPEED = 42f

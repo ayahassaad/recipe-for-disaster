@@ -426,22 +426,15 @@ class ServiceNightTest {
     }
 
     @Test
-    fun `a server with no food to run clears tables that have sat dirty a while`() {
-        val noHelpers = start.copy(employees = start.employees.filter { it.role == com.recipefordisaster.domain.employee.Role.COOK })
-        val withServer = start.copy(employees = start.employees + listOf(aServer))
-        val servesOnly: (ServiceNight) -> ServiceNight = { current ->
-            val me = current.player
-            when {
-                me.walking -> current
-                me.plates.isNotEmpty() -> current.parties.first { it.id == me.plates.first() }.table?.let { current.tapTable(it) } ?: current
-                me.tickets.isNotEmpty() || current.parties.any { it.stage == Stage.READY_AT_PASS } -> current.tapPass()
-                else -> current.parties.filter { it.stage == Stage.READY_TO_ORDER }.minByOrNull { it.stageSince }?.table?.let { current.tapTable(it) } ?: current
-            }
-        }
-        val alone = play(open(noHelpers), servesOnly)
-        val helped = play(open(withServer), servesOnly)
-        assertTrue(helped.result().outcomes.count { it.dish != null } > alone.result().outcomes.count { it.dish != null })
-        assertTrue(helped.dirtyTables.size < alone.dirtyTables.size)
+    fun `nobody but a dishwasher or busser clears a table, so a server leaves it dirty`() {
+        val withServer = open(start.copy(employees = start.employees + listOf(aServer)))
+        val dirty = withServer.copy(dirtyTables = setOf(0), dirtiedAt = mapOf(0 to -100f))
+
+        var night = dirty
+        repeat(300) { night = night.advance(0.1f) }
+
+        assertTrue(0 in night.dirtyTables)
+        assertTrue(night.waiters.filter { it.kind == ServiceNight.Kind.RUNNER }.all { it.dirtyDishes.isEmpty() })
     }
 
     @Test
