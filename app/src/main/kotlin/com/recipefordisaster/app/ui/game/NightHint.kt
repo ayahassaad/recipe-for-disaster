@@ -51,6 +51,8 @@ sealed interface NightHint {
     data object HandlingChaos : NightHint
     /** The cat just knocked a table's food off the counter. */
     data class CatKnocked(val table: Int) : NightHint
+    /** A new hire has just tripped and dropped their tray. */
+    data object Tripped : NightHint
     /** A special guest has just come in. */
     data class SpecialArrived(val guest: com.recipefordisaster.domain.service.SpecialGuest, val table: Int?) : NightHint
     data object Cooking : NightHint
@@ -93,6 +95,7 @@ sealed interface NightHint {
         FixFridge, FridgeStruggling -> NightFocus.Fridge
         is Chaos -> NightFocus.Chaos
         HandlingChaos, is CatKnocked -> null
+        Tripped -> night.messesOnFloor.lastOrNull()?.let { NightFocus.Spill(it.id) }
         is SpecialArrived -> table?.let { NightFocus.Table(it) }
         Washing, Mopping, OutOfFood, Waiting, Cooking, TidyingUp, FixingFridge, is CookingFor, Eating, is Deciding, Pouring, is Drinking -> null
     }
@@ -125,6 +128,7 @@ sealed interface NightHint {
                 night.fridgeBroken && !night.fridgeBeingFixed -> FixFridge
                 night.activeChaos != null && !night.chaosBeingHandled -> Chaos(night.activeChaos!!.kind)
                 night.time - night.catKnockAt < 4f && night.catKnockTable != null -> CatKnocked(night.catKnockTable!!)
+                night.time - night.lastTripAt < 4f -> Tripped
                 night.fridgeStruggling -> FridgeStruggling
                 me.tickets.isNotEmpty() && !handingIn -> HandIn
                 me.drinkOrders.isNotEmpty() && Errand.VisitBar !in plans && me.freeHands > 0 -> PourDrinks
