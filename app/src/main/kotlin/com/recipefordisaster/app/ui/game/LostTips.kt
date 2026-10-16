@@ -23,8 +23,8 @@ internal fun biggestLoss(
 ): LostTip? {
     val reasons = buildMap {
         gaveUp[WaitedFor.TABLE]?.let {
-            // Servers, dishwashers and bussers all clear tables.
-            put(if (staff.none { r -> r == Role.SERVER || r == Role.DISHWASHER || r == Role.BUSSER }) R.string.tip_table_no_help else R.string.tip_table, it)
+            // Dishwashers and bussers clear tables.
+            put(if (staff.none { r -> r == Role.DISHWASHER || r == Role.BUSSER }) R.string.tip_table_no_help else R.string.tip_table, it)
         }
         gaveUp[WaitedFor.DRINKS]?.let { put(if (Role.BARTENDER !in staff) R.string.tip_drinks_no_bartender else R.string.tip_drinks, it) }
         gaveUp[WaitedFor.ORDER]?.let { put(R.string.tip_order, it) }

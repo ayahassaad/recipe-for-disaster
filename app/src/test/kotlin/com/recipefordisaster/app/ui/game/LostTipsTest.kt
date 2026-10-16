@@ -33,9 +33,11 @@ class LostTipsTest {
     }
 
     @Test
-    fun `no table lost with nobody clearing says to hire help, but any of the three will do`() {
+    fun `no table lost with nobody clearing says to hire a dishwasher, though a busser will do`() {
         val lost = mapOf(WaitedFor.TABLE to 4)
         assertEquals(LostTip(R.string.tip_table_no_help, 4), tip(lost, setOf(Role.COOK)))
+        // A server only carries food: they don't clear.
+        assertEquals(LostTip(R.string.tip_table_no_help, 4), tip(lost, setOf(Role.COOK, Role.SERVER)))
         assertEquals(LostTip(R.string.tip_table, 4), tip(lost, setOf(Role.COOK, Role.BUSSER)))
     }
 

@@ -173,7 +173,7 @@
     <string name="tip_order" tools:ignore="PluralsCandidate">%1$d left before you took their order. Get to tables with a ? sooner.</string>
     <string name="tip_food" tools:ignore="PluralsCandidate">%1$d left waiting for food. Pick plates up from the counter quickly.</string>
     <string name="tip_drinks" tools:ignore="PluralsCandidate">%1$d left waiting for drinks. Take drinks orders, then tap the bar to pour them.</string>
-    <string name="tip_table_no_help" tools:ignore="PluralsCandidate">%1$d left with no table free, and nobody was clearing for you. Hire a server or a dishwasher.</string>
+    <string name="tip_table_no_help" tools:ignore="PluralsCandidate">%1$d left with no table free, and nobody was clearing for you. Hire a dishwasher.</string>
     <string name="tip_drinks_no_bartender" tools:ignore="PluralsCandidate">%1$d left waiting for drinks. You had no bartender, so every drink was yours to pour. Hire one.</string>
     <string name="tip_food_no_server" tools:ignore="PluralsCandidate">%1$d left waiting for food. You had no server to carry plates out. Hire one.</string>
     <string name="tip_stock" tools:ignore="PluralsCandidate">%1$d went hungry because food ran out. Restock the pantry.</string>
