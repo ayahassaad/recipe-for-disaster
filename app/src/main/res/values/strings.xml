@@ -368,6 +368,15 @@
     <string name="leave_body_night">Tonight is saved right where you are. Tap Continue on the start screen to carry on.</string>
     <string name="leave_body_morning">Your game is saved, but this morning\'s changes (buying, hiring and so on) won\'t be kept.</string>
     <string name="leave_confirm">Leave</string>
+    <string name="unlocked_button">Things you\'ve unlocked</string>
+    <string name="unlocked_title">Things you\'ve unlocked</string>
+    <string name="unlocked_nothing">Nothing yet. New things arrive as the days go by.</string>
+    <string name="unlocked_next" tools:ignore="PluralsCandidate">Something new arrives on day %1$d.</string>
+    <string name="unlocked_dishes">New dishes</string>
+    <string name="unlocked_dish_locked" tools:ignore="PluralsCandidate">%1$s: unlocks on day %2$d</string>
+    <string name="unlocked_close">Close</string>
+    <string name="everything_from_start">Everything from day 1</string>
+    <string name="everything_from_start_hint">Switch on every new thing and every dish now, instead of one at a time. Only in the morning.</string>
     <string name="sound_effects">Sound effects</string>
     <string name="sound_music">Music</string>
     <string name="vibration">Vibration</string>
