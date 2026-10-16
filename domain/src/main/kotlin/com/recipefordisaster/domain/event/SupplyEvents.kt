@@ -2,6 +2,8 @@ package com.recipefordisaster.domain.event
 
 import com.recipefordisaster.domain.inventory.InventoryOperations
 import com.recipefordisaster.domain.simulation.LogTone
+import com.recipefordisaster.domain.simulation.MorningAdvisor
+import kotlin.math.ceil
 
 /**
  * Events about suppliers and money. Price hikes and sales move ingredient
@@ -63,6 +65,16 @@ internal object SupplyEvents {
         },
     )
 
+    /** How many nights' worth of the ingredient a mystery delivery brings. */
+    private const val DELIVERY_NIGHTS = 2.0
+
+    /** The most a mystery delivery ever brings. */
+    private const val DELIVERY_MAX = 25.0
+
+    /**
+     * A crate nobody ordered turns up, and it's always something the kitchen is short of: the ingredient
+     * the menu uses that would run out soonest, in an amount that covers about two nights.
+     */
     val mysteryDelivery = EventRule(
         id = "mystery_delivery",
         title = "Mystery delivery",
@@ -72,12 +84,23 @@ internal object SupplyEvents {
         prerequisite = { state -> state.inventory.ingredients.isNotEmpty() && !InventoryOperations.isOverCapacity(state.inventory) },
         weight = { 0.2f },
         resolve = { state, rng ->
-            val target = rng.pick(state.inventory.ingredients.values.toList())
+            val shortest = state.inventory.ingredients.values
+                .mapNotNull { ingredient -> MorningAdvisor.nightsOfStock(state, ingredient)?.let { nights -> ingredient to nights } }
+                .minByOrNull { it.second }
+                ?.first
+            val target = shortest ?: rng.pick(state.inventory.ingredients.values.toList())
             val freeSpace = state.inventory.storageCapacity - InventoryOperations.totalStorageUsed(state.inventory)
-            val quantity = minOf(3.0 + rng.nextInt(6), freeSpace / target.storageSpaceRequired.coerceAtLeast(0.01)).coerceAtLeast(0.0)
+            val wanted = if (shortest != null) {
+                ceil((MorningAdvisor.nightlyUse(state, target) ?: 0.0) * DELIVERY_NIGHTS).coerceIn(3.0, DELIVERY_MAX)
+            } else {
+                3.0 + rng.nextInt(6)
+            }
+            val quantity = minOf(wanted, freeSpace / target.storageSpaceRequired.coerceAtLeast(0.01)).coerceAtLeast(0.0)
+            val dish = state.menu.filter { it.available && (it.recipe.ingredientRequirements[target.id] ?: 0.0) > 0.0 }.maxByOrNull { it.popularity }
+            val use = if (shortest != null && dish != null) " Enough for about two nights of ${dish.name}." else ""
             EventOutcome(
                 ruleId = "mystery_delivery",
-                description = "A delivery nobody ordered turned up: ${quantity.toInt()} ${target.unit} of ${target.name}. Finders keepers.",
+                description = "A delivery nobody ordered turned up: ${quantity.toInt()} ${target.unit} of ${target.name}.$use Finders keepers.",
                 resultingState = state.copy(
                     inventory = state.inventory.copy(
                         ingredients = state.inventory.ingredients + (target.id to target.copy(quantityOnHand = target.quantityOnHand + quantity)),
