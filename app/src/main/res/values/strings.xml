@@ -116,6 +116,7 @@
     <string name="night_dish_sign">DISHES</string>
     <string name="night_mop_bucket">Mop bucket: pick up or put back the mop</string>
     <string name="night_spill">Spill on the floor: mop it up</string>
+    <string name="night_undo">You. Tap to undo your last stop.</string>
     <string name="night_you">YOU</string>
     <plurals name="end_fed">
         <item quantity="one">%1$d of %2$d guest fed</item>

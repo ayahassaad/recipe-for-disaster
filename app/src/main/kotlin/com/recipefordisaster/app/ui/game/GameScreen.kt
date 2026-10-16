@@ -587,6 +587,7 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
                 onTapFridge = { tap { n -> n.tapFridge() } },
                 onTapChaos = { tap { n -> n.tapChaos() } },
                 onTapBar = { tap { n -> n.tapBar() } },
+                onTapPlayer = { night = night.undoLastTap() },
                 modifier = Modifier.fillMaxSize(),
                 // For the first few nights, point at what the hint is talking about; and later, at whatever is still new.
                 focus = NightHint.of(night).let { hint ->
@@ -751,6 +752,7 @@ private fun nightLabels(): NightLabels {
         chaos = stringResource(R.string.night_chaos),
         spill = stringResource(R.string.night_spill),
         you = stringResource(R.string.night_you),
+        undo = stringResource(R.string.night_undo),
         menu = stringResource(R.string.scene_menu_sign),
     )
 }
