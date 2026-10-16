@@ -102,6 +102,7 @@
     <string name="hint_deciding">Table %1$d is reading the menu…</string>
     <string name="night_table">Table %1$d: %2$s</string>
     <string name="night_plate">Food for table %1$d: pick it up</string>
+    <string name="night_tray">Drinks for table %1$d. Tap to pick them up.</string>
     <string name="night_counter">Chef: hand in your orders</string>
     <string name="night_wants_to_order">wants to order</string>
     <string name="night_deciding">reading the menu</string>

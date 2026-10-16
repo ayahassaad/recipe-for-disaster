@@ -609,6 +609,7 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
                 onTapFridge = { tap { n -> n.tapFridge() } },
                 onTapChaos = { tap { n -> n.tapChaos() } },
                 onTapBar = { tap { n -> n.tapBar() } },
+                onTapTray = { id -> tap { n -> n.tapTray(id) } },
                 onTapPlayer = { night = night.undoLastTap() },
                 modifier = Modifier.fillMaxSize(),
                 // For the first few nights, point at what the hint is talking about; and later, at whatever is still new.
@@ -752,11 +753,13 @@ private fun nightHint(night: ServiceNight): String = when (val hint = NightHint.
 @Composable
 private fun nightLabels(): NightLabels {
     val plateLabel = stringResource(R.string.night_plate)
+    val trayLabel = stringResource(R.string.night_tray)
     val table = stringResource(R.string.night_table)
     return NightLabels(
         table = { number, state -> String.format(table, number, state) },
         counter = stringResource(R.string.night_counter),
         plate = { number -> String.format(plateLabel, number) },
+        tray = { number -> String.format(trayLabel, number) },
         wantsToOrder = stringResource(R.string.night_wants_to_order),
         deciding = stringResource(R.string.night_deciding),
         bar = stringResource(R.string.night_bar),
