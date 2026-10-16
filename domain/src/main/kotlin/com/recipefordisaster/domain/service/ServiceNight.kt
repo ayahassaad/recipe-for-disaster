@@ -286,6 +286,10 @@ data class ServiceNight(
         @Serializable
         data object VisitBar : Errand
 
+        /** Go to the bar and pick up the tray of drinks poured for one party, to carry to their table. */
+        @Serializable
+        data class PickUpDrinks(val partyId: Int) : Errand
+
         /** Standing at the bar pouring these parties' drinks; they're in your hands when this ends. */
         @Serializable
         data class Pour(val partyIds: List<Int>) : Errand
@@ -430,6 +434,9 @@ data class ServiceNight(
     /** Go to the bar and pour the drinks you've taken orders for. */
     fun tapBar(): ServiceNight = enqueue(Errand.VisitBar)
 
+    /** Go and pick up the tray of drinks waiting on the bar for this party. */
+    fun tapTray(partyId: Int): ServiceNight = enqueue(Errand.PickUpDrinks(partyId))
+
     /** Go to the dish station and wash whatever dirty plates you're carrying. */
     fun tapDishStation(): ServiceNight = enqueue(Errand.VisitDishStation)
 
@@ -483,7 +490,7 @@ data class ServiceNight(
     private val Errand.isWalk: Boolean
         get() = when (this) {
             is Errand.VisitTable, Errand.VisitPass, Errand.HandIn, is Errand.PickUp, is Errand.Serve, Errand.VisitDishStation,
-            Errand.VisitMopBucket, is Errand.CleanMess, Errand.VisitChaos, Errand.VisitBar, Errand.VisitFridge -> true
+            Errand.VisitMopBucket, is Errand.CleanMess, Errand.VisitChaos, Errand.VisitBar, is Errand.PickUpDrinks, Errand.VisitFridge -> true
             Errand.Wash, is Errand.Mopping, Errand.Rest, Errand.HandleChaos, is Errand.Pour, Errand.FixFridge -> false
         }
 
@@ -504,6 +511,8 @@ data class ServiceNight(
         if (errand is Errand.VisitTable && partyAt(errand.table) == null && errand.table !in dirtyTables) return this
         // A working fridge doesn't need fixing.
         if (errand == Errand.VisitFridge && !fridgeBroken) return this
+        // Only a tray that's actually waiting on the bar can be picked up.
+        if (errand is Errand.PickUpDrinks && traysOnBar.none { it.id == errand.partyId }) return this
         if (errand == Errand.VisitChaos && activeChaos == null) return this
         if (me.errand == null) return send(me.id, errand)
         if (errand == me.errand || errand in me.queue || queueFull) return this
@@ -525,6 +534,7 @@ data class ServiceNight(
             Errand.VisitDishStation -> ServiceFloor.dishStation
             Errand.Wash, is Errand.Mopping, Errand.FixFridge, Errand.HandleChaos, is Errand.Pour -> here
             Errand.VisitBar -> ServiceFloor.bar
+            is Errand.PickUpDrinks -> traysOnBar.indexOfFirst { it.id == errand.partyId }.takeIf { it >= 0 }?.let { ServiceFloor.trayStand(it) } ?: ServiceFloor.bar
             Errand.VisitChaos -> chaosSpot()?.let { spot ->
                 // Fire and fuses are dealt with from in front of the counter / by the wall; rat and dog where they are.
                 when (activeChaos?.kind) {
@@ -1012,6 +1022,13 @@ data class ServiceNight(
                     updateWaiter { it.copy(hands = it.hands - HandItem.Plate(party.id)) }
                 } else if (party != null && party.id in waiter.drinks) {
                     night = night.serveDrinks(party.id, waiterId)
+                }
+            }
+            is Errand.PickUpDrinks -> {
+                val party = night.parties.firstOrNull { it.id == errand.partyId }
+                if (party != null && party.stage == Stage.DRINKS_ORDERED && party.trayAt != null && waiter.freeHands > 0) {
+                    night = night.updateParty(party.id) { it.copy(trayAt = null, heldBy = waiterId) }
+                    updateWaiter { it.copy(hands = it.hands + HandItem.Drinks(party.id)) }
                 }
             }
             Errand.VisitBar -> {
