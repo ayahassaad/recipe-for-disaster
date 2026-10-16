@@ -109,9 +109,9 @@ sealed interface NightHint {
             val ordering = night.parties.filter { it.stage == Stage.READY_TO_ORDER || it.stage == Stage.WANTS_DRINKS }.minByOrNull { it.stageSince }
             val carryingDrinks = me.drinks.firstOrNull()?.let { id -> night.parties.firstOrNull { it.id == id } }
             val dirty = night.dirtyTables.firstOrNull { Errand.VisitTable(it) !in plans }
-            val noWasher = night.waiters.none { it.kind == Kind.DISHWASHER }
-            val nobodyClears = noWasher && night.waiters.none { it.kind == Kind.BUSSER }
-            val spill = night.messesOnFloor.isNotEmpty() && noWasher
+            // Only dishwashers and bussers clear tables; nobody but you mops.
+            val nobodyClears = night.waiters.none { it.kind == Kind.DISHWASHER || it.kind == Kind.BUSSER }
+            val spill = night.messesOnFloor.isNotEmpty()
             val newcomer = night.parties.firstOrNull { it.special != null && it.stage in Stage.QUEUEING..Stage.DECIDING }
             val handingIn = Errand.HandIn in plans || Errand.VisitPass in plans
             val collecting = plans.filterIsInstance<Errand.PickUp>().map { it.partyId }.toSet()
