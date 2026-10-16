@@ -15,8 +15,8 @@ object NewHireTrips {
     /** How many shifts someone counts as new for. */
     const val NEW_SHIFTS = 3
 
-    /** Who trips: the ones who carry things. Cooks stay in the kitchen. */
-    private val carriers = setOf(Role.SERVER, Role.MANAGER, Role.DISHWASHER, Role.BARTENDER, Role.BUSSER)
+    /** Who trips: the ones who carry things out and about. Cooks and bartenders stay put in their corners. */
+    private val carriers = setOf(Role.SERVER, Role.MANAGER, Role.DISHWASHER, Role.BUSSER)
 
     /** How likely a trip is on someone's [shift]th shift (0 is their first): near certain at first, rarer as they settle in. */
     fun chance(shift: Int): Float = when (shift) {
