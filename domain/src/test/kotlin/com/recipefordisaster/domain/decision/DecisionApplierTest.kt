@@ -94,7 +94,7 @@ class DecisionApplierTest {
     fun `adding a recipe-book dish puts it on the menu for the reprint cost`() {
         val newDish = RecipeBook.dishes.first()
 
-        val applied = DecisionApplier.apply(start, PlayerDecisions(dishesToAdd = setOf(newDish.id)))
+        val applied = DecisionApplier.apply(start.copy(day = 20), PlayerDecisions(dishesToAdd = setOf(newDish.id)))
 
         assertTrue(applied.state.menu.any { it.id == newDish.id })
         assertEquals(RecipeBook.ADD_DISH_COST, applied.spending.menu)

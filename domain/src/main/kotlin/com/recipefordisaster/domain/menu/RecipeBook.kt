@@ -1,6 +1,7 @@
 package com.recipefordisaster.domain.menu
 
 import com.recipefordisaster.domain.inventory.IngredientId
+import com.recipefordisaster.domain.simulation.GameState
 
 /**
  * Dishes the player can add to the menu (Phase 6 "menu changes"). Each one
@@ -80,6 +81,23 @@ object RecipeBook {
     )
 
     fun find(id: DishId): Dish? = dishes.firstOrNull { it.id == id }
+
+    /**
+     * The day each new dish becomes available to put on the menu: a new one every few days at first, in step
+     * with who is coming in (children like fries, the celebrity and the critic have favourites of their own).
+     */
+    private val unlockDays: Map<DishId, Int> = mapOf(
+        DishId("existential_omelette") to 4,
+        FRIES_DISH to 8,
+        LASAGNA_DISH to 12,
+        FISH_DISH to 14,
+    )
+
+    /** The day [dish] can first be added to the menu. */
+    fun unlockDay(dish: Dish): Int = unlockDays[dish.id] ?: 1
+
+    /** Whether [dish] can be added to the menu now. */
+    fun isUnlocked(state: GameState, dish: Dish): Boolean = state.day >= unlockDay(dish)
 
     /** Recipes not yet on the given menu. */
     fun notYetOn(menu: List<Dish>): List<Dish> {

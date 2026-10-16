@@ -132,6 +132,7 @@ object DecisionApplier {
         for (id in decisions.dishesToAdd) {
             val dish = RecipeBook.find(id) ?: continue
             if (current.menu.any { it.id == id }) continue
+            if (!RecipeBook.isUnlocked(current, dish)) continue
             if (!canAfford(RecipeBook.ADD_DISH_COST)) {
                 note("Couldn't afford to put ${dish.name} on the menu.", LogTone.BAD)
                 continue
