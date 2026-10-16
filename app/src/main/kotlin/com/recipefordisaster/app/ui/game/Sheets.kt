@@ -243,6 +243,14 @@ private fun MenuSheet(uiState: GameUiState.Playing, actions: GameActions) {
     if (newDishes.isNotEmpty()) {
         SectionTitle(stringResource(R.string.new_dishes_title))
         newDishes.forEach { dish ->
+            // Dishes arrive over time: until its day, a new dish is only a promise.
+            if (!RecipeBook.isUnlocked(uiState.state, dish)) {
+                Column {
+                    Text(dish.name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                    Text(stringResource(R.string.new_dish_locked, RecipeBook.unlockDay(dish)), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                }
+                return@forEach
+            }
             val adding = dish.id in uiState.plan.dishesToAdd
             val needs = dish.recipe.ingredientRequirements.keys.joinToString { id -> morning.inventory.ingredients[id]?.name?.lowercase() ?: id.value }
             val suits = DIETS_SHOWN.filter { diet -> leftOut.contains(diet) && !dish.violates(diet) }

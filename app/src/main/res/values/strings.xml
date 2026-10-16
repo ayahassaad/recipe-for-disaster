@@ -270,6 +270,7 @@
     <string name="menu_price_down">Lower the price of %1$s</string>
     <string name="menu_price_up">Raise the price of %1$s</string>
     <string name="new_dishes_title">New dishes</string>
+    <string name="new_dish_locked" tools:ignore="PluralsCandidate">Unlocks on day %1$d</string>
     <string name="new_dish_add">Add (%1$s)</string>
     <string name="new_dish_needs">Needs %1$s</string>
 
