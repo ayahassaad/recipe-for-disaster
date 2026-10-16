@@ -363,7 +363,7 @@
     <string name="job_manager">Helps carry food and drinks out to the tables, like a server.</string>
     <string name="job_host">Greets guests at the door: they wait longer, and one more party fits inside.</string>
     <string name="job_busser">Clears tables and washes up, so you don\'t have to.</string>
-    <string name="job_bartender">Looks after the drinks: takes the orders, pours them at the bar and carries them over.</string>
+    <string name="job_bartender">Takes drink orders at the tables and pours them at the bar. A server (or you) has to carry each numbered tray to its table.</string>
     <string name="paused_title">Paused</string>
     <string name="paused_resume">Tap anywhere to carry on</string>
     <string name="leave_title">Settings</string>
@@ -389,7 +389,7 @@
     <string name="intro_spills_title">Spills!</string>
     <string name="intro_spills">Someone\'s spilt something, and guests hate a dirty floor. Tap the mop bucket by the door, then tap the spill to mop it up.</string>
     <string name="intro_drinks_title">Drinks!</string>
-    <string name="intro_drinks">Guests now like a drink before they eat. Tap a table with a glass bubble to take the order, tap the bar to pour it, then carry the drinks over. A bartender can do it all for you.</string>
+    <string name="intro_drinks">Guests now like a drink before they eat. Tap a table with a glass bubble to take the order, tap the bar to pour it, then carry the drinks over. A bartender takes the orders and pours, but a server or you must carry each numbered tray to its table.</string>
     <string name="intro_cat_title">The restaurant cat!</string>
     <string name="intro_cat">A cat has moved in. Guests love it when it sits by their table, but don\'t leave plates on the counter: it knocks them off.</string>
     <string name="intro_families_title">Families!</string>
