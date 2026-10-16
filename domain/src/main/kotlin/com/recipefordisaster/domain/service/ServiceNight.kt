@@ -1061,7 +1061,7 @@ data class ServiceNight(
             }
             is Errand.CleanMess -> {
                 val mess = night.messesOnFloor.firstOrNull { it.id == errand.messId }
-                val canMop = waiter.holdingMop || waiter.kind == Kind.DISHWASHER
+                val canMop = waiter.holdingMop
                 val alreadyOnIt = night.waiters.any { it.id != waiterId && it.errand == Errand.Mopping(errand.messId) }
                 if (mess != null && canMop && !alreadyOnIt) {
                     updateWaiter {
