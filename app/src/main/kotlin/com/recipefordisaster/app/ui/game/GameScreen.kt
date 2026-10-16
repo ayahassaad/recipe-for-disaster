@@ -227,6 +227,20 @@ fun GameScreen(
                                 Text(stringResource(R.string.look_button))
                             }
                             if (choosingLook) com.recipefordisaster.app.ui.player.PlayerLookDialog(onClose = { choosingLook = false })
+                            // What's been unlocked so far, and what's still to come.
+                            var showUnlocked by remember { mutableStateOf(false) }
+                            TextButton(onClick = { showUnlocked = true }, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
+                                Text(stringResource(R.string.unlocked_button))
+                            }
+                            if (showUnlocked) UnlockedDialog(uiState.state, onClose = { showUnlocked = false })
+                            // For players who'd rather have the whole game at once (only in the morning, so a night isn't changed under you).
+                            if (uiState.night == null && uiState.report == null) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(stringResource(R.string.everything_from_start), modifier = Modifier.weight(1f))
+                                    androidx.compose.material3.Switch(checked = uiState.state.everythingFromTheStart, onCheckedChange = actions.onSetEverythingFromTheStart)
+                                }
+                                Text(stringResource(R.string.everything_from_start_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                            }
                         }
                     },
                     confirmButton = { TextButton(onClick = { askLeave = false; onBackToStart() }) { Text(stringResource(R.string.leave_confirm)) } },
