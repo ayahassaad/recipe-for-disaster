@@ -1078,7 +1078,8 @@ data class ServiceNight(
 
     /** What, if anything, [party] asks for when their food arrives (the same every time the night is played). */
     private fun requestKindFor(party: Party): RequestKind? {
-        if (!requestsOn) return null
+        // Someone who's already had their problem seen to doesn't have another.
+        if (!requestsOn || party.requestFixed) return null
         if (time - party.readyAt >= COLD_AFTER) return RequestKind.COLD
         val roll = (party.id * 0.618f + chefLuck + 0.37f) % 1f
         return when {
@@ -1150,7 +1151,22 @@ data class ServiceNight(
                 } else if (waiter.kind == Kind.PLAYER && party != null && party.request != null) {
                     // They asked for something: it's you they want, and you're here.
                     night = night.copy(requestsFixed = night.requestsFixed + 1)
-                        .updateParty(party.id) { it.copy(request = null, requestFixed = true, until = minOf(it.until, time + EAT)) }
+                    if (party.request.kind == RequestKind.WRONG_DISH) {
+                        // The wrong dish: you take their order again, and it goes back to the chef to be cooked properly.
+                        var stock = night.inventory
+                        party.orders.filterNotNull().forEach { id ->
+                            val dish = night.menu.firstOrNull { it.id == id }
+                            if (dish != null && night.canMake(id, stock)) stock = InventoryOperations.consume(stock, dish.recipe)
+                        }
+                        night = night.copy(inventory = stock)
+                        updateWaiter { it.copy(tickets = it.tickets + party.id) }
+                        night = night.updateParty(party.id) {
+                            it.copy(request = null, requestFixed = true, stage = Stage.ORDER_TAKEN, stageSince = time, orderedAt = time, heldBy = waiterId)
+                        }
+                    } else {
+                        // Cold food, or the bill: seeing to it is enough.
+                        night = night.updateParty(party.id) { it.copy(request = null, requestFixed = true, until = minOf(it.until, time + EAT)) }
+                    }
                 } else if (party == null && errand.table in night.dirtyTables && waiter.freeHands > 0) {
                     // Clear the table: its dirty plates go in one hand.
                     night = night.copy(dirtyTables = night.dirtyTables - errand.table, dirtiedAt = night.dirtiedAt - errand.table)
