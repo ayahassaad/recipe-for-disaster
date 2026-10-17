@@ -56,6 +56,14 @@ class TripTest {
         assertEquals(Stage.IN_KITCHEN, after.parties.first { it.id == party.id }.stage)
         assertEquals(spillsBefore + 1, after.messesOnFloor.size)
         assertTrue(after.time - after.lastTripAt < 1f)
+
+        // The scene gets what it needs to play it out: who, what they dropped, and where it landed.
+        val scene = after.trips.single()
+        assertEquals(id, scene.waiterId)
+        assertEquals(ServiceNight.TripItem.PLATE, scene.item)
+        assertEquals(party.id, scene.partyId)
+        assertTrue(scene.landAt in ServiceFloor.spillSpots)
+        assertEquals(after.lastTripAt, scene.since, 0.001f)
     }
 
     @Test
