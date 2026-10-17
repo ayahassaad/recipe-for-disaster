@@ -53,6 +53,8 @@ sealed interface NightHint {
     data object HandlingChaos : NightHint
     /** The cat just knocked a table's food off the counter. */
     data class CatKnocked(val table: Int) : NightHint
+    /** A table has asked for something (cold food, the wrong dish, the bill): only you can see to it. */
+    data class Asking(val table: Int, val kind: ServiceNight.RequestKind) : NightHint
     /** A new hire has just tripped and dropped their tray. */
     data object Tripped : NightHint
     /** A special guest has just come in. */
@@ -71,6 +73,7 @@ sealed interface NightHint {
         MopSpill, GetMop, PutMopBack, Mopping -> com.recipefordisaster.domain.progression.Feature.SPILLS
         FixFridge, FixingFridge, FridgeStruggling -> com.recipefordisaster.domain.progression.Feature.FRIDGE_BREAKS
         is CatKnocked -> com.recipefordisaster.domain.progression.Feature.CAT
+        is Asking -> com.recipefordisaster.domain.progression.Feature.GUEST_REQUESTS
         is Chaos -> when (kind) {
             com.recipefordisaster.domain.service.ChaosKind.RAT -> com.recipefordisaster.domain.progression.Feature.RAT
             com.recipefordisaster.domain.service.ChaosKind.DOG -> com.recipefordisaster.domain.progression.Feature.DOG
@@ -89,6 +92,7 @@ sealed interface NightHint {
         PourDrinks -> NightFocus.Bar
         is PickUpDrinks -> NightFocus.Tray(partyId)
         is Clear -> NightFocus.Table(table)
+        is Asking -> NightFocus.Table(table)
         is DoorWaiting -> NightFocus.Table(table)
         HandIn -> NightFocus.Chef
         is PickUp -> NightFocus.Plate(partyId)
@@ -118,6 +122,8 @@ sealed interface NightHint {
             val newcomer = night.parties.firstOrNull { it.special != null && it.stage in Stage.QUEUEING..Stage.DECIDING }
             val handingIn = Errand.HandIn in plans || Errand.VisitPass in plans
             val collecting = plans.filterIsInstance<Errand.PickUp>().map { it.partyId }.toSet()
+            // A table that's asked for something and nobody (you included) is on the way to.
+            val asking = night.parties.firstOrNull { it.request != null && it.table != null && Errand.VisitTable(it.table!!) !in plans }
             val toCollect = night.parties.filter { it.stage == Stage.READY_AT_PASS && it.id !in collecting }.minByOrNull { it.stageSince }
             // Drinks a bartender has poured, on the bar, that nobody (you included) is on the way to.
             val collectingTrays = plans.filterIsInstance<Errand.PickUpDrinks>().map { it.partyId }.toSet()
@@ -136,6 +142,7 @@ sealed interface NightHint {
                 night.time - night.catKnockAt < 4f && night.catKnockTable != null -> CatKnocked(night.catKnockTable!!)
                 night.time - night.lastTripAt < 4f -> Tripped
                 night.fridgeStruggling -> FridgeStruggling
+                asking != null -> Asking(asking.table!!, asking.request!!.kind)
                 me.tickets.isNotEmpty() && !handingIn -> HandIn
                 me.drinkOrders.isNotEmpty() && Errand.VisitBar !in plans && me.freeHands > 0 -> PourDrinks
                 toCollect?.table != null && me.freeHands - collecting.size > 0 -> PickUp(toCollect.table!!, toCollect.id)
