@@ -44,3 +44,24 @@ class RushDemandTest {
         assertEquals(true, ordinary <= capacity)
     }
 }
+
+class RushArrivalsTest {
+
+    private val engine = DefaultDayTickEngine(EventEngine(emptyList()))
+    private val seed = 12L
+    private val base = NewGameFactory.create(seed = seed).let { it.copy(restaurant = it.restaurant.copy(reputation = 60, tables = 6)) }
+
+    private fun averageGap(day: Int): Float {
+        val setup = engine.openService(base.copy(day = day), PlayerDecisions(), SeededRandomSource(1L))
+        val night = com.recipefordisaster.domain.service.ServiceNight.open(setup, SeededRandomSource(2L))
+        val times = night.parties.map { it.arriveAt }.sorted()
+        return (times.last() - times.first()) / (times.size - 1)
+    }
+
+    @Test
+    fun `parties arrive closer together on a rush night`() {
+        val rushDay = (RushNights.FROM_DAY..400).first { RushNights.isRush(seed, it) }
+        val usualDay = (RushNights.FROM_DAY..400).first { !RushNights.isRush(seed, it) && !RushNights.isRush(seed, it + 1) }
+        assertTrue("rush ${averageGap(rushDay)} vs usual ${averageGap(usualDay)}", averageGap(rushDay) < averageGap(usualDay) * 0.8f)
+    }
+}
