@@ -79,9 +79,9 @@
     <string name="hint_fixing_fridge">Fixing the fridge…</string>
     <string name="hint_fridge_struggling">The fridge is struggling! It\'s about to give up.</string>
     <string name="night_fridge">Fridge: fix it if it breaks</string>
-    <string name="hint_critic">A food critic just walked in! Serve them quickly and well.</string>
-    <string name="hint_celebrity">A celebrity just walked in! Keep them happy and tomorrow will be busy.</string>
-    <string name="hint_inspector">A health inspector just walked in! Keep the floor and tables clean.</string>
+    <string name="hint_critic">A food critic just walked in! Only you can serve them: be quick and good.</string>
+    <string name="hint_celebrity">A celebrity just walked in! Only you can serve them. Keep them happy.</string>
+    <string name="hint_inspector">A health inspector just walked in! Only you can serve them. Keep it clean.</string>
     <string name="special_critic_good">The food critic loved it! Your stars went up.</string>
     <string name="special_critic_bad">The food critic was not impressed. Your stars went down.</string>
     <string name="special_celebrity_good">The celebrity had a great time. Expect a crowd tomorrow!</string>
@@ -395,9 +395,9 @@
     <string name="intro_families_title">Families!</string>
     <string name="intro_families">Grown-ups with children are coming in. Children drop their food, so expect a mess to mop when they leave.</string>
     <string name="intro_celebrity_title">A celebrity!</string>
-    <string name="intro_celebrity">Someone famous just walked in. Look after them and word gets around: more guests tomorrow.</string>
+    <string name="intro_celebrity">Someone famous just walked in. Only you can serve them, so staff leave their table alone. Look after them and word gets around: more guests tomorrow.</string>
     <string name="intro_critic_title">A food critic!</string>
-    <string name="intro_critic">A critic is here to review you. Good food served quickly means a glowing review and more stars.</string>
+    <string name="intro_critic">A critic is here to review you. Only you can serve them, so staff leave their table alone. Good food served quickly means a glowing review and more stars.</string>
     <string name="intro_rat_title">A rat!</string>
     <string name="intro_rat">A rat is scurrying about and putting guests off their food. Tap it to chase it out.</string>
     <string name="intro_fridge_title">The fridge is failing!</string>
@@ -409,7 +409,7 @@
     <string name="intro_fire_title">Pan fire!</string>
     <string name="intro_fire">A pan has caught fire and nothing can cook. Tap the stove to put it out.</string>
     <string name="intro_inspector_title">The health inspector!</string>
-    <string name="intro_inspector">An inspector is checking the place. Keep the floor clean and the tables cleared, or you\'ll be fined.</string>
+    <string name="intro_inspector">An inspector is checking the place. Only you can serve them, so staff leave their table alone. Keep the floor clean and the tables cleared, or you\'ll be fined.</string>
     <string name="intro_power_title">Power cut!</string>
     <string name="intro_power">The lights are out and the kitchen has stopped. Tap the fuse box by the door to get them back on.</string>
     <string name="intro_double_title">Double trouble!</string>
