@@ -54,7 +54,11 @@ class TripTest {
         assertTrue(id in after.tripped)
         assertTrue(after.waiters.first { it.id == id }.hands.isEmpty())
         assertEquals(Stage.IN_KITCHEN, after.parties.first { it.id == party.id }.stage)
-        assertEquals(spillsBefore + 1, after.messesOnFloor.size)
+        // The spill is there once the plate has landed, not before.
+        assertEquals(spillsBefore, after.messesOnFloor.size)
+        var later = after
+        repeat(10) { later = later.advance(0.1f) }
+        assertEquals(spillsBefore + 1, later.messesOnFloor.size)
         assertTrue(after.time - after.lastTripAt < 1f)
 
         // The scene gets what it needs to play it out: who, what they dropped, and where it landed.

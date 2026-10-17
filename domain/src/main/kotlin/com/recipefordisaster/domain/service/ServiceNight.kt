@@ -371,6 +371,8 @@ data class ServiceNight(
         /** Where the player has asked to go next, after the current errand — taps queue up rather than interrupt. */
         val queue: List<Errand> = emptyList(),
         val kind: Kind = if (isPlayer) Kind.PLAYER else Kind.RUNNER,
+        /** Flat on the floor after a trip until this time: they do nothing, and aren't sent anywhere. */
+        val downUntil: Float = 0f,
         /** Gone for now (home sick, stormed out, on a long break): not working, and not in the room. */
         val away: Boolean = false,
         /** Party ids whose drinks this waiter has been asked for but not poured yet. */
@@ -693,7 +695,8 @@ data class ServiceNight(
         val spot = ServiceFloor.spillSpots
             .filter { spot -> messesOnFloor.none { it.at.distanceTo(spot) < 1f } }
             .minByOrNull { it.distanceTo(here) } ?: here
-        val mess = Mess(id = (messes.maxOfOrNull { it.id } ?: -1) + 1, at = spot, appearsAt = time)
+        // The mess is there once what they dropped lands.
+        val mess = Mess(id = (messes.maxOfOrNull { it.id } ?: -1) + 1, at = spot, appearsAt = time + TRIP_LAND)
         // What they dropped, for the scene to show flying off.
         val dropped = waiter.hands.firstOrNull { it != HandItem.Mop }
         val scene = TripScene(
@@ -715,6 +718,7 @@ data class ServiceNight(
             side = if (waiter.id.hashCode() % 2 == 0) 1 else -1,
         )
         return night.copy(
+            waiters = night.waiters.map { if (it.id == waiter.id) it.copy(downUntil = time + TRIP_TOTAL) else it },
             messes = night.messes + mess,
             tripped = night.tripped + waiter.id,
             lastTripAt = time,
@@ -1286,7 +1290,7 @@ data class ServiceNight(
      */
     private fun directStaff(): ServiceNight {
         var night = this
-        for (waiter in waiters.filter { !it.isPlayer && it.errand == null && !it.away }) {
+        for (waiter in waiters.filter { !it.isPlayer && it.errand == null && !it.away && time >= it.downUntil }) {
             val next: Errand? = when (waiter.kind) {
                 Kind.DISHWASHER, Kind.BUSSER -> {
                     // Clearing is the whole job: a table nobody else is already on their way to, and the dishes to the sink.
