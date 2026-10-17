@@ -77,4 +77,31 @@ class TripTest {
         // Nothing in their hands, so there's nothing to drop.
         assertFalse(id in due.advance(0.1f).tripped)
     }
+
+    @Test
+    fun `someone who has tripped lies there for a moment before getting back to work`() {
+        val (opened, id) = open()
+        var night = opened
+        var steps = 0
+        while (night.parties.none { it.table != null && it.stage >= Stage.DECIDING } && steps++ < 2000) night = night.advance(0.1f)
+        val party = night.parties.first { it.table != null && it.stage >= Stage.DECIDING }
+        night = night.copy(
+            parties = night.parties.map { if (it.id == party.id) it.copy(stage = Stage.CARRIED, heldBy = id) else it },
+            waiters = night.waiters.map { if (it.id == id) it.copy(hands = listOf(HandItem.Plate(party.id)), errand = ServiceNight.Errand.Serve(party.table!!), route = listOf(ServiceFloor.pass, ServiceFloor.layout(night.tableCount).stand(party.table!!)), routeStart = night.time, routeEnd = night.time + 50f) else it },
+            slips = mapOf(id to StaffSlips.Slip(night.time)),
+        )
+        var n = night.advance(0.1f)
+        val fell = n.time
+        assertTrue(n.waiters.first { it.id == id }.downUntil > fell)
+
+        // A plate is waiting for them on the pass, but they stay down.
+        n = n.copy(parties = n.parties.map { if (it.id == party.id) it.copy(stage = Stage.READY_AT_PASS, stageSince = n.time - 30f) else it })
+        while (n.time < fell + ServiceNight.TRIP_TOTAL - 0.3f) n = n.advance(0.1f)
+        assertEquals(null, n.waiters.first { it.id == id }.errand)
+
+        // Then they get up and go for it.
+        while (n.time < fell + ServiceNight.TRIP_TOTAL + 1f) n = n.advance(0.1f)
+        val back = n.waiters.first { it.id == id }
+        assertTrue(back.errand != null || back.plates.isNotEmpty())
+    }
 }
