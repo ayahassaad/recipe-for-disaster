@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -38,6 +39,16 @@ internal class Pen(private val scope: DrawScope, val unit: Float, private val or
     fun p(point: Point) = Offset(origin.x + point.x * unit, origin.y + point.y * unit)
     fun p(x: Float, y: Float) = Offset(origin.x + x * unit, origin.y + y * unit)
     fun u(units: Float) = units * unit
+
+    /** Draws with everything turned [degrees] clockwise about [pivot]: for someone tipping over, or a plate tumbling. */
+    fun rotated(degrees: Float, pivot: Point, draw: Pen.() -> Unit) {
+        if (degrees == 0f) {
+            draw()
+            return
+        }
+        val pen = this
+        scope.withTransform({ rotate(degrees, pen.p(pivot)) }) { Pen(this, pen.unit, pen.origin).draw() }
+    }
 
     /**
      * A pen that draws everything [s] times smaller, shrinking towards [center]: for the tables (and the
