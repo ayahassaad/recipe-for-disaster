@@ -1544,11 +1544,13 @@ data class ServiceNight(
             val tableCount = state.restaurant.tables.coerceIn(1, ServiceFloor.MAX_TABLES)
             val pace = kotlin.math.sqrt(ServiceFloor.TABLE_COUNT.toFloat() / tableCount)
             var nextArrival = 1.5f
+            // A rush night: everyone turns up at once.
+            val rushGap = if (com.recipefordisaster.domain.progression.RushNights.isRush(state)) com.recipefordisaster.domain.progression.RushNights.ARRIVAL_GAP_FACTOR else 1f
             // Once the bar opens, a few parties have a drink first; within a few nights, everyone does.
             val drinksShare = Progression.strength(state, Feature.DRINKS)
             val parties = groups.mapIndexed { index, guests ->
                 val arriveAt = nextArrival
-                nextArrival += (ARRIVAL_GAP + rng.nextFloat() * ARRIVAL_JITTER) * pace * dials.arrivalGap
+                nextArrival += (ARRIVAL_GAP + rng.nextFloat() * ARRIVAL_JITTER) * pace * dials.arrivalGap * rushGap
                 Party(
                     id = index,
                     guests = guests,
