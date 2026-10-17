@@ -111,4 +111,36 @@ class GuestRequestsTest {
         assertEquals(RequestKind.WRONG_DISH, n.parties.first { it.id == party.id }.request?.kind)
         assertTrue(ServiceNight.PLAYER_ID in n.tripped)
     }
+
+    @Test
+    fun `a wrong dish means taking their order again and getting the right one cooked`() {
+        val (night, party) = carryingPlate(day = 20, onPassFor = 2f)
+        val slipping = night.copy(slips = mapOf(ServiceNight.PLAYER_ID to StaffSlips.Slip(at = 0f, mixUp = true)))
+        var n = walkUntil(slipping, party.id) { it.stage == Stage.EATING }
+        assertEquals(RequestKind.WRONG_DISH, n.parties.first { it.id == party.id }.request?.kind)
+
+        // Going to their table takes the order again: it's a ticket in your hand, and they wait for the right dish.
+        n = n.tapTable(party.table!!)
+        n = walkUntil(n, party.id) { it.stage == Stage.ORDER_TAKEN }
+        assertTrue(party.id in n.player.tickets)
+        assertNull(n.parties.first { it.id == party.id }.request)
+        assertEquals(1, n.requestsFixed)
+
+        // Hand it to the chef, fetch the plate when it's ready, and bring it over.
+        n = n.tapChef()
+        var steps = 0
+        while (n.parties.first { it.id == party.id }.stage != Stage.READY_AT_PASS && steps++ < 4000) n = n.advance(0.05f)
+        assertEquals(Stage.READY_AT_PASS, n.parties.first { it.id == party.id }.stage)
+        n = n.tapPlate(party.id)
+        steps = 0
+        while (party.id !in n.player.plates && steps++ < 600) n = n.advance(0.05f)
+        n = n.tapTable(party.table!!)
+        n = walkUntil(n, party.id) { it.stage == Stage.EATING }
+
+        // They eat the right dish this time, with nothing more to ask for.
+        val after = n.parties.first { it.id == party.id }
+        assertEquals(Stage.EATING, after.stage)
+        assertNull(after.request)
+        assertTrue(after.requestFixed)
+    }
 }
