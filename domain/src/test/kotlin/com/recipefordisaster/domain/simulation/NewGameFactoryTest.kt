@@ -17,6 +17,16 @@ class NewGameFactoryTest {
     }
 
     @Test
+    fun `a new game starts with 500 coins, about four days of costs`() {
+        val state = NewGameFactory.create(seed = 42L)
+
+        assertEquals(500L, state.restaurant.cash)
+        assertEquals(NewGameFactory.STARTING_CASH, state.restaurant.cash)
+        val daysOfCosts = state.restaurant.cash / DailyCosts.of(state).total
+        assertTrue("$daysOfCosts days of costs", daysOfCosts in 3..6)
+    }
+
+    @Test
     fun `a new game starts with at least one employee, one dish, and stocked ingredients`() {
         val state = NewGameFactory.create(seed = 42L)
 
