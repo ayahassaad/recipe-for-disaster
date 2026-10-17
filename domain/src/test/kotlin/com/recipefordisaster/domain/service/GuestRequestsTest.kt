@@ -101,4 +101,14 @@ class GuestRequestsTest {
         fun happiness(n: ServiceNight) = n.result().outcomes.filter { it.dish != null }.map { it.satisfaction }.average()
         assertTrue(happiness(fixed) > happiness(ignored))
     }
+
+    @Test
+    fun `a worker due a mix-up takes their table the wrong dish, once`() {
+        val (night, party) = carryingPlate(day = 20, onPassFor = 2f)
+        val slipping = night.copy(slips = mapOf(ServiceNight.PLAYER_ID to StaffSlips.Slip(at = 0f, mixUp = true)))
+        val n = walkUntil(slipping, party.id) { it.stage == Stage.EATING }
+
+        assertEquals(RequestKind.WRONG_DISH, n.parties.first { it.id == party.id }.request?.kind)
+        assertTrue(ServiceNight.PLAYER_ID in n.tripped)
+    }
 }
