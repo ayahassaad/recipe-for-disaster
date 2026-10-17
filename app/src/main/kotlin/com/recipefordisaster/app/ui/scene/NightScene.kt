@@ -446,6 +446,8 @@ fun NightScene(
 
                     // Waiters: hired servers in red aprons, you in green with a marker overhead.
                     night.waiters.forEach { waiter ->
+                        // Someone who's gone home (or off on a break) isn't in the room.
+                        if (waiter.away) return@forEach
                         val at = waiter.position(time).toPoint().let { Point(it.x, it.y - 2f) }
                         val walking = waiter.walking
                         val bob = if (walking) abs(sin(time * 12f)) * 0.5f else sin(clock * 1.6f) * 0.2f

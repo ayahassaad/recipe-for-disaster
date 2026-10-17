@@ -96,7 +96,7 @@ internal fun introductionSpot(night: ServiceNight, feature: Feature): SceneLayou
         Feature.POWER_CUT -> SceneLayout.fuseBox.center
         Feature.RAT, Feature.DOG, Feature.DOUBLE_TROUBLE -> night.chaosSpot()?.toPoint()
         Feature.GUEST_REQUESTS -> tableOf(night.parties.firstOrNull { it.stage == ServiceNight.Stage.EATING })
-        Feature.STAFF_TROUBLE -> null
+        Feature.STAFF_TROUBLE -> night.waiters.firstOrNull { it.away }?.restSpot?.toPoint()
         Feature.FRIDGE_BREAKS -> SceneLayout.fridge.center
         Feature.CHEF_MOODS -> SceneLayout.cookSpot(0)
     } ?: SceneLayout.Point(SceneLayout.WIDTH / 2, SceneLayout.HEIGHT / 2)
