@@ -81,6 +81,13 @@ data class ServiceNight(
     /** When the cat last knocked a plate off the counter, and whose it was. */
     val catKnockAt: Float = -100f,
     val catKnockTable: Int? = null,
+    /** How settled in guests' requests are tonight (0 before they arrive, 1 once normal). */
+    val requestStrength: Float = 0f,
+    /** Guests' requests the player saw to tonight, and ones left unseen. */
+    val requestsFixed: Int = 0,
+    val requestsMissed: Int = 0,
+    /** The first night guests can ask for things, the first meal served is sure to bring a request. */
+    val requestDebutPending: Boolean = false,
     /** When each new hire (by id) will trip and drop their tray tonight, if they will (see [StaffSlips]). */
     val tripAt: Map<String, Float> = emptyMap(),
     /** The new hires who've already tripped tonight, and when it last happened. */
@@ -119,6 +126,13 @@ data class ServiceNight(
     /** What a guest was waiting for when they gave up. */
     @Serializable
     enum class WaitedFor { TABLE, ORDER, FOOD, DRINKS }
+
+    /** What a guest can ask for, once they've been served: only the player can sort it out. */
+    enum class RequestKind { WRONG_DISH, COLD, BILL }
+
+    /** A guest asking for something, since [since]: go to their table to see to it. */
+    @Serializable
+    data class Request(val kind: RequestKind, val since: Float)
 
     /** A spill on the floor. Guests who finish their meal while it's there notice it. */
     @Serializable
@@ -196,6 +210,12 @@ data class ServiceNight(
          * table number on it until the player or a server carries it over.
          */
         val trayAt: Float? = null,
+        /** When their food went up on the pass, so we know how long it sat there (and went cold). */
+        val readyAt: Float = 0f,
+        /** Something they're asking for while they eat (see [Request]); null once it's seen to, or if they never asked. */
+        val request: Request? = null,
+        /** The player saw to what they asked for: they were pleased. */
+        val requestFixed: Boolean = false,
         /** How long they sat sipping their drinks: time spent enjoying a drink isn't time spent waiting. */
         val sippedFor: Float = 0f,
         /** Whether they'll have a drink before their food (before the bar opens, nobody does). */
@@ -409,6 +429,7 @@ data class ServiceNight(
             if (messesOnFloor.isNotEmpty()) add(Feature.SPILLS)
             parties.filter { arriving(it) }.forEach { party -> party.special?.let { add(featureOf(it)) } }
             if (parties.any { it.family && arriving(it) }) add(Feature.FAMILIES)
+            if (parties.any { it.request != null }) add(Feature.GUEST_REQUESTS)
             if (parties.any { it.stage == Stage.WANTS_DRINKS }) add(Feature.DRINKS)
             if (cat && time >= CAT_INTRODUCED_AFTER) add(Feature.CAT)
             if (chefMood != ChefMood.NORMAL && parties.any { it.stage == Stage.COOKING }) add(Feature.CHEF_MOODS)
@@ -824,6 +845,9 @@ data class ServiceNight(
     /** Whether a dish uses anything that has to be kept in the fridge. */
     fun needsCold(dish: Dish): Boolean = dish.recipe.ingredientRequirements.keys.any { id -> inventory.ingredients[id]?.let { Fridge.isCold(it) } == true }
 
+    /** Whether guests can ask for things tonight. */
+    val requestsOn: Boolean get() = requestStrength > 0f
+
     /** Whether anything on the menu can still be cooked tonight (a broken fridge can be fixed, so it doesn't count). */
     val kitchenHasFood: Boolean get() = menu.any { canMake(it.id, inventory, fridgeMatters = false) }
 
@@ -839,7 +863,7 @@ data class ServiceNight(
                 night.copy(lastBurnAt = time).updateParty(party.id) { it.copy(burnt = true, until = time + night.cookTime(party.orders)) }
             } else {
                 val special = night.chefMood == ChefMood.HAPPY && night.touchedByMood(party, CHEFS_SPECIAL_CHANCE)
-                night.updateParty(party.id) { it.copy(stage = Stage.READY_AT_PASS, stageSince = time, chefsSpecial = special) }
+                night.updateParty(party.id) { it.copy(stage = Stage.READY_AT_PASS, stageSince = time, readyAt = time, chefsSpecial = special) }
             }
         }
         // Free cooks pick up the oldest tickets.
@@ -899,15 +923,24 @@ data class ServiceNight(
                     val mess = (night.messesOnFloor.size + bother).coerceAtMost(MAX_MESS_PENALTIES) * MESS_PENALTY -
                         // ...while a visit from the cat makes their evening.
                         (if (party.table in night.catVisited) CAT_JOY else 0)
+                    // Seeing to what they asked for pleases them; being ignored does the opposite.
+                    val requestPenalty = when (party.request?.kind) {
+                        RequestKind.COLD -> COLD_PENALTY
+                        RequestKind.WRONG_DISH -> WRONG_DISH_PENALTY
+                        RequestKind.BILL -> BILL_PENALTY
+                        null -> 0
+                    }
                     val treat = night.decorJoy + (if (party.chefsSpecial) CHEFS_SPECIAL_JOY else 0) +
                         // Getting their favourite dish makes anyone's night.
-                        (if (party.favourites[guest] == dishId) FAVOURITE_JOY else 0)
+                        (if (party.favourites[guest] == dishId) FAVOURITE_JOY else 0) +
+                        (if (party.requestFixed) REQUEST_FIXED_JOY else 0) - requestPenalty
                     val satisfaction = (ServiceSimulator.resolveSatisfaction(customer, dish, waitedMinutes, kitchenQualityBonus) - mess + treat - night.pickiness).coerceIn(0, 100)
                         results = results + (guest to CustomerServiceOutcome(customer, dish, satisfaction, waitedMinutes))
                     }
                     // They leave their dirty plates behind; the table needs clearing before anyone else can sit there.
                     night = night.copy(
                         results = results,
+                        requestsMissed = night.requestsMissed + (if (party.request != null) 1 else 0),
                         dirtyTables = night.dirtyTables + listOfNotNull(party.table),
                         dirtiedAt = night.dirtiedAt + listOfNotNull(party.table?.let { it to time }),
                     )
@@ -928,6 +961,36 @@ data class ServiceNight(
             }
         }
         return night
+    }
+
+    /**
+     * [party]'s food reaches their table: they start eating. Now and then they have something to say about
+     * it: cold if it sat on the pass too long, otherwise (from the day guests start asking) the wrong dish
+     * or the bill, now and then. Staff can't help with that: it's for the player to sort out before they leave.
+     */
+    private fun served(party: Party, waiterId: String): ServiceNight {
+        val kind = requestKindFor(party)
+        val request = kind?.let { Request(it, time) }
+        val sure = requestDebutPending && request != null
+        return copy(
+            waiters = waiters.map { if (it.id == waiterId) it.copy(hands = it.hands - HandItem.Plate(party.id)) else it },
+            requestDebutPending = requestDebutPending && !sure,
+        ).updateParty(party.id) {
+            it.copy(stage = Stage.EATING, stageSince = time, until = time + EAT + (if (request != null) REQUEST_WAIT else 0f), heldBy = null, request = request)
+        }
+    }
+
+    /** What, if anything, [party] asks for when their food arrives (the same every time the night is played). */
+    private fun requestKindFor(party: Party): RequestKind? {
+        if (!requestsOn) return null
+        if (time - party.readyAt >= COLD_AFTER) return RequestKind.COLD
+        val roll = (party.id * 0.618f + chefLuck + 0.37f) % 1f
+        return when {
+            requestDebutPending -> RequestKind.BILL
+            roll < WRONG_DISH_CHANCE * requestStrength -> RequestKind.WRONG_DISH
+            roll < (WRONG_DISH_CHANCE + BILL_CHANCE) * requestStrength -> RequestKind.BILL
+            else -> null
+        }
     }
 
     /** A table gets its drinks: they sip them while they read the menu. */
@@ -981,14 +1044,17 @@ data class ServiceNight(
                     val readyAt = party!!.until
                     updateWaiter { it.copy(route = listOf(it.position(time)), routeStart = time, routeEnd = readyAt + 0.01f, errand = errand) }
                 } else if (party != null && party.id in waiter.plates) {
-                    night = night.updateParty(party.id) { it.copy(stage = Stage.EATING, stageSince = time, until = time + EAT, heldBy = null) }
-                    updateWaiter { it.copy(hands = it.hands - HandItem.Plate(party.id)) }
+                    night = night.served(party, waiterId)
                 } else if (party != null && party.id in waiter.drinks) {
                     night = night.serveDrinks(party.id, waiterId)
                 } else if ((waiter.kind == Kind.PLAYER || (waiter.kind == Kind.BARTENDER && party?.special == null)) && party != null && party.stage == Stage.WANTS_DRINKS) {
                     // Their drinks order goes on the notepad; pour it at the bar.
                     updateWaiter { it.copy(drinkOrders = it.drinkOrders + party.id) }
                     night = night.updateParty(party.id) { it.copy(stage = Stage.DRINKS_ORDERED, stageSince = time, drinksOrderedAt = time, heldBy = waiterId) }
+                } else if (waiter.kind == Kind.PLAYER && party != null && party.request != null) {
+                    // They asked for something: it's you they want, and you're here.
+                    night = night.copy(requestsFixed = night.requestsFixed + 1)
+                        .updateParty(party.id) { it.copy(request = null, requestFixed = true, until = minOf(it.until, time + EAT)) }
                 } else if (party == null && errand.table in night.dirtyTables && waiter.freeHands > 0) {
                     // Clear the table: its dirty plates go in one hand.
                     night = night.copy(dirtyTables = night.dirtyTables - errand.table, dirtiedAt = night.dirtiedAt - errand.table)
@@ -1020,8 +1086,7 @@ data class ServiceNight(
             is Errand.Serve -> {
                 val party = night.partyAt(errand.table)
                 if (party != null && party.id in waiter.plates) {
-                    night = night.updateParty(party.id) { it.copy(stage = Stage.EATING, stageSince = time, until = time + EAT, heldBy = null) }
-                    updateWaiter { it.copy(hands = it.hands - HandItem.Plate(party.id)) }
+                    night = night.served(party, waiterId)
                 } else if (party != null && party.id in waiter.drinks) {
                     night = night.serveDrinks(party.id, waiterId)
                 }
@@ -1197,6 +1262,8 @@ data class ServiceNight(
      * for each guest who enjoyed it. Nothing for a slow or a disappointing meal.
      */
     private fun tipFor(party: Party, results: Map<Int, CustomerServiceOutcome>): Long {
+        // Someone whose request was ignored leaves nothing.
+        if (party.request != null) return 0L
         // Time spent sipping drinks doesn't count, and nor does a quick round of drinks.
         val served = time - EAT - party.seatedAt - party.sippedFor - DRINKS_ALLOWANCE
         val perGuest = when {
@@ -1259,6 +1326,22 @@ data class ServiceNight(
         private const val CAT_LEG = 9f
         private const val CAT_WALKING = 0.5f
         private const val CAT_JOY = 6
+
+        /** How long a food order can sit on the pass before it arrives cold. */
+        private const val COLD_AFTER = 20f
+
+        /** Chances (before the first nights settle in) a served table asks about the wrong dish, or the bill. */
+        private const val WRONG_DISH_CHANCE = 0.07f
+        private const val BILL_CHANCE = 0.18f
+
+        /** How much longer a table that's asked for something waits, for you to come, before they carry on eating anyway. */
+        private const val REQUEST_WAIT = 10f
+
+        /** How much it costs their opinion of you to be ignored, by what they asked for; and the bit of joy when it's seen to. */
+        private const val COLD_PENALTY = 20
+        private const val WRONG_DISH_PENALTY = 30
+        private const val BILL_PENALTY = 5
+        private const val REQUEST_FIXED_JOY = 4
         /** A plate left on the counter this long tempts the cat; it won't knock more than one this often. */
         private const val CAT_KNOCK_AFTER = 7f
         private const val CAT_KNOCK_EVERY = 25f
@@ -1571,6 +1654,8 @@ data class ServiceNight(
                 chefLuck = chefLuck,
                 waiters = waiters,
                 tripAt = StaffSlips.planFor(state),
+                requestStrength = Progression.strength(state, Feature.GUEST_REQUESTS),
+                requestDebutPending = Progression.debutsToday(state, Feature.GUEST_REQUESTS),
                 inventory = state.inventory,
                 kitchenSlots = slots,
                 secondsPerDish = secondsPerDish,
