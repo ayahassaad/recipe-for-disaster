@@ -290,6 +290,18 @@ class GameViewModel(
     /** Training happens in the morning, so it can't go with a day off or being let go. */
     fun toggleTraining(id: EmployeeId) = editPlan { it.copy(training = it.training.toggle(id), restDays = it.restDays - id, fires = it.fires - id) }
 
+    /** Giving someone a raise happens in the morning, like the rest of the plan, so tapping again undoes it. */
+    fun toggleRaise(id: EmployeeId) = editPlan { it.copy(raises = it.raises.toggle(id)) }
+
+    /** Puts a weekday on or off someone's roster of days off, for good (morning only), and saves. */
+    fun toggleRosterDay(id: EmployeeId, weekday: Int) {
+        val current = _uiState.value as? GameUiState.Playing ?: return
+        if (current.report != null || current.night != null) return
+        val updated = current.state.copy(employees = current.state.employees.map { if (it.id == id) com.recipefordisaster.domain.employee.Roster.toggle(it, weekday) else it })
+        _uiState.value = current.copy(state = updated, preview = DecisionApplier.apply(updated, current.plan))
+        viewModelScope.launch { gameRepository.save(updated) }
+    }
+
     fun toggleRepair(id: EquipmentId) = editPlan { it.copy(repairs = it.repairs.toggle(id)) }
     fun toggleUpgrade(id: EquipmentId) = editPlan { it.copy(upgrades = it.upgrades.toggle(id)) }
 
