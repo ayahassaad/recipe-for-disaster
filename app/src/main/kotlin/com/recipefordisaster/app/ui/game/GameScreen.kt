@@ -1038,6 +1038,7 @@ private fun buzzFor(before: ServiceNight, after: ServiceNight): com.recipefordis
         after.activeChaos != null && before.activeChaos == null -> com.recipefordisaster.app.ui.sound.Buzzes.TROUBLE
         after.fridgeBroken && !before.fridgeBroken -> com.recipefordisaster.app.ui.sound.Buzzes.TROUBLE
         after.catKnockAt != before.catKnockAt -> com.recipefordisaster.app.ui.sound.Buzzes.TROUBLE
+        after.lastTripAt != before.lastTripAt -> com.recipefordisaster.app.ui.sound.Buzzes.TROUBLE
         angry(after) > angry(before) -> com.recipefordisaster.app.ui.sound.Buzzes.TROUBLE
         after.parties.count { it.stage == ServiceNight.Stage.READY_AT_PASS } > before.parties.count { it.stage == ServiceNight.Stage.READY_AT_PASS } ->
             com.recipefordisaster.app.ui.sound.Buzzes.TAP
@@ -1056,6 +1057,8 @@ private fun soundsFor(before: ServiceNight, after: ServiceNight): com.recipeford
         count(after, ServiceNight.Stage.LEAVING_HAPPY) > count(before, ServiceNight.Stage.LEAVING_HAPPY) -> com.recipefordisaster.app.ui.sound.Sfx.COINS
         count(after, ServiceNight.Stage.READY_AT_PASS) > count(before, ServiceNight.Stage.READY_AT_PASS) -> com.recipefordisaster.app.ui.sound.Sfx.BELL
         after.catKnockAt != before.catKnockAt -> com.recipefordisaster.app.ui.sound.Sfx.CLANK
+        // Someone's just gone flying: a crash of crockery.
+        after.lastTripAt != before.lastTripAt -> com.recipefordisaster.app.ui.sound.Sfx.CLANK
         (before.activeChaos != null && after.activeChaos == null) || (before.fridgeBroken && !after.fridgeBroken) -> com.recipefordisaster.app.ui.sound.Sfx.CLANK
         afterMe.errand is ServiceNight.Errand.Pour && beforeMe.errand !is ServiceNight.Errand.Pour -> com.recipefordisaster.app.ui.sound.Sfx.POUR
         afterMe.plates.size > beforeMe.plates.size -> com.recipefordisaster.app.ui.sound.Sfx.CLINK
