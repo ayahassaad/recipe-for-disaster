@@ -51,8 +51,10 @@ internal fun introductionText(feature: Feature): IntroductionText = when (featur
     Feature.CELEBRITY -> IntroductionText(R.string.intro_celebrity_title, R.string.intro_celebrity)
     Feature.CRITIC -> IntroductionText(R.string.intro_critic_title, R.string.intro_critic)
     Feature.RAT -> IntroductionText(R.string.intro_rat_title, R.string.intro_rat)
+    Feature.GUEST_REQUESTS -> IntroductionText(R.string.intro_requests_title, R.string.intro_requests)
     Feature.FRIDGE_BREAKS -> IntroductionText(R.string.intro_fridge_title, R.string.intro_fridge)
     Feature.DOG -> IntroductionText(R.string.intro_dog_title, R.string.intro_dog)
+    Feature.STAFF_TROUBLE -> IntroductionText(R.string.intro_staff_trouble_title, R.string.intro_staff_trouble)
     Feature.CHEF_MOODS -> IntroductionText(R.string.intro_chef_moods_title, R.string.intro_chef_moods)
     Feature.PAN_FIRE -> IntroductionText(R.string.intro_fire_title, R.string.intro_fire)
     Feature.INSPECTOR -> IntroductionText(R.string.intro_inspector_title, R.string.intro_inspector)
@@ -93,6 +95,8 @@ internal fun introductionSpot(night: ServiceNight, feature: Feature): SceneLayou
         Feature.PAN_FIRE -> SceneLayout.stove.center
         Feature.POWER_CUT -> SceneLayout.fuseBox.center
         Feature.RAT, Feature.DOG, Feature.DOUBLE_TROUBLE -> night.chaosSpot()?.toPoint()
+        Feature.GUEST_REQUESTS -> tableOf(night.parties.firstOrNull { it.stage == ServiceNight.Stage.EATING })
+        Feature.STAFF_TROUBLE -> null
         Feature.FRIDGE_BREAKS -> SceneLayout.fridge.center
         Feature.CHEF_MOODS -> SceneLayout.cookSpot(0)
     } ?: SceneLayout.Point(SceneLayout.WIDTH / 2, SceneLayout.HEIGHT / 2)

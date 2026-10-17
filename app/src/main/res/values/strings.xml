@@ -404,6 +404,10 @@
     <string name="intro_critic">A critic is here to review you. Only you can serve them, so staff leave their table alone. Good food served quickly means a glowing review and more stars.</string>
     <string name="intro_rat_title">A rat!</string>
     <string name="intro_rat">A rat is scurrying about and putting guests off their food. Tap it to chase it out.</string>
+    <string name="intro_requests_title">Guests ask for things!</string>
+    <string name="intro_requests">Now and then a guest asks for something: the wrong dish, cold food, or the bill. Staff can\'t help with this. Tap their table to sort it out, or it costs you.</string>
+    <string name="intro_staff_trouble_title">A bad night for the staff!</string>
+    <string name="intro_staff_trouble">Someone has gone home sick, walked out after a row, or taken a long break. The others carry on, but you\'ll have to cover for the one who\'s gone.</string>
     <string name="intro_fridge_title">The fridge is failing!</string>
     <string name="intro_fridge">An old fridge can give up mid-service. While it\'s broken nobody can order cold food: tap the fridge to fix it.</string>
     <string name="intro_dog_title">A dog!</string>
@@ -420,6 +424,8 @@
     <string name="intro_double">Some nights, a second thing goes wrong once the first is sorted. Stay sharp!</string>
     <string name="new_tonight">New tonight: %1$s</string>
     <string name="hint_quiet_night">A quieter night tonight. Catch your breath!</string>
+    <string name="feature_guest_requests">guests start asking for things only you can fix. Watch the tables!</string>
+    <string name="feature_staff_trouble">your staff will have bad nights. Be ready to cover for them.</string>
     <string name="feature_spills">guests start spilling things. Grab the mop!</string>
     <string name="feature_drinks">guests will want a drink first. Pour them at the bar!</string>
     <string name="feature_cat">a cat might wander in. Guests love a visit!</string>

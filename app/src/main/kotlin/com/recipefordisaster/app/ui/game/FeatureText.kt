@@ -14,8 +14,10 @@ internal fun featureLine(feature: Feature): Int = when (feature) {
     Feature.CELEBRITY -> R.string.feature_celebrity
     Feature.CRITIC -> R.string.feature_critic
     Feature.RAT -> R.string.feature_rat
+    Feature.GUEST_REQUESTS -> R.string.feature_guest_requests
     Feature.FRIDGE_BREAKS -> R.string.feature_fridge
     Feature.DOG -> R.string.feature_dog
+    Feature.STAFF_TROUBLE -> R.string.feature_staff_trouble
     Feature.CHEF_MOODS -> R.string.feature_chef_moods
     Feature.PAN_FIRE -> R.string.feature_pan_fire
     Feature.INSPECTOR -> R.string.feature_inspector

@@ -16,8 +16,12 @@ enum class Feature(val day: Int, internal val legacyDay: Int?) {
     CELEBRITY(day = 12, legacyDay = 3),
     CRITIC(day = 14, legacyDay = 3),
     RAT(day = 15, legacyDay = 4),
+    /** Guests ask for things only you can fix: the wrong dish, cold food, the bill. */
+    GUEST_REQUESTS(day = 13, legacyDay = null),
     FRIDGE_BREAKS(day = 17, legacyDay = 4),
     DOG(day = 18, legacyDay = 4),
+    /** Staff have bad nights: someone goes home sick, storms out or takes a long break mid-service. */
+    STAFF_TROUBLE(day = 19, legacyDay = null),
     CHEF_MOODS(day = 20, legacyDay = 1),
     PAN_FIRE(day = 21, legacyDay = 4),
     INSPECTOR(day = 23, legacyDay = 3),
