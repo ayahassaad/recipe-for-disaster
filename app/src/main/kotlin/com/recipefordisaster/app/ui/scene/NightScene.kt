@@ -452,6 +452,10 @@ fun NightScene(
                         val walking = waiter.walking
                         val bob = if (walking) abs(sin(time * 12f)) * 0.5f else sin(clock * 1.6f) * 0.2f
                         val figure = model.staff.firstOrNull { it.id.value == waiter.id }
+                        // Someone who's tripping tips over, lies there a moment, and gets back up.
+                        val trip = night.trips.lastOrNull { it.waiterId == waiter.id && night.time - it.since in 0f..ServiceNight.TRIP_TOTAL }
+                        val tilt = trip?.let { TripAnimation.tilt(night.time - it.since) * it.side } ?: 0f
+                        rotated(tilt, Point(at.x, at.y + 3.6f)) {
                         drawPerson(
                             at = at,
                             outfit = when (waiter.kind) {
@@ -469,6 +473,7 @@ fun NightScene(
                             // While washing up, the arms are drawn holding the plate instead.
                             armsBusy = waiter.errand == ServiceNight.Errand.Wash || waiter.errand == ServiceNight.Errand.HandleChaos || waiter.errand is ServiceNight.Errand.Pour,
                         )
+                        }
                         // What's in each hand (left, then right), and a notepad for tickets not yet handed in.
                         waiter.hands.forEachIndexed { k, item ->
                             val hand = Point(at.x + (if (k == 0) -4.6f else 4.6f), at.y + 2.6f)
@@ -531,7 +536,7 @@ fun NightScene(
                             drawYouMarker(text, labels.you, marker, clock)
                         }
                         else {
-                            helperColor[waiter.id]?.let { dot(at.x, at.y - 11.4f, 1.1f, it) }
+                            if (trip == null) helperColor[waiter.id]?.let { dot(at.x, at.y - 11.4f, 1.1f, it) }
                         }
                     }
 
