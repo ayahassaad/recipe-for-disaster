@@ -368,7 +368,7 @@ private fun HiringSheet(uiState: GameUiState.Playing, actions: GameActions) {
         color = if (need != null) DisasterRed else MaterialTheme.colorScheme.onSurface,
     )
     // Warn them up front: it's part of the deal with anyone new.
-    Text(stringResource(R.string.hiring_clumsy, com.recipefordisaster.domain.service.NewHireTrips.NEW_SHIFTS), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f))
+    Text(stringResource(R.string.hiring_clumsy, com.recipefordisaster.domain.service.StaffSlips.NEW_SHIFTS), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f))
     val hiredToday = uiState.state.applicants.filter { it.id in uiState.plan.hires }
     hiredToday.forEach { person ->
         PersonLine(person) { Text(stringResource(R.string.staff_new), style = MaterialTheme.typography.bodyMedium, color = LeafGreen) }

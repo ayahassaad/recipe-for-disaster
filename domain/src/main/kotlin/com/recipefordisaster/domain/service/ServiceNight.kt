@@ -81,7 +81,7 @@ data class ServiceNight(
     /** When the cat last knocked a plate off the counter, and whose it was. */
     val catKnockAt: Float = -100f,
     val catKnockTable: Int? = null,
-    /** When each new hire (by id) will trip and drop their tray tonight, if they will (see [NewHireTrips]). */
+    /** When each new hire (by id) will trip and drop their tray tonight, if they will (see [StaffSlips]). */
     val tripAt: Map<String, Float> = emptyMap(),
     /** The new hires who've already tripped tonight, and when it last happened. */
     val tripped: Set<String> = emptySet(),
@@ -1570,7 +1570,7 @@ data class ServiceNight(
                 pickiness = dials.pickiness,
                 chefLuck = chefLuck,
                 waiters = waiters,
-                tripAt = NewHireTrips.planFor(state),
+                tripAt = StaffSlips.planFor(state),
                 inventory = state.inventory,
                 kitchenSlots = slots,
                 secondsPerDish = secondsPerDish,
