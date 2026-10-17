@@ -28,7 +28,8 @@ data class DailyCosts(
 
     companion object {
         fun of(state: GameState): DailyCosts {
-            val staff = state.employees.filter { it.status != EmployeeStatus.QUIT && it.status != EmployeeStatus.FIRED }
+            // Only people who are working are paid: a day off (or a sick day) is unpaid.
+            val staff = state.employees.filter { it.status == EmployeeStatus.ACTIVE }
             val costs = state.restaurant.costsToday
             return DailyCosts(
                 wages = staff.sumOf { it.salaryPerDay },
