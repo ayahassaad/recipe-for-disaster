@@ -456,6 +456,15 @@ private fun PersonSheet(person: Employee, uiState: GameUiState.Playing, actions:
     Meter(stringResource(R.string.staff_mood), person.morale)
     Meter(stringResource(R.string.staff_energy), 100 - person.stress)
     Meter(stringResource(R.string.staff_skill), person.skill)
+    // Those who carry trays and dishes drop them now and then: new, tired and unreliable ones most.
+    if (person.role in setOf(com.recipefordisaster.domain.employee.Role.SERVER, com.recipefordisaster.domain.employee.Role.MANAGER, com.recipefordisaster.domain.employee.Role.DISHWASHER, com.recipefordisaster.domain.employee.Role.BUSSER)) {
+        val often = when (com.recipefordisaster.domain.service.StaffSlips.sloppiness(person)) {
+            com.recipefordisaster.domain.service.StaffSlips.Sloppiness.RARELY -> R.string.staff_drops_rarely
+            com.recipefordisaster.domain.service.StaffSlips.Sloppiness.SOMETIMES -> R.string.staff_drops_sometimes
+            com.recipefordisaster.domain.service.StaffSlips.Sloppiness.OFTEN -> R.string.staff_drops_often
+        }
+        Text(stringResource(R.string.staff_drops, stringResource(often)), style = MaterialTheme.typography.bodyMedium)
+    }
     // The last cook on shift: without them nobody cooks tonight, so say so before it happens.
     val cooksOnShift = uiState.morning.employees.count { it.status == EmployeeStatus.ACTIVE && it.role == com.recipefordisaster.domain.employee.Role.COOK }
     val onlyCook = person.role == com.recipefordisaster.domain.employee.Role.COOK && person.status == EmployeeStatus.ACTIVE && cooksOnShift <= 1

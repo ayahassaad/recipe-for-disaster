@@ -146,7 +146,7 @@
     <string name="need_server">You need another server. There are too many guests for your floor staff to look after.</string>
     <string name="need_bartender">You need a bartender. The bar is open and the room is too busy for you to pour every drink yourself.</string>
     <string name="need_dishwasher">You need a dishwasher. The place is getting dirty and nobody\'s clearing up.</string>
-    <string name="hiring_clumsy" tools:ignore="PluralsCandidate">New staff are clumsy for their first %1$d shifts and will trip and drop a tray. Someone has to mop up after them.</string>
+    <string name="hiring_clumsy" tools:ignore="PluralsCandidate">Staff drop trays now and then. New staff do it most in their first %1$d shifts, and tired or unreliable ones keep doing it. Someone has to mop up after them.</string>
     <string name="need_none">You have enough staff for now. Everyone you hire adds to your daily costs.</string>
     <string name="recommended">Recommended</string>
     <string name="applicant_wage">%1$s now, then %2$s</string>
@@ -308,6 +308,10 @@
     <string name="tables_bought">Table %1$d is going in this morning.</string>
     <string name="tables_full">The room is full. That\'s as many tables as it can hold.</string>
     <string name="new_table_tomorrow">A new table arrives tomorrow!</string>
+    <string name="staff_drops">Drops things: %1$s</string>
+    <string name="staff_drops_rarely">rarely</string>
+    <string name="staff_drops_sometimes">sometimes</string>
+    <string name="staff_drops_often">often</string>
     <string name="staff_mood">Mood</string>
     <string name="staff_energy">Energy</string>
     <string name="staff_skill">Skill</string>
