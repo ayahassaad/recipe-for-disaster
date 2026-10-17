@@ -20,10 +20,11 @@ object CustomerFlow {
      * @param demandModifierPercent a one-day swing from events (a festival
      * nearby, a storm, a tour bus) — `+40` means 40% more people than
      * reputation alone would bring. Demand is still capped at capacity: a
-     * surge just fills the room, it can't conjure extra seats.
+     * surge just fills the room, it can't conjure extra seats (except on a rush night: [overCapacityPercent] more
+     * guests than the room holds, who wait at the door).
      */
-    fun generateArrivals(restaurant: Restaurant, rng: RandomSource, demandModifierPercent: Int = 0): List<Customer> {
-        val demand = calculateDemand(restaurant, rng, demandModifierPercent)
+    fun generateArrivals(restaurant: Restaurant, rng: RandomSource, demandModifierPercent: Int = 0, overCapacityPercent: Int = 0): List<Customer> {
+        val demand = calculateDemand(restaurant, rng, demandModifierPercent, overCapacityPercent)
         return (0 until demand).map { generateCustomer(rng, it) }
     }
 
@@ -38,14 +39,14 @@ object CustomerFlow {
         else -> ((dishesServing - 3) * 6).coerceAtMost(24)
     }
 
-    internal fun calculateDemand(restaurant: Restaurant, rng: RandomSource, demandModifierPercent: Int = 0): Int {
+    internal fun calculateDemand(restaurant: Restaurant, rng: RandomSource, demandModifierPercent: Int = 0, overCapacityPercent: Int = 0): Int {
         val reputationFactor = restaurant.reputation.coerceIn(0, 100) / 100.0
         val modifier = (100 + demandModifierPercent).coerceAtLeast(0) / 100.0
         val baseline = (restaurant.guestCapacity * reputationFactor * modifier).roundToInt()
         // +/- a small amount of day-to-day noise so demand isn't a pure
         // function of reputation alone — still seeded/reproducible via rng.
         val noise = rng.nextInt(5) - 2
-        return (baseline + noise).coerceIn(0, restaurant.guestCapacity)
+        return (baseline + noise).coerceIn(0, restaurant.guestCapacity * (100 + overCapacityPercent) / 100)
     }
 
     private val FIRST_NAMES = listOf(

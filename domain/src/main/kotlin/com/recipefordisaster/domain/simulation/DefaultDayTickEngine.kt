@@ -70,7 +70,10 @@ class DefaultDayTickEngine(
         val morning = DecisionApplier.apply(state, decisions)
         // A bigger menu draws more guests (and a tiny one fewer).
         val variety = CustomerFlow.menuVarietyPercent(morning.state.menu.count { it.available })
-        val arrivals = CustomerFlow.generateArrivals(morning.state.restaurant, rng, morning.state.pendingDemandModifierPercent + variety)
+        // A rush night brings a lot more people, and more than the room holds.
+        val rush = com.recipefordisaster.domain.progression.RushNights.demandPercent(morning.state)
+        val over = com.recipefordisaster.domain.progression.RushNights.overCapacityPercent(morning.state)
+        val arrivals = CustomerFlow.generateArrivals(morning.state.restaurant, rng, morning.state.pendingDemandModifierPercent + variety + rush, over)
         return ServiceSetup(original = state, morning = morning, arrivals = arrivals)
     }
 
