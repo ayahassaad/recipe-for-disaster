@@ -257,6 +257,8 @@ fun GameScreen(
                     newTable = uiState.state.restaurant.tables > uiState.report.startOfService.restaurant.tables,
                     // What's new tomorrow, so it doesn't come as a surprise.
                     tomorrow = com.recipefordisaster.domain.progression.Progression.arrivingOn(uiState.state, uiState.state.day),
+                    // (This is already tomorrow morning's state, so it says whether tomorrow night is a rush.)
+                    rushTomorrow = com.recipefordisaster.domain.progression.RushNights.isRush(uiState.state),
                     onContinue = actions.onNextMorning,
                     onMenu = onMenu,
                     modifier = modifier,
@@ -306,6 +308,7 @@ private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, onMe
         val urgent = noFood || collapsing != null
         // Something new turning up tonight, or one of the quieter nights.
         val newTonight = remember(morning) { com.recipefordisaster.domain.progression.Progression.arrivingOn(morning, morning.day).firstOrNull() }
+        val rushTonight = remember(morning) { com.recipefordisaster.domain.progression.RushNights.isRush(morning) }
         val quietNight = remember(morning) { com.recipefordisaster.domain.progression.Difficulty.breather(morning) }
         // A new dish to put on the menu today (the day it unlocks).
         val newDish = remember(morning) {
@@ -322,6 +325,7 @@ private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, onMe
                     collapsing != null && onlyCook -> stringResource(R.string.hint_collapsing_only_cook, collapsing.name)
                     collapsing != null -> stringResource(R.string.hint_collapsing, collapsing.name)
                     tired != null -> stringResource(R.string.hint_tired, tired.name)
+                    rushTonight -> stringResource(R.string.hint_rush_tonight)
                     newTonight != null -> stringResource(R.string.new_tonight, stringResource(featureLine(newTonight)))
                     newDish != null -> stringResource(R.string.hint_new_dish, newDish.name)
                     model.alerts.isEmpty() && quietNight -> stringResource(R.string.hint_quiet_night)
@@ -808,6 +812,7 @@ private fun ResultsPlay(
     onMenu: () -> Unit,
     modifier: Modifier = Modifier,
     tomorrow: List<com.recipefordisaster.domain.progression.Feature> = emptyList(),
+    rushTomorrow: Boolean = false,
 ) {
     var showBill by remember { mutableStateOf(false) }
     val event = report.event
@@ -839,6 +844,7 @@ private fun ResultsPlay(
                 onShowBill = { showBill = true },
                 newTable = newTable,
                 tomorrow = if (gameOver) emptyList() else tomorrow,
+                rushTomorrow = !gameOver && rushTomorrow,
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
@@ -872,6 +878,7 @@ private fun EndOfNightPanel(
     newTable: Boolean = false,
     modifier: Modifier = Modifier,
     tomorrow: List<com.recipefordisaster.domain.progression.Feature> = emptyList(),
+    rushTomorrow: Boolean = false,
 ) {
     val event = report.event
     val profit = report.books.profitOrLoss
@@ -933,6 +940,10 @@ private fun EndOfNightPanel(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                 )
+            }
+            // A rush tomorrow, so there's time to get ready.
+            if (rushTomorrow) {
+                Text(stringResource(R.string.tomorrow_rush), style = MaterialTheme.typography.titleMedium, color = DisasterRed, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
             }
             if (newTable) {
                 Text(stringResource(R.string.new_table_tomorrow), style = MaterialTheme.typography.titleMedium, color = LeafGreen, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 4.dp))

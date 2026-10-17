@@ -42,6 +42,7 @@
 
     <!-- The restaurant scene -->
     <string name="hint_new_dish">New dish unlocked: %1$s. Tap the menu sign to add it.</string>
+    <string name="hint_rush_tonight">Rush hour tonight! A big crowd is coming: stock up and have staff ready.</string>
     <string name="hint_no_food">The pantry is empty! Tap the pantry and buy food before you open.</string>
     <string name="hint_collapsing">%1$s is about to collapse! Tap them and give them a day off.</string>
     <string name="hint_collapsing_only_cook">%1$s is about to collapse! Hire a second cook, then give them a day off.</string>
@@ -396,6 +397,7 @@
     <string name="sound_effects">Sound effects</string>
     <string name="sound_music">Music</string>
     <string name="vibration">Vibration</string>
+    <string name="tomorrow_rush">Tomorrow: RUSH HOUR! A big crowd is coming. Stock up and get staff ready.</string>
     <string name="tomorrow">Tomorrow: %1$s</string>
     <string name="intro_new">New: %1$s</string>
     <string name="intro_got_it">Got it</string>
