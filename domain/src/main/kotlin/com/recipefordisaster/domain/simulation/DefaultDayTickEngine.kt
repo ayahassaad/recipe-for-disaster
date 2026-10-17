@@ -98,6 +98,12 @@ class DefaultDayTickEngine(
         val employeesAfterDay = start.employees.map { employee ->
             when (employee.status) {
                 EmployeeStatus.ACTIVE -> EmployeePerformance.applyEndOfDayStress(employee, serviceResult.staffingRatio)
+                    .let { tired ->
+                        val trouble = serviceResult.staffTrouble.firstOrNull { it.employeeId == employee.id.value }
+                        if (trouble == null) tired else EmployeePerformance.afterBadNight(tired, trouble.kind).also { after ->
+                            dayLog += SimulationLogEntry(state.day, EmployeePerformance.badNightNote(employee, after, trouble.kind), if (trouble.kind == com.recipefordisaster.domain.service.TroubleKind.BREAK) LogTone.NEUTRAL else LogTone.BAD)
+                        }
+                    }
                 EmployeeStatus.ON_BREAK -> EmployeePerformance.returnFromDayOff(employee)
                 EmployeeStatus.SICK -> EmployeePerformance.advanceSickness(employee)
                 EmployeeStatus.QUIT, EmployeeStatus.FIRED -> employee

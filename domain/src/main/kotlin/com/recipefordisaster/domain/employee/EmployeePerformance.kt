@@ -87,6 +87,36 @@ object EmployeePerformance {
         )
     }
 
+    /** How much someone's mood drops when they storm out after a row, and the mood below which they don't come back. */
+    const val ROW_MORALE_HIT = 20
+    const val QUIT_BELOW_MORALE = 15
+
+    /** How many days someone who went home ill is off for. */
+    const val SICK_DAYS_AFTER_GOING_HOME = 2
+
+    /**
+     * What a bad night leaves behind (on top of the usual end-of-day changes): someone who went home ill is off
+     * for a couple of days, someone who stormed out is in a worse mood and, if it was bad enough, quits. A long
+     * break leaves nothing behind.
+     */
+    fun afterBadNight(employee: Employee, kind: com.recipefordisaster.domain.service.TroubleKind): Employee = when (kind) {
+        com.recipefordisaster.domain.service.TroubleKind.SICK ->
+            employee.copy(status = EmployeeStatus.SICK, sickDaysRemaining = SICK_DAYS_AFTER_GOING_HOME)
+        com.recipefordisaster.domain.service.TroubleKind.ARGUMENT -> {
+            val morale = (employee.morale - ROW_MORALE_HIT).coerceIn(0, 100)
+            employee.copy(morale = morale, status = if (morale < QUIT_BELOW_MORALE) EmployeeStatus.QUIT else employee.status)
+        }
+        com.recipefordisaster.domain.service.TroubleKind.BREAK -> employee
+    }
+
+    /** A line for the morning's log about how [before]'s bad night ended. */
+    fun badNightNote(before: Employee, after: Employee, kind: com.recipefordisaster.domain.service.TroubleKind): String = when (kind) {
+        com.recipefordisaster.domain.service.TroubleKind.SICK -> "${before.name} went home ill last night and is off for $SICK_DAYS_AFTER_GOING_HOME days."
+        com.recipefordisaster.domain.service.TroubleKind.ARGUMENT ->
+            if (after.status == EmployeeStatus.QUIT) "${before.name} stormed out after a row last night and quit for good." else "${before.name} stormed out after a row last night and is in a bad mood."
+        com.recipefordisaster.domain.service.TroubleKind.BREAK -> "${before.name} took a very long break last night."
+    }
+
     /** End of a day off: back on the rota tomorrow, a lot less frazzled. */
     fun returnFromDayOff(employee: Employee): Employee {
         if (employee.status != EmployeeStatus.ON_BREAK) return employee
