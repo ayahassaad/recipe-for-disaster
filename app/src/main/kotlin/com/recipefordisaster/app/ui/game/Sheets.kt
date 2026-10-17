@@ -531,6 +531,7 @@ private fun PersonSheet(person: Employee, uiState: GameUiState.Playing, actions:
     val onStaff = uiState.state.employees.any { it.id == person.id }
     if (onStaff && !isNew && !leaving) {
         RosterSection(person, uiState, actions)
+        RaiseSection(person, uiState, actions)
     }
     // Something to spend on: a morning's training makes them better at the job for good.
     if (!isNew && !leaving && !resting && !training && com.recipefordisaster.domain.employee.Training.canTrain(person)) {
@@ -561,6 +562,24 @@ private fun RosterSection(person: Employee, uiState: GameUiState.Playing, action
     }
     val worked = com.recipefordisaster.domain.employee.Roster.daysWorked(person)
     Text(stringResource(R.string.roster_week, worked, coins(com.recipefordisaster.domain.employee.Roster.weeklyWages(person))), style = MaterialTheme.typography.bodyMedium)
+}
+
+/** A raise: a bit more money a day for a better mood, not more than now and then. */
+@Composable
+private fun RaiseSection(person: Employee, uiState: GameUiState.Playing, actions: GameActions) {
+    val day = uiState.state.day
+    val raising = person.id in uiState.plan.raises
+    val amount = com.recipefordisaster.domain.employee.Raises.amount(person)
+    when {
+        raising -> {
+            Text(stringResource(R.string.raise_ordered, amount), style = MaterialTheme.typography.bodyLarge, color = LeafGreen)
+            OutlinedButton(onClick = { actions.onToggleRaise(person.id) }) { Text(stringResource(R.string.undo)) }
+        }
+        com.recipefordisaster.domain.employee.Raises.canRaise(person, day) ->
+            OutlinedButton(onClick = { actions.onToggleRaise(person.id) }) { Text(stringResource(R.string.raise_give, amount)) }
+        person.status == EmployeeStatus.ACTIVE ->
+            Text(stringResource(R.string.raise_wait, com.recipefordisaster.domain.employee.Raises.daysToWait(person, day)), style = MaterialTheme.typography.bodyMedium)
+    }
 }
 
 @Composable

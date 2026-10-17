@@ -326,6 +326,9 @@
     <string name="roster_title">Days off each week</string>
     <string name="roster_hint" tools:ignore="PluralsCandidate">Tap a day to give them it off every week (up to %1$d). Days off are unpaid, and they come back less tired.</string>
     <string name="roster_week" tools:ignore="PluralsCandidate">Works %1$d days a week: %2$s in wages</string>
+    <string name="raise_give" tools:ignore="PluralsCandidate">Give a raise (+%1$d a day)</string>
+    <string name="raise_ordered" tools:ignore="PluralsCandidate">A raise of %1$d a day, and a better mood</string>
+    <string name="raise_wait" tools:ignore="PluralsCandidate">Can have another raise in %1$d days</string>
     <string name="staff_mood">Mood</string>
     <string name="staff_energy">Energy</string>
     <string name="staff_skill">Skill</string>
