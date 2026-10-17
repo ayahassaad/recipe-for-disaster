@@ -985,7 +985,7 @@ data class ServiceNight(
                     updateWaiter { it.copy(hands = it.hands - HandItem.Plate(party.id)) }
                 } else if (party != null && party.id in waiter.drinks) {
                     night = night.serveDrinks(party.id, waiterId)
-                } else if ((waiter.kind == Kind.PLAYER || waiter.kind == Kind.BARTENDER) && party != null && party.stage == Stage.WANTS_DRINKS) {
+                } else if ((waiter.kind == Kind.PLAYER || (waiter.kind == Kind.BARTENDER && party?.special == null)) && party != null && party.stage == Stage.WANTS_DRINKS) {
                     // Their drinks order goes on the notepad; pour it at the bar.
                     updateWaiter { it.copy(drinkOrders = it.drinkOrders + party.id) }
                     night = night.updateParty(party.id) { it.copy(stage = Stage.DRINKS_ORDERED, stageSince = time, drinksOrderedAt = time, heldBy = waiterId) }
@@ -1057,7 +1057,7 @@ data class ServiceNight(
                 // out rather than race the player.
                 val claimed = night.player.let { listOfNotNull(it.errand) + it.queue }.filterIsInstance<Errand.PickUp>().map { it.partyId }.toSet()
                 val ready = night.parties
-                    .filter { it.stage == Stage.READY_AT_PASS && (waiter.isPlayer || (time - it.stageSince >= RUNNER_DELAY && it.id !in claimed)) }
+                    .filter { it.stage == Stage.READY_AT_PASS && (waiter.isPlayer || (it.special == null && time - it.stageSince >= RUNNER_DELAY && it.id !in claimed)) }
                     .sortedBy { it.stageSince }
                     .take(waiter.freeHands)
                 ready.forEach { party -> night = night.updateParty(party.id) { it.copy(stage = Stage.CARRIED, stageSince = time, heldBy = waiterId) } }
@@ -1145,7 +1145,8 @@ data class ServiceNight(
                 Kind.BARTENDER -> {
                     // The bartender sees to every table that wants a drink and that you're not already on your way to.
                     val claimed = night.waiters.flatMap { listOfNotNull(it.errand) + it.queue }.filterIsInstance<Errand.VisitTable>().map { it.table }.toSet()
-                    val thirsty = night.parties.filter { it.stage == Stage.WANTS_DRINKS && it.table !in claimed }.minByOrNull { it.stageSince }?.table
+                    // (Special guests only want you.)
+                    val thirsty = night.parties.filter { it.special == null && it.stage == Stage.WANTS_DRINKS && it.table !in claimed }.minByOrNull { it.stageSince }?.table
                     // They take the orders and pour; carrying the trays over is for you and the servers.
                     val barHasRoom = night.trayCount < ServiceFloor.TRAYS_ON_BAR
                     when {
@@ -1158,14 +1159,14 @@ data class ServiceNight(
                     // Servers only carry: food and drink trays out to the tables. Taking orders is left to you (and a bartender), and clearing to dishwashers.
                     // A tray is left for you for a few seconds, and isn't taken if you've said you're coming for it.
                     val claimedTrays = night.waiters.flatMap { listOfNotNull(it.errand) + it.queue }.filterIsInstance<Errand.PickUpDrinks>().map { it.partyId }.toSet()
-                    val tray = night.traysOnBar.firstOrNull { it.id !in claimedTrays && time - (it.trayAt ?: time) >= RUNNER_DELAY }
+                    val tray = night.traysOnBar.firstOrNull { it.special == null && it.id !in claimedTrays && time - (it.trayAt ?: time) >= RUNNER_DELAY }
                     when {
                         waiter.plates.isNotEmpty() -> night.parties.first { it.id == waiter.plates.first() }.table?.let { Errand.Serve(it) }
                         // (Anything to do with drinks a server already had in hand from before is still seen through.)
                         waiter.drinks.isNotEmpty() -> night.parties.first { it.id == waiter.drinks.first() }.table?.let { Errand.Serve(it) }
                         tray != null && waiter.freeHands > 0 -> Errand.PickUpDrinks(tray.id)
                         waiter.drinkOrders.isNotEmpty() && waiter.freeHands > 0 -> Errand.VisitBar
-                        night.parties.any { it.stage == Stage.READY_AT_PASS && time - it.stageSince >= RUNNER_DELAY } && waiter.freeHands > 0 -> Errand.VisitPass
+                        night.parties.any { it.special == null && it.stage == Stage.READY_AT_PASS && time - it.stageSince >= RUNNER_DELAY } && waiter.freeHands > 0 -> Errand.VisitPass
                         else -> null
                     }
                 }
