@@ -31,8 +31,14 @@ class BalanceSimulationTest {
 
     private data class RunResult(val daysSurvived: Int, val finalStatus: RestaurantStatus, val firedRuleIds: Set<String>)
 
+    /**
+     * These runs check how the long game behaves (events, mid-game, upkeep) with a scripted player, so they start
+     * with a roomy float. The real start is much tighter: see [NewGameFactoryTest].
+     */
+    private val roomyStart = 1_500L
+
     private fun play(seed: Long, policy: (GameState) -> PlayerDecisions): RunResult {
-        var state = NewGameFactory.create(seed)
+        var state = NewGameFactory.create(seed).let { it.copy(restaurant = it.restaurant.copy(cash = roomyStart)) }
         val fired = mutableSetOf<String>()
         while (state.day <= maxDays && state.restaurant.status == RestaurantStatus.OPEN) {
             val rng = SeededRandomSource(state.seed * 6_364_136_223_846_793_005L + state.day)
