@@ -53,6 +53,8 @@ sealed interface NightHint {
     data object HandlingChaos : NightHint
     /** The cat just knocked a table's food off the counter. */
     data class CatKnocked(val table: Int) : NightHint
+    /** Someone has just gone home sick, stormed out, or gone on a long break: cover for them. */
+    data class StaffAway(val name: String, val kind: com.recipefordisaster.domain.service.TroubleKind) : NightHint
     /** A table has asked for something (cold food, the wrong dish, the bill): only you can see to it. */
     data class Asking(val table: Int, val kind: ServiceNight.RequestKind) : NightHint
     /** A new hire has just tripped and dropped their tray. */
@@ -74,6 +76,7 @@ sealed interface NightHint {
         FixFridge, FixingFridge, FridgeStruggling -> com.recipefordisaster.domain.progression.Feature.FRIDGE_BREAKS
         is CatKnocked -> com.recipefordisaster.domain.progression.Feature.CAT
         is Asking -> com.recipefordisaster.domain.progression.Feature.GUEST_REQUESTS
+        is StaffAway -> com.recipefordisaster.domain.progression.Feature.STAFF_TROUBLE
         is Chaos -> when (kind) {
             com.recipefordisaster.domain.service.ChaosKind.RAT -> com.recipefordisaster.domain.progression.Feature.RAT
             com.recipefordisaster.domain.service.ChaosKind.DOG -> com.recipefordisaster.domain.progression.Feature.DOG
@@ -101,7 +104,7 @@ sealed interface NightHint {
         MopSpill -> night.messesOnFloor.firstOrNull()?.let { NightFocus.Spill(it.id) }
         FixFridge, FridgeStruggling -> NightFocus.Fridge
         is Chaos -> NightFocus.Chaos
-        HandlingChaos, is CatKnocked -> null
+        HandlingChaos, is CatKnocked, is StaffAway -> null
         Tripped -> night.messesOnFloor.lastOrNull()?.let { NightFocus.Spill(it.id) }
         is SpecialArrived -> table?.let { NightFocus.Table(it) }
         Washing, Mopping, OutOfFood, Waiting, Cooking, TidyingUp, FixingFridge, is CookingFor, Eating, is Deciding, Pouring, is Drinking -> null
@@ -117,7 +120,7 @@ sealed interface NightHint {
             val carryingDrinks = me.drinks.firstOrNull()?.let { id -> night.parties.firstOrNull { it.id == id } }
             val dirty = night.dirtyTables.firstOrNull { Errand.VisitTable(it) !in plans }
             // Only dishwashers and bussers clear tables; nobody but you mops.
-            val nobodyClears = night.waiters.none { it.kind == Kind.DISHWASHER || it.kind == Kind.BUSSER }
+            val nobodyClears = night.waiters.none { (it.kind == Kind.DISHWASHER || it.kind == Kind.BUSSER) && !it.away }
             val spill = night.messesOnFloor.isNotEmpty()
             val newcomer = night.parties.firstOrNull { it.special != null && it.stage in Stage.QUEUEING..Stage.DECIDING }
             val handingIn = Errand.HandIn in plans || Errand.VisitPass in plans
@@ -141,6 +144,7 @@ sealed interface NightHint {
                 night.activeChaos != null && !night.chaosBeingHandled -> Chaos(night.activeChaos!!.kind)
                 night.time - night.catKnockAt < 4f && night.catKnockTable != null -> CatKnocked(night.catKnockTable!!)
                 night.time - night.lastTripAt < 4f -> Tripped
+                night.time - night.lastTroubleAt < 6f && night.lastTroubleWho != null -> StaffAway(night.staffNames[night.lastTroubleWho!!] ?: "Someone", night.troubles.getValue(night.lastTroubleWho!!).kind)
                 night.fridgeStruggling -> FridgeStruggling
                 asking != null -> Asking(asking.table!!, asking.request!!.kind)
                 me.tickets.isNotEmpty() && !handingIn -> HandIn

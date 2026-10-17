@@ -738,6 +738,11 @@ private fun nightHint(night: ServiceNight): String = when (val hint = NightHint.
     NightHint.HandlingChaos -> stringResource(R.string.hint_handling_chaos)
     is NightHint.CatKnocked -> stringResource(R.string.hint_cat_knocked, hint.table + 1)
     NightHint.Tripped -> stringResource(R.string.hint_tripped)
+    is NightHint.StaffAway -> when (hint.kind) {
+        com.recipefordisaster.domain.service.TroubleKind.SICK -> stringResource(R.string.hint_away_sick, hint.name)
+        com.recipefordisaster.domain.service.TroubleKind.ARGUMENT -> stringResource(R.string.hint_away_row, hint.name)
+        com.recipefordisaster.domain.service.TroubleKind.BREAK -> stringResource(R.string.hint_away_break, hint.name)
+    }
     is NightHint.Asking -> when (hint.kind) {
         ServiceNight.RequestKind.COLD -> stringResource(R.string.hint_asking_cold, hint.table + 1)
         ServiceNight.RequestKind.WRONG_DISH -> stringResource(R.string.hint_asking_wrong, hint.table + 1)
