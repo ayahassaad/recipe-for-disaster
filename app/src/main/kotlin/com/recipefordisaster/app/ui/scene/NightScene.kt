@@ -53,6 +53,10 @@ data class NightLabels(
     val deciding: String = "",
     val foodReady: String,
     val eating: String,
+    /** What a table says it needs, once served: shown on their bubble and read out for the table. */
+    val requestCold: String = "",
+    val requestWrong: String = "",
+    val requestBill: String = "",
     val empty: String,
     val needsClearing: String,
     val dishStation: String,
@@ -371,7 +375,14 @@ fun NightScene(
                                     if (party.guests.size == 2 && waitedFraction < 0.6f && party.stage in Stage.ORDER_TAKEN..Stage.EATING) {
                                         drawChatter(text, c, party.id, clock)
                                     }
-                                    drawTableBubble(text, c, party.stage, waitedFraction, clock, party.mainDish())
+                                    val requestWord = party.request?.let { r ->
+                                        when (r.kind) {
+                                            ServiceNight.RequestKind.COLD -> labels.requestCold
+                                            ServiceNight.RequestKind.WRONG_DISH -> labels.requestWrong
+                                            ServiceNight.RequestKind.BILL -> labels.requestBill
+                                        }
+                                    }
+                                    drawTableBubble(text, c, party.stage, waitedFraction, clock, party.mainDish(), requestWord)
                                 }
                             }
                         }
@@ -597,7 +608,12 @@ fun NightScene(
                 Stage.READY_TO_ORDER -> labels.wantsToOrder
                 Stage.ORDER_TAKEN, Stage.IN_KITCHEN, Stage.COOKING, Stage.CARRIED -> labels.waitingForFood
                 Stage.READY_AT_PASS -> labels.foodReady
-                Stage.EATING -> labels.eating
+                Stage.EATING -> when (party.request?.kind) {
+                    ServiceNight.RequestKind.COLD -> labels.requestCold
+                    ServiceNight.RequestKind.WRONG_DISH -> labels.requestWrong
+                    ServiceNight.RequestKind.BILL -> labels.requestBill
+                    null -> labels.eating
+                }
                 Stage.DECIDING -> labels.deciding
                 Stage.WANTS_DRINKS -> labels.wantsDrinks
                 Stage.DRINKS_ORDERED -> labels.waitingForDrinks
@@ -881,7 +897,12 @@ private fun Pen.drawBubbleGlass(at: Point, full: Boolean) {
 }
 
 /** The speech bubble over a table: "?" to order, a plate while they wait for food, with a patience bar underneath. */
-private fun Pen.drawTableBubble(text: TextMeasurer, table: Point, stage: Stage, waited: Float, clock: Float, dish: com.recipefordisaster.domain.menu.DishId? = null) {
+private fun Pen.drawTableBubble(text: TextMeasurer, table: Point, stage: Stage, waited: Float, clock: Float, dish: com.recipefordisaster.domain.menu.DishId? = null, requestWord: String? = null) {
+    // They've asked for something: a red "!" with what it is, until the player comes.
+    if (requestWord != null && stage == Stage.EATING) {
+        drawRequestBubble(text, table, requestWord, clock)
+        return
+    }
     // No bubble while they eat, while they're still choosing, or while they sip their drinks.
     if (stage == Stage.EATING || stage == Stage.DECIDING || stage == Stage.DRINKING) return
     val c = Point(table.x, table.y - 13.5f)
@@ -922,6 +943,18 @@ private fun Pen.drawTableBubble(text: TextMeasurer, table: Point, stage: Stage, 
         else -> Palette.alert
     }
     if (left > 0f) box(c.x - 5f, barY, 10f * left, 1.4f, barColor, radius = 0.7f)
+}
+
+/** A red bubble over a table that wants something from you: a bouncing "!" and a word for what it is. */
+private fun Pen.drawRequestBubble(text: TextMeasurer, table: Point, word: String, clock: Float) {
+    val c = Point(table.x, table.y - 13.5f)
+    val bounce = sin(clock * 6f) * 0.6f
+    shape(Color(0x33000000)) { moveTo(c.x - 1.4f, c.y + 3.2f); lineTo(c.x + 1.4f, c.y + 3.2f); lineTo(c.x, c.y + 6f); close() }
+    dot(c.x, c.y + bounce + 0.3f, 4.6f, Color(0x33000000))
+    dot(c.x, c.y + bounce, 4.4f, Palette.alert)
+    shape(Palette.alert) { moveTo(c.x - 1.2f, c.y + 3.6f); lineTo(c.x + 1.2f, c.y + 3.6f); lineTo(c.x, c.y + 5.6f); close() }
+    centeredText(text, "!", Point(c.x, c.y + bounce - 0.9f), size = 5.4f, color = Color.White, bold = true)
+    if (word.isNotEmpty()) centeredText(text, word, Point(c.x, c.y + bounce + 2.4f), size = 1.9f, color = Color.White, bold = true)
 }
 
 /** Tickets clipped to the rail above the pass: table number, and a progress strip while it cooks. */
