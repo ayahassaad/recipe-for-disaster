@@ -120,6 +120,7 @@
     <string name="night_drinking">having a drink and reading the menu</string>
     <string name="night_waiting_food">waiting for food</string>
     <string name="night_food_ready">food ready at the counter</string>
+    <string name="night_oops">Oops!</string>
     <string name="night_request_cold">Cold</string>
     <string name="night_request_wrong">Wrong dish</string>
     <string name="night_request_bill">Bill</string>

@@ -788,6 +788,7 @@ private fun nightLabels(): NightLabels {
         waitingForFood = stringResource(R.string.night_waiting_food),
         foodReady = stringResource(R.string.night_food_ready),
         eating = stringResource(R.string.night_eating),
+        oops = stringResource(R.string.night_oops),
         requestCold = stringResource(R.string.night_request_cold),
         requestWrong = stringResource(R.string.night_request_wrong),
         requestBill = stringResource(R.string.night_request_bill),
