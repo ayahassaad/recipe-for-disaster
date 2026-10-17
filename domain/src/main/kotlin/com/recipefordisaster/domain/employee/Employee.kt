@@ -25,6 +25,10 @@ data class Employee(
     val status: EmployeeStatus,
     /** Days left before a [EmployeeStatus.SICK] employee is back. Defaulted so pre-Phase-6 saves still load. */
     val sickDaysRemaining: Int = 0,
+    /** The weekdays (0 = the first day of each week, up to 6) they never work: their rostered days off. */
+    val offDays: Set<Int> = emptySet(),
+    /** The day they last got a raise, so they can't be given another straight away. */
+    val lastRaiseDay: Int = -100,
 )
 
 @Serializable

@@ -138,6 +138,8 @@ data class PlayerDecisions(
     val fires: Set<EmployeeId> = emptySet(),
     /** Employees given today off: unpaid, not working, and they come back much less stressed. */
     val restDays: Set<EmployeeId> = emptySet(),
+    /** Staff given a raise this morning (see [com.recipefordisaster.domain.employee.Raises]). */
+    val raises: Set<EmployeeId> = emptySet(),
     /** Staff sent on a morning's training (see [com.recipefordisaster.domain.employee.Training]). */
     val training: Set<EmployeeId> = emptySet(),
     val repairs: Set<EquipmentId> = emptySet(),

@@ -113,7 +113,19 @@ object DecisionApplier {
             note("${person.name} went on a training course and came back better at the job.", LogTone.GOOD)
         }
 
-        val resting = decisions.restDays.filter { id -> current.employees.any { it.id == id && it.status == EmployeeStatus.ACTIVE } }
+        // Raises: a better mood, for a bit more a day from now on.
+        for (id in decisions.raises) {
+            val person = current.employees.firstOrNull { it.id == id && com.recipefordisaster.domain.employee.Raises.canRaise(it, current.day) } ?: continue
+            val raised = com.recipefordisaster.domain.employee.Raises.raise(person, current.day)
+            current = current.copy(employees = current.employees.map { if (it.id == id) raised else it })
+            note("Gave ${person.name} a raise: now ${raised.salaryPerDay} a day.", LogTone.GOOD)
+        }
+
+        // Days off: the ones you give today, and the ones on the roster (giving a rostered day off's worker today off
+        // cancels it: they work today instead).
+        val resting = current.employees
+            .filter { it.status == EmployeeStatus.ACTIVE && ((it.id in decisions.restDays) != com.recipefordisaster.domain.employee.Roster.isOff(it, current.day)) }
+            .map { it.id }
         if (resting.isNotEmpty()) {
             current = current.copy(
                 employees = current.employees.map { if (it.id in resting) it.copy(status = EmployeeStatus.ON_BREAK) else it },
