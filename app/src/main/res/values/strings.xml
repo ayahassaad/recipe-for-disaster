@@ -322,6 +322,10 @@
     <string name="staff_drops_rarely">rarely</string>
     <string name="staff_drops_sometimes">sometimes</string>
     <string name="staff_drops_often">often</string>
+    <string name="staff_work_today">Work today instead</string>
+    <string name="roster_title">Days off each week</string>
+    <string name="roster_hint" tools:ignore="PluralsCandidate">Tap a day to give them it off every week (up to %1$d). Days off are unpaid, and they come back less tired.</string>
+    <string name="roster_week" tools:ignore="PluralsCandidate">Works %1$d days a week: %2$s in wages</string>
     <string name="staff_mood">Mood</string>
     <string name="staff_energy">Energy</string>
     <string name="staff_skill">Skill</string>
@@ -486,4 +490,13 @@
     <string name="look_style_long">Long</string>
     <string name="look_style_bun">Bun</string>
     <string name="look_style_crop">Short crop</string>
+    <string-array name="weekdays_short">
+        <item>Mon</item>
+        <item>Tue</item>
+        <item>Wed</item>
+        <item>Thu</item>
+        <item>Fri</item>
+        <item>Sat</item>
+        <item>Sun</item>
+    </string-array>
 </resources>

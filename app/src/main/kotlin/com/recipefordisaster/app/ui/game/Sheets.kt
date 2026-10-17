@@ -438,7 +438,9 @@ private fun PersonSheet(person: Employee, uiState: GameUiState.Playing, actions:
     val plan = uiState.plan
     val isNew = person.id in plan.hires
     val leaving = person.id in plan.fires
-    val resting = person.id in plan.restDays
+    // A day off on the roster counts as resting; giving them today off as well puts them to work instead.
+    val rosterOffToday = com.recipefordisaster.domain.employee.Roster.isOff(person, uiState.state.day)
+    val resting = (person.id in plan.restDays) != rosterOffToday
     val training = person.id in plan.training
     PersonLine(person) {
         val status = when {
@@ -510,7 +512,7 @@ private fun PersonSheet(person: Employee, uiState: GameUiState.Playing, actions:
         when {
             isNew -> OutlinedButton(onClick = { actions.onToggleHire(person.id) }) { Text(stringResource(R.string.undo)) }
             leaving -> OutlinedButton(onClick = { actions.onToggleFire(person.id) }) { Text(stringResource(R.string.undo)) }
-            resting -> OutlinedButton(onClick = { actions.onToggleRestDay(person.id) }) { Text(stringResource(R.string.undo)) }
+            resting -> OutlinedButton(onClick = { actions.onToggleRestDay(person.id) }) { Text(stringResource(if (rosterOffToday) R.string.staff_work_today else R.string.undo)) }
             training -> OutlinedButton(onClick = { actions.onToggleTraining(person.id) }) { Text(stringResource(R.string.undo)) }
             else -> {
                 if (person.status == EmployeeStatus.ACTIVE) {
@@ -525,6 +527,11 @@ private fun PersonSheet(person: Employee, uiState: GameUiState.Playing, actions:
             }
         }
     }
+    // The roster and a raise, for people already on the staff.
+    val onStaff = uiState.state.employees.any { it.id == person.id }
+    if (onStaff && !isNew && !leaving) {
+        RosterSection(person, uiState, actions)
+    }
     // Something to spend on: a morning's training makes them better at the job for good.
     if (!isNew && !leaving && !resting && !training && com.recipefordisaster.domain.employee.Training.canTrain(person)) {
         val cost = com.recipefordisaster.domain.employee.Training.cost(person)
@@ -532,6 +539,28 @@ private fun PersonSheet(person: Employee, uiState: GameUiState.Playing, actions:
             Text(stringResource(R.string.staff_train, coins(cost)))
         }
     }
+}
+
+/** Which days of the week they have off, every week: tap a day to put it on or take it off. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun RosterSection(person: Employee, uiState: GameUiState.Playing, actions: GameActions) {
+    val days = androidx.compose.ui.res.stringArrayResource(R.array.weekdays_short)
+    Text(stringResource(R.string.roster_title), style = MaterialTheme.typography.titleMedium)
+    Text(stringResource(R.string.roster_hint, com.recipefordisaster.domain.employee.Roster.MAX_DAYS_OFF), style = MaterialTheme.typography.bodyMedium)
+    androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        days.forEachIndexed { weekday, label ->
+            val off = weekday in person.offDays
+            androidx.compose.material3.FilterChip(
+                selected = off,
+                onClick = { actions.onToggleRosterDay(person.id, weekday) },
+                label = { Text(label) },
+                modifier = Modifier.semantics { contentDescription = label },
+            )
+        }
+    }
+    val worked = com.recipefordisaster.domain.employee.Roster.daysWorked(person)
+    Text(stringResource(R.string.roster_week, worked, coins(com.recipefordisaster.domain.employee.Roster.weeklyWages(person))), style = MaterialTheme.typography.bodyMedium)
 }
 
 @Composable
