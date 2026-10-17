@@ -50,6 +50,9 @@ import com.recipefordisaster.domain.restaurant.RestaurantStatus
  */
 object NewGameFactory {
 
+    /** What a new restaurant starts with. */
+    const val STARTING_CASH = 500L
+
     /** Mixed into the run seed for the starting applicant pool, so it isn't correlated with day one's RNG stream. */
     private const val APPLICANT_SEED_SALT = 0x5EED_A991_1CA7L
 
@@ -72,7 +75,8 @@ object NewGameFactory {
             // A new game meets everything as it comes, one thing at a time.
             featuresMetEarly = emptySet(),
             restaurant = Restaurant(
-                cash = 1_500,
+                // Tight at first: about four days of costs, so the early choices matter.
+                cash = STARTING_CASH,
                 reputation = 50,
                 cleanliness = 80,
                 capacity = 40,
