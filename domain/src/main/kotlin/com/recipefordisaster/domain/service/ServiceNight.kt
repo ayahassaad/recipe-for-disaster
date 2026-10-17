@@ -88,6 +88,13 @@ data class ServiceNight(
     val requestsMissed: Int = 0,
     /** The first night guests can ask for things, the first meal served is sure to bring a request. */
     val requestDebutPending: Boolean = false,
+    /** Who has a bad night tonight, if anyone (see [StaffTroubles]); who it's already started for; and when, and for whom, it last did. */
+    val troubles: Map<String, StaffTrouble> = emptyMap(),
+    val troubled: Set<String> = emptySet(),
+    val lastTroubleAt: Float = -100f,
+    val lastTroubleWho: String? = null,
+    /** Every worker's name by id, so a hint can say who has gone. */
+    val staffNames: Map<String, String> = emptyMap(),
     /** The slip each worker (by id) will make tonight, if they will: a dropped tray, or a wrong dish (see [StaffSlips]). */
     val slips: Map<String, StaffSlips.Slip> = emptyMap(),
     /** The workers who've already slipped tonight, and when someone last tripped. */
@@ -342,6 +349,8 @@ data class ServiceNight(
         /** Where the player has asked to go next, after the current errand — taps queue up rather than interrupt. */
         val queue: List<Errand> = emptyList(),
         val kind: Kind = if (isPlayer) Kind.PLAYER else Kind.RUNNER,
+        /** Gone for now (home sick, stormed out, on a long break): not working, and not in the room. */
+        val away: Boolean = false,
         /** Party ids whose drinks this waiter has been asked for but not poured yet. */
         val drinkOrders: List<Int> = emptyList(),
     ) {
@@ -430,6 +439,7 @@ data class ServiceNight(
             parties.filter { arriving(it) }.forEach { party -> party.special?.let { add(featureOf(it)) } }
             if (parties.any { it.family && arriving(it) }) add(Feature.FAMILIES)
             if (parties.any { it.request != null }) add(Feature.GUEST_REQUESTS)
+            if (troubled.isNotEmpty()) add(Feature.STAFF_TROUBLE)
             if (parties.any { it.stage == Stage.WANTS_DRINKS }) add(Feature.DRINKS)
             if (cat && time >= CAT_INTRODUCED_AFTER) add(Feature.CAT)
             if (chefMood != ChefMood.NORMAL && parties.any { it.stage == Stage.COOKING }) add(Feature.CHEF_MOODS)
@@ -591,6 +601,7 @@ data class ServiceNight(
         night = night.finishMeals()
         night = night.moveWaiters()
         night = night.tripStep()
+        night = night.troubleStep()
         night = night.directStaff()
         if (night.time > HARD_STOP) night = night.closeUp()
         return night
@@ -656,26 +667,61 @@ data class ServiceNight(
      */
     private fun trip(waiter: Waiter): ServiceNight {
         val here = waiter.position(time)
-        var night = this
-        waiter.hands.forEach { item ->
-            when (item) {
-                is HandItem.Plate -> night = night.updateParty(item.partyId) { it.copy(stage = Stage.IN_KITCHEN, stageSince = time, heldBy = null) }
-                is HandItem.Drinks -> night = night.updateParty(item.partyId) { it.copy(stage = Stage.WANTS_DRINKS, stageSince = time) }
-                is HandItem.DirtyDishes, HandItem.Mop -> {}
-            }
-        }
+        val night = releaseWork(waiter)
         val spot = ServiceFloor.spillSpots
             .filter { spot -> messesOnFloor.none { it.at.distanceTo(spot) < 1f } }
             .minByOrNull { it.distanceTo(here) } ?: here
         val mess = Mess(id = (messes.maxOfOrNull { it.id } ?: -1) + 1, at = spot, appearsAt = time)
         return night.copy(
-            waiters = night.waiters.map {
-                if (it.id == waiter.id) it.copy(hands = it.hands.filter { item -> item == HandItem.Mop }, errand = null, route = listOf(here), routeStart = time, routeEnd = time) else it
-            },
             messes = night.messes + mess,
             tripped = night.tripped + waiter.id,
             lastTripAt = time,
         )
+    }
+
+    /**
+     * [waiter] stops what they're doing, wherever they are: whatever they carry goes back to be done again
+     * (food to the kitchen, drinks asked for again, dirty plates lost), drinks they'd taken orders for are
+     * asked for again, and they stand still with nothing left to do.
+     */
+    private fun releaseWork(waiter: Waiter): ServiceNight {
+        val here = waiter.position(time)
+        var night = this
+        waiter.hands.forEach { item ->
+            when (item) {
+                is HandItem.Plate -> night = night.updateParty(item.partyId) { it.copy(stage = Stage.IN_KITCHEN, stageSince = time, heldBy = null) }
+                is HandItem.Drinks -> night = night.updateParty(item.partyId) { it.copy(stage = Stage.WANTS_DRINKS, stageSince = time, heldBy = null) }
+                is HandItem.DirtyDishes, HandItem.Mop -> {}
+            }
+        }
+        waiter.drinkOrders.forEach { id ->
+            night = night.updateParty(id) { if (it.stage == Stage.DRINKS_ORDERED && it.trayAt == null) it.copy(stage = Stage.WANTS_DRINKS, stageSince = time, heldBy = null) else it }
+        }
+        return night.copy(
+            waiters = night.waiters.map {
+                if (it.id == waiter.id) it.copy(hands = it.hands.filter { item -> item == HandItem.Mop }, drinkOrders = emptyList(), errand = null, queue = emptyList(), route = listOf(here), routeStart = time, routeEnd = time) else it
+            },
+        )
+    }
+
+    /** Someone with a bad night leaves when it's due, and a long break ends when it's over. */
+    private fun troubleStep(): ServiceNight {
+        var night = this
+        for ((id, trouble) in troubles) {
+            val waiter = night.waiters.firstOrNull { it.id == id } ?: continue
+            if (id !in night.troubled && time >= trouble.at) {
+                night = night.releaseWork(waiter)
+                night = night.copy(
+                    waiters = night.waiters.map { if (it.id == id) it.copy(away = true) else it },
+                    troubled = night.troubled + id,
+                    lastTroubleAt = time,
+                    lastTroubleWho = id,
+                )
+            } else if (waiter.away && trouble.backAt != null && time >= trouble.backAt) {
+                night = night.copy(waiters = night.waiters.map { if (it.id == id) it.copy(away = false) else it })
+            }
+        }
+        return night
     }
 
     /** Chaos that sorts itself out after a while (the lights come back, the rat wanders off), and a second lot later on. */
@@ -1197,7 +1243,7 @@ data class ServiceNight(
      */
     private fun directStaff(): ServiceNight {
         var night = this
-        for (waiter in waiters.filter { !it.isPlayer && it.errand == null }) {
+        for (waiter in waiters.filter { !it.isPlayer && it.errand == null && !it.away }) {
             val next: Errand? = when (waiter.kind) {
                 Kind.DISHWASHER, Kind.BUSSER -> {
                     // Clearing is the whole job: a table nobody else is already on their way to, and the dishes to the sink.
@@ -1298,6 +1344,7 @@ data class ServiceNight(
             fridgeLeftBroken = fridgeBroken,
             tips = tips,
             drinks = drinkTakings,
+            staffTrouble = troubled.mapNotNull { id -> troubles[id]?.let { StaffTroubleOutcome(id, it.kind) } },
         )
     }
 
@@ -1657,6 +1704,8 @@ data class ServiceNight(
                 chefLuck = chefLuck,
                 waiters = waiters,
                 slips = StaffSlips.planFor(state),
+                troubles = StaffTroubles.planFor(state),
+                staffNames = state.employees.associate { it.id.value to it.name },
                 requestStrength = Progression.strength(state, Feature.GUEST_REQUESTS),
                 requestDebutPending = Progression.debutsToday(state, Feature.GUEST_REQUESTS),
                 inventory = state.inventory,

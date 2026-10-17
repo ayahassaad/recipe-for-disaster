@@ -66,6 +66,8 @@ object ServiceSimulator {
         val drinks: Long = 0,
         /** How tonight's special guests found it. */
         val specialVisits: List<com.recipefordisaster.domain.service.SpecialVisit> = emptyList(),
+        /** Who had a bad night (went home sick, stormed out, took a long break), for the morning to deal with. */
+        val staffTrouble: List<com.recipefordisaster.domain.service.StaffTroubleOutcome> = emptyList(),
     ) {
         fun missedCount(reason: MissedMealReason): Int = outcomes.count { it.missedReason == reason }
     }
