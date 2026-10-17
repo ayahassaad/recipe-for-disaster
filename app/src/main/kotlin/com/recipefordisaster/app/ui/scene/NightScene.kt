@@ -53,6 +53,8 @@ data class NightLabels(
     val deciding: String = "",
     val foodReady: String,
     val eating: String,
+    /** What someone says when they trip. */
+    val oops: String = "",
     /** What a table says it needs, once served: shown on their bubble and read out for the table. */
     val requestCold: String = "",
     val requestWrong: String = "",
@@ -540,6 +542,9 @@ fun NightScene(
                         }
                     }
 
+                    // Anyone who's tripped: what they dropped flying off, the splat, and the stars going round.
+                    night.trips.forEach { drawTrip(text, night, it, labels.oops, clock) }
+
                     // Tonight's chaos: a rat, a pan fire, a begging dog, or the lights going out (dark overlay drawn last).
                     night.activeChaos?.let { c ->
                         val spot = night.chaosSpot()!!.toPoint()
@@ -1007,6 +1012,59 @@ private fun Pen.drawReadyPlates(text: TextMeasurer, night: ServiceNight, clock: 
         drawSteam(at, clock, party.id)
         if (party.chefsSpecial) drawSpecialStar(at)
         drawNumberFlag(text, at, (party.table ?: 0) + 1)
+    }
+}
+
+/**
+ * A trip, from the moment someone stumbles: what they carried flies off in an arc, tumbling, and splats where it
+ * lands, then they lie on the floor seeing stars and saying "Oops!" until they get back up.
+ */
+private fun Pen.drawTrip(text: TextMeasurer, night: ServiceNight, trip: ServiceNight.TripScene, oops: String, clock: Float) {
+    val t = night.time - trip.since
+    if (t < 0f || t > ServiceNight.TRIP_TOTAL) return
+    val from = trip.from.toPoint()
+    val land = trip.landAt.toPoint()
+    val party = trip.partyId?.let { id -> night.parties.firstOrNull { it.id == id } }
+
+    // What they dropped, in the air, turning over and over.
+    TripAnimation.flight(t)?.let { u ->
+        val hand = Point(from.x + 4.6f * trip.side, from.y - 1f)
+        val at = Point(hand.x + (land.x - hand.x) * u, hand.y + (land.y - hand.y) * u - TripAnimation.arc(u))
+        rotated(TripAnimation.spin(u) * trip.side, at) {
+            when (trip.item) {
+                ServiceNight.TripItem.PLATE -> drawPlate(at, party?.mainDish())
+                ServiceNight.TripItem.DRINKS -> drawDrinksTray(at, party)
+                ServiceNight.TripItem.DISHES -> drawDirtyStack(at)
+                ServiceNight.TripItem.NOTHING -> {}
+            }
+        }
+    }
+
+    // Where it lands: bits of food and glass thrown out.
+    TripAnimation.splash(t)?.let { spread ->
+        val fade = (1f - spread).coerceIn(0f, 1f)
+        for (k in 0 until 7) {
+            val angle = k * 0.9f + 0.4f
+            val reach = spread * (3f + (k % 3))
+            dot(land.x + kotlin.math.cos(angle) * reach, land.y + kotlin.math.sin(angle) * reach * 0.5f - spread * 2f * (1f - spread) * 2f, 0.3f + 0.5f * fade, if (k % 2 == 0) Color(0xFF9A5A22) else Color(0xCCE3F1F8))
+        }
+        ring(land.x, land.y, 1f + spread * 4f, Color(0x88FFFFFF).copy(alpha = 0.6f * fade), 0.4f)
+    }
+
+    // Flat on the floor: stars going round their head, and a bubble saying what they think of it.
+    val feet = Point(from.x, from.y + 1.6f)
+    if (TripAnimation.seeingStars(t)) {
+        val head = Point(feet.x + 10.6f * trip.side, feet.y - 1f)
+        for (k in 0 until 3) {
+            val a = clock * 6f + k * 2.09f
+            dot(head.x + kotlin.math.cos(a) * 3.4f, head.y - 3.2f + kotlin.math.sin(a) * 1.1f, 0.7f, Palette.gold)
+        }
+    }
+    if (oops.isNotEmpty() && t in 0.25f..1.7f) {
+        val bubble = Point(feet.x + 3f * trip.side, feet.y - 12f)
+        box(bubble.x - 5.2f, bubble.y - 2.2f, 10.4f, 4.2f, Color.White, radius = 2f)
+        shape(Color.White) { moveTo(bubble.x - 1f, bubble.y + 1.9f); lineTo(bubble.x + 1f, bubble.y + 1.9f); lineTo(bubble.x, bubble.y + 3.6f); close() }
+        centeredText(text, oops, Point(bubble.x, bubble.y), size = 2.6f, color = Palette.alert, bold = true)
     }
 }
 
