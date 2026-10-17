@@ -4,6 +4,8 @@ import com.recipefordisaster.domain.employee.Employee
 import com.recipefordisaster.domain.employee.EmployeePerformance
 import com.recipefordisaster.domain.employee.EmployeeStatus
 import com.recipefordisaster.domain.employee.Role
+import com.recipefordisaster.domain.progression.Feature
+import com.recipefordisaster.domain.progression.Progression
 import com.recipefordisaster.domain.simulation.GameState
 import com.recipefordisaster.domain.simulation.SeededRandomSource
 
@@ -45,17 +47,32 @@ object StaffSlips {
         else -> Sloppiness.OFTEN
     }
 
-    /** The time in the night each worker who'll slip tonight will do it, by their id. */
-    fun planFor(state: GameState): Map<String, Float> = buildMap {
+    /**
+     * A slip: at [at] seconds into the night, a worker either drops what they're carrying, or (a server, once
+     * guests can ask for things) takes someone the wrong dish, which that table will want you to put right.
+     */
+    @kotlinx.serialization.Serializable
+    data class Slip(val at: Float, val mixUp: Boolean = false)
+
+    /** The slip each worker who'll slip tonight will make, by their id. */
+    fun planFor(state: GameState): Map<String, Slip> = buildMap {
         state.employees
             .filter { it.status == EmployeeStatus.ACTIVE && it.role in carriers }
             .forEach { employee ->
                 val rng = SeededRandomSource(state.seed * 31 + state.day * 7 + employee.id.value.hashCode())
                 val slips = rng.nextFloat() < chance(employee)
                 val at = EARLIEST + rng.nextFloat() * (LATEST - EARLIEST)
-                if (slips) put(employee.id.value, at)
+                val mixUpRoll = rng.nextFloat()
+                val canMixUp = employee.role in servers && Progression.has(state, Feature.GUEST_REQUESTS)
+                if (slips) put(employee.id.value, Slip(at, mixUp = canMixUp && mixUpRoll < MIX_UP_SHARE))
             }
     }
+
+    /** Servers carry out the food, so they're the ones who can mix orders up. */
+    private val servers = setOf(Role.SERVER, Role.MANAGER)
+
+    /** Of a server's slips, the share that are a wrong dish rather than a dropped tray. */
+    private const val MIX_UP_SHARE = 0.5f
 
     private const val EARLIEST = 25f
     private const val LATEST = 170f

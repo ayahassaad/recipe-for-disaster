@@ -29,7 +29,7 @@ class TripTest {
     @Test
     fun `a new server is planned to trip tonight`() {
         val (night, id) = open()
-        assertTrue(id in night.tripAt)
+        assertTrue(id in night.slips)
     }
 
     @Test
@@ -42,7 +42,7 @@ class TripTest {
 
         // Hand them a plate for that table, mid-walk, with their trip due.
         night = night.copy(
-            tripAt = mapOf(id to night.time),
+            slips = mapOf(id to StaffSlips.Slip(night.time)),
             parties = night.parties.map { if (it.id == party.id) it.copy(stage = Stage.CARRIED, heldBy = id) else it },
             waiters = night.waiters.map { if (it.id == id) it.copy(hands = listOf(HandItem.Plate(party.id))) else it },
         )
@@ -61,7 +61,7 @@ class TripTest {
     @Test
     fun `nobody trips with empty hands`() {
         val (opened, id) = open()
-        val due = opened.copy(tripAt = mapOf(id to 0f))
+        val due = opened.copy(slips = mapOf(id to StaffSlips.Slip(0f)))
         // Nothing in their hands, so there's nothing to drop.
         assertFalse(id in due.advance(0.1f).tripped)
     }

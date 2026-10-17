@@ -88,9 +88,9 @@ data class ServiceNight(
     val requestsMissed: Int = 0,
     /** The first night guests can ask for things, the first meal served is sure to bring a request. */
     val requestDebutPending: Boolean = false,
-    /** When each new hire (by id) will trip and drop their tray tonight, if they will (see [StaffSlips]). */
-    val tripAt: Map<String, Float> = emptyMap(),
-    /** The new hires who've already tripped tonight, and when it last happened. */
+    /** The slip each worker (by id) will make tonight, if they will: a dropped tray, or a wrong dish (see [StaffSlips]). */
+    val slips: Map<String, StaffSlips.Slip> = emptyMap(),
+    /** The workers who've already slipped tonight, and when someone last tripped. */
     val tripped: Set<String> = emptySet(),
     val lastTripAt: Float = -100f,
     /** Tonight's chaotic moment, if there is one (rolled when the doors open). */
@@ -641,8 +641,8 @@ data class ServiceNight(
     /** New hires who are due a trip drop their tray the next time they're out carrying something. */
     private fun tripStep(): ServiceNight {
         var night = this
-        for ((id, at) in tripAt) {
-            if (id in night.tripped || time < at) continue
+        for ((id, slip) in slips) {
+            if (slip.mixUp || id in night.tripped || time < slip.at) continue
             val waiter = night.waiters.firstOrNull { it.id == id } ?: continue
             if (waiter.hands.none { it != HandItem.Mop } || waiter.errand?.isWalk != true) continue
             night = night.trip(waiter)
@@ -969,12 +969,15 @@ data class ServiceNight(
      * or the bill, now and then. Staff can't help with that: it's for the player to sort out before they leave.
      */
     private fun served(party: Party, waiterId: String): ServiceNight {
-        val kind = requestKindFor(party)
+        // A server who's due a slip takes this table the wrong dish.
+        val slip = slips[waiterId]?.takeIf { it.mixUp && waiterId !in tripped && time >= it.at }
+        val kind = if (slip != null && requestsOn) RequestKind.WRONG_DISH else requestKindFor(party)
         val request = kind?.let { Request(it, time) }
         val sure = requestDebutPending && request != null
         return copy(
             waiters = waiters.map { if (it.id == waiterId) it.copy(hands = it.hands - HandItem.Plate(party.id)) else it },
             requestDebutPending = requestDebutPending && !sure,
+            tripped = if (slip != null && requestsOn) tripped + waiterId else tripped,
         ).updateParty(party.id) {
             it.copy(stage = Stage.EATING, stageSince = time, until = time + EAT + (if (request != null) REQUEST_WAIT else 0f), heldBy = null, request = request)
         }
@@ -1653,7 +1656,7 @@ data class ServiceNight(
                 pickiness = dials.pickiness,
                 chefLuck = chefLuck,
                 waiters = waiters,
-                tripAt = StaffSlips.planFor(state),
+                slips = StaffSlips.planFor(state),
                 requestStrength = Progression.strength(state, Feature.GUEST_REQUESTS),
                 requestDebutPending = Progression.debutsToday(state, Feature.GUEST_REQUESTS),
                 inventory = state.inventory,

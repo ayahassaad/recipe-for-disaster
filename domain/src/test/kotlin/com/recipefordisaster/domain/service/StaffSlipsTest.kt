@@ -24,7 +24,7 @@ class StaffSlipsTest {
         val plan = StaffSlips.planFor(withServer(server))
 
         assertTrue(server.id.value in plan)
-        assertTrue(plan.getValue(server.id.value) in 25f..170f)
+        assertTrue(plan.getValue(server.id.value).at in 25f..170f)
     }
 
     @Test
@@ -72,5 +72,28 @@ class StaffSlipsTest {
     fun `how often someone slips is put into a word`() {
         assertEquals(StaffSlips.Sloppiness.RARELY, StaffSlips.sloppiness(server(experience = 30, reliability = 100, stress = 0)))
         assertEquals(StaffSlips.Sloppiness.OFTEN, StaffSlips.sloppiness(server(experience = 0)))
+    }
+}
+
+class StaffMixUpTest {
+    private val start = NewGameFactory.create(seed = 9L)
+
+    private fun serverOn(day: Int) = start.copy(
+        day = day,
+        employees = start.employees + start.applicants.first { it.role == Role.SERVER }
+            .copy(status = EmployeeStatus.ACTIVE, experienceDays = 0),
+    )
+
+    @Test
+    fun `before guests can ask for things a server's slip is always a dropped tray`() {
+        val plan = StaffSlips.planFor(serverOn(day = 5))
+        assertTrue(plan.isNotEmpty())
+        assertTrue(plan.values.none { it.mixUp })
+    }
+
+    @Test
+    fun `once they can, some of a server's slips are the wrong dish`() {
+        val mixUps = (14..60).count { day -> StaffSlips.planFor(serverOn(day)).values.any { it.mixUp } }
+        assertTrue("wrong dish on $mixUps days", mixUps in 5..45)
     }
 }
