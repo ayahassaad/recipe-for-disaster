@@ -100,6 +100,8 @@ data class ServiceNight(
     /** The workers who've already slipped tonight, and when someone last tripped. */
     val tripped: Set<String> = emptySet(),
     val lastTripAt: Float = -100f,
+    /** The trips happening (or just over), newest last, for the scene to animate. */
+    val trips: List<TripScene> = emptyList(),
     /** Tonight's chaotic moment, if there is one (rolled when the doors open). */
     val chaos: Chaos? = null,
     /** How tonight's special guests found it, as they leave. */
@@ -133,6 +135,26 @@ data class ServiceNight(
     /** What a guest was waiting for when they gave up. */
     @Serializable
     enum class WaitedFor { TABLE, ORDER, FOOD, DRINKS }
+
+    /** What a worker was carrying when they tripped. */
+    @Serializable
+    enum class TripItem { PLATE, DRINKS, DISHES, NOTHING }
+
+    /**
+     * A trip, for the scene to play out: [waiterId] stumbled at [from] at time [since], and what they carried
+     * ([item], a table's food or drinks if [partyId] says whose) flew off and landed at [landAt]. [side] is
+     * which way they fell (1 or -1).
+     */
+    @Serializable
+    data class TripScene(
+        val waiterId: String,
+        val since: Float,
+        val from: FloorPoint,
+        val landAt: FloorPoint,
+        val item: TripItem,
+        val partyId: Int? = null,
+        val side: Int = 1,
+    )
 
     /** What a guest can ask for, once they've been served: only the player can sort it out. */
     enum class RequestKind { WRONG_DISH, COLD, BILL }
@@ -672,10 +694,31 @@ data class ServiceNight(
             .filter { spot -> messesOnFloor.none { it.at.distanceTo(spot) < 1f } }
             .minByOrNull { it.distanceTo(here) } ?: here
         val mess = Mess(id = (messes.maxOfOrNull { it.id } ?: -1) + 1, at = spot, appearsAt = time)
+        // What they dropped, for the scene to show flying off.
+        val dropped = waiter.hands.firstOrNull { it != HandItem.Mop }
+        val scene = TripScene(
+            waiterId = waiter.id,
+            since = time,
+            from = here,
+            landAt = spot,
+            item = when (dropped) {
+                is HandItem.Plate -> TripItem.PLATE
+                is HandItem.Drinks -> TripItem.DRINKS
+                is HandItem.DirtyDishes -> TripItem.DISHES
+                else -> TripItem.NOTHING
+            },
+            partyId = when (dropped) {
+                is HandItem.Plate -> dropped.partyId
+                is HandItem.Drinks -> dropped.partyId
+                else -> null
+            },
+            side = if (waiter.id.hashCode() % 2 == 0) 1 else -1,
+        )
         return night.copy(
             messes = night.messes + mess,
             tripped = night.tripped + waiter.id,
             lastTripAt = time,
+            trips = night.trips.filter { time - it.since < TRIP_TOTAL } + scene,
         )
     }
 
@@ -1376,6 +1419,10 @@ data class ServiceNight(
         private const val CAT_LEG = 9f
         private const val CAT_WALKING = 0.5f
         private const val CAT_JOY = 6
+
+        /** How long a trip takes, for the scene: when what they carried lands, and when they're back on their feet. */
+        const val TRIP_LAND = 0.8f
+        const val TRIP_TOTAL = 2.2f
 
         /** How long a food order can sit on the pass before it arrives cold. */
         private const val COLD_AFTER = 20f
