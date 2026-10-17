@@ -96,7 +96,7 @@
     <string name="hint_handling_chaos">Sorting it out…</string>
     <string name="night_chaos">Trouble: tap to sort it out</string>
     <string name="hint_asking_cold" tools:ignore="PluralsCandidate">Table %1$d says their food is cold! Go and smooth it over.</string>
-    <string name="hint_asking_wrong" tools:ignore="PluralsCandidate">Table %1$d got the wrong dish! Go and sort it out.</string>
+    <string name="hint_asking_wrong" tools:ignore="PluralsCandidate">Table %1$d got the wrong dish! Take their order again, then to the chef.</string>
     <string name="hint_asking_bill" tools:ignore="PluralsCandidate">Table %1$d is asking for the bill. Tap the table.</string>
     <string name="hint_away_sick">%1$s went home sick! Cover for them.</string>
     <string name="hint_away_row">%1$s stormed out after a row! Cover for them.</string>
@@ -424,7 +424,7 @@
     <string name="intro_rat_title">A rat!</string>
     <string name="intro_rat">A rat is scurrying about and putting guests off their food. Tap it to chase it out.</string>
     <string name="intro_requests_title">Guests ask for things!</string>
-    <string name="intro_requests">Now and then a guest asks for something: the wrong dish, cold food, or the bill. Staff can\'t help with this. Tap their table to sort it out, or it costs you.</string>
+    <string name="intro_requests">Now and then a guest asks for something: cold food, the bill, or the wrong dish. Staff can\'t help with this. Tap their table to sort it out. For the wrong dish, take their order again and hand it to the chef.</string>
     <string name="intro_staff_trouble_title">A bad night for the staff!</string>
     <string name="intro_staff_trouble">Someone has gone home sick, walked out after a row, or taken a long break. The others carry on, but you\'ll have to cover for the one who\'s gone.</string>
     <string name="intro_fridge_title">The fridge is failing!</string>
