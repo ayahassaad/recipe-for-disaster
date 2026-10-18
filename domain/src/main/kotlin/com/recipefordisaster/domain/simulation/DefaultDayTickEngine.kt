@@ -157,7 +157,7 @@ class DefaultDayTickEngine(
             equipment = equipmentAfterFailureChecks,
             miscellaneous = morning.spending.staffing + morning.spending.cleaning + morning.spending.menu,
             upgrades = morning.spending.repairs + morning.spending.upgrades,
-            interest = com.recipefordisaster.domain.economy.Loans.interest(start.loan),
+            interest = com.recipefordisaster.domain.economy.Loans.interestFor(start),
         ).let {
             // A failed inspection comes with a fine.
             val fine = if (serviceResult.specialVisits.any { v -> v.guest == SpecialGuest.INSPECTOR && !v.pleased }) INSPECTION_FINE else 0L
@@ -183,7 +183,21 @@ class DefaultDayTickEngine(
         }
         // A celebrity who enjoyed themselves brings a crowd tomorrow.
         val celebrityBuzz = if (serviceResult.specialVisits.any { it.guest == SpecialGuest.CELEBRITY && it.pleased }) CELEBRITY_BUZZ else 0
-        val newReputation = (start.restaurant.reputation + reputationDelta + specialDelta).coerceIn(0, 100)
+        // A loan that's late costs you your good name too, every day, until it's paid.
+        val lateDays = com.recipefordisaster.domain.economy.Loans.overdueDays(start)
+        val lateHit = if (lateDays > 0) com.recipefordisaster.domain.economy.Loans.OVERDUE_REPUTATION_HIT else 0
+        if (lateDays > 0) {
+            dayLog += SimulationLogEntry(
+                state.day,
+                "Your loan is $lateDays ${if (lateDays == 1) "day" else "days"} late. The bank is charging ${com.recipefordisaster.domain.economy.Loans.OVERDUE_INTEREST_PERCENT}% a day and word is getting round.",
+                LogTone.BAD,
+            )
+        }
+        // A week late and the bank takes the place.
+        if (com.recipefordisaster.domain.economy.Loans.foreclosed(start.copy(day = state.day + 1))) {
+            dayLog += SimulationLogEntry(state.day, "The bank has run out of patience and taken the restaurant.", LogTone.BAD)
+        }
+        val newReputation = (start.restaurant.reputation + reputationDelta + specialDelta - lateHit).coerceIn(0, 100)
 
         // This week's goal: today's takings and guests count towards it, and reaching it pays a reward.
         val (goalAfter, goalReward) = start.weeklyGoal
@@ -319,6 +333,8 @@ class DefaultDayTickEngine(
         val status = when {
             restaurant.status == RestaurantStatus.BANKRUPT || restaurant.status == RestaurantStatus.CONDEMNED -> restaurant.status
             restaurant.cash < 0 -> RestaurantStatus.BANKRUPT
+            // A loan a week late: the bank takes the restaurant, whatever's in the till.
+            com.recipefordisaster.domain.economy.Loans.foreclosed(this) -> RestaurantStatus.BANKRUPT
             restaurant.reputation <= 0 -> RestaurantStatus.CONDEMNED
             else -> restaurant.status
         }

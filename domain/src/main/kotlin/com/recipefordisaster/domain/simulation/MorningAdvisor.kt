@@ -36,7 +36,7 @@ data class DailyCosts(
             return DailyCosts(
                 wages = staff.sumOf { it.salaryPerDay },
                 premises = costs.rentPerDay + costs.utilitiesPerDay + costs.miscPerDay + state.equipment.sumOf { it.maintenanceCostPerDay },
-                interest = com.recipefordisaster.domain.economy.Loans.interest(state.loan),
+                interest = com.recipefordisaster.domain.economy.Loans.interestFor(state),
             )
         }
     }
