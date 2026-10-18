@@ -67,7 +67,7 @@ sealed interface GameUiState {
         val morning: GameState get() = preview.state
 
         /** Cash after everything chosen so far this morning. */
-        val cashNow: Long get() = state.restaurant.cash - preview.spending.total
+        val cashNow: Long get() = preview.state.restaurant.cash - preview.spending.total
     }
     data class Error(val message: String) : GameUiState
 }
@@ -300,6 +300,12 @@ class GameViewModel(
         val updated = current.state.copy(employees = current.state.employees.map { if (it.id == id) com.recipefordisaster.domain.employee.Roster.toggle(it, weekday) else it })
         _uiState.value = current.copy(state = updated, preview = DecisionApplier.apply(updated, current.plan))
         viewModelScope.launch { gameRepository.save(updated) }
+    }
+
+    /** Borrow more from the bank (above zero) or pay some back (below zero) this morning, kept within what's allowed. */
+    fun adjustLoan(delta: Long) = editPlan { plan ->
+        val state = currentState() ?: return@editPlan plan
+        plan.copy(loanChange = com.recipefordisaster.domain.economy.Loans.clamp(state, plan.loanChange + delta))
     }
 
     fun toggleRepair(id: EquipmentId) = editPlan { it.copy(repairs = it.repairs.toggle(id)) }

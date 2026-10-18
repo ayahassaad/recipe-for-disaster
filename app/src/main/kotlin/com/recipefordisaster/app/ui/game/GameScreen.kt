@@ -101,6 +101,7 @@ data class GameActions(
     val onToggleFire: (EmployeeId) -> Unit = {},
     val onToggleRestDay: (EmployeeId) -> Unit = {},
     val onToggleRaise: (EmployeeId) -> Unit = {},
+    val onAdjustLoan: (Long) -> Unit = {},
     val onToggleRosterDay: (EmployeeId, Int) -> Unit = { _, _ -> },
     val onToggleTraining: (EmployeeId) -> Unit = {},
     val onToggleRepair: (EquipmentId) -> Unit = {},
@@ -127,6 +128,7 @@ fun GameViewModel.actions(): GameActions = GameActions(
     onToggleFire = ::toggleFire,
     onToggleRestDay = ::toggleRestDay,
     onToggleRaise = ::toggleRaise,
+    onAdjustLoan = ::adjustLoan,
     onToggleRosterDay = ::toggleRosterDay,
     onToggleTraining = ::toggleTraining,
     onToggleRepair = ::toggleRepair,
@@ -595,7 +597,8 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding().navigationBarsPadding()) {
         Hud(
             day = session.setup.original.day,
-            cash = session.setup.original.restaurant.cash - session.morningSpending.total + night.takings,
+            // (The morning's state, so anything borrowed from or paid to the bank this morning counts.)
+            cash = session.setup.morning.state.restaurant.cash - session.morningSpending.total + night.takings,
             reputation = session.setup.morning.state.restaurant.reputation,
             subtitle = stringResource(R.string.tonight_takings, signedCoins(night.takings)),
             // The menu pauses the night too while you decide whether to leave.
