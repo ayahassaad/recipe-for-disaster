@@ -289,12 +289,14 @@ private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, onMe
     val costs = remember(morning) { DailyCosts.of(morning) }
     var open by remember { mutableStateOf<SceneTarget?>(null) }
     var showCosts by remember { mutableStateOf(false) }
+    var showBank by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding().navigationBarsPadding()) {
         Hud(day = uiState.state.day, cash = uiState.cashNow, reputation = morning.restaurant.reputation, subtitle = stringResource(R.string.daily_costs, coins(costs.total)), onMenu = onMenu,
             onHire = if (model.hiring) null else ({ open = SceneTarget.HiringSign }),
-            onSubtitle = { showCosts = true })
-        if (showCosts) CostsDialog(morning, onClose = { showCosts = false })
+            onSubtitle = { showCosts = true }, onCash = { showBank = true })
+        if (showCosts) CostsDialog(morning, onClose = { showCosts = false }, onBank = { showCosts = false; showBank = true })
+        if (showBank) BankDialog(uiState, actions, onClose = { showBank = false })
         RestaurantScene(
             model = model,
             labels = sceneLabels(staffNeed),
@@ -365,7 +367,7 @@ private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, onMe
 
 /** Day, money and stars along the top, under the awning. */
 @Composable
-private fun Hud(day: Int, cash: Long, reputation: Int, subtitle: String, onMenu: () -> Unit, onPause: (() -> Unit)? = null, onHire: (() -> Unit)? = null, onSubtitle: (() -> Unit)? = null) {
+private fun Hud(day: Int, cash: Long, reputation: Int, subtitle: String, onMenu: () -> Unit, onPause: (() -> Unit)? = null, onHire: (() -> Unit)? = null, onSubtitle: (() -> Unit)? = null, onCash: (() -> Unit)? = null) {
     Column {
         Row(modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 16.dp, top = 2.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             // Back to the start screen (asks first), and during service a pause button under it.
@@ -416,7 +418,10 @@ private fun Hud(day: Int, cash: Long, reputation: Int, subtitle: String, onMenu:
                     coins(shown.toLong()),
                     style = MaterialTheme.typography.titleLarge,
                     color = androidx.compose.ui.graphics.lerp(MaterialTheme.colorScheme.onBackground, Color(0xFFB8860B), flash.value),
-                    modifier = Modifier.graphicsLayer { val s = 1f + 0.15f * flash.value; scaleX = s; scaleY = s },
+                    modifier = Modifier
+                        .graphicsLayer { val s = 1f + 0.15f * flash.value; scaleX = s; scaleY = s }
+                        // In the morning, tapping your coins opens the bank.
+                        .then(if (onCash != null) Modifier.clickable(onClickLabel = stringResource(R.string.bank_title), onClick = onCash) else Modifier),
                 )
                 // In the morning the daily costs can be tapped for a breakdown (underlined to show it).
                 Text(
@@ -993,7 +998,7 @@ private fun Confetti(clock: Float) {
 
 /** Where the daily costs go: everyone's wage, then rent, bills, and the upkeep of each machine. */
 @Composable
-private fun CostsDialog(state: GameState, onClose: () -> Unit) {
+private fun CostsDialog(state: GameState, onClose: () -> Unit, onBank: () -> Unit = {}) {
     val costs = state.restaurant.costsToday
     val staff = state.employees.filter { it.status != EmployeeStatus.QUIT && it.status != EmployeeStatus.FIRED }
     val lines = buildList {
@@ -1025,6 +1030,7 @@ private fun CostsDialog(state: GameState, onClose: () -> Unit) {
             }
         },
         confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.costs_close)) } },
+        dismissButton = { TextButton(onClick = onBank) { Text(stringResource(R.string.bank_open)) } },
     )
 }
 
