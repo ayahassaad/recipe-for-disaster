@@ -389,7 +389,11 @@
     <string name="bank_nochange">No change today</string>
     <string name="bank_less">Less</string>
     <string name="bank_more">More</string>
-    <string name="bank_limit" tools:ignore="PluralsCandidate">The bank lends up to %1$d coins in all. You can pay back any time.</string>
+    <string name="bank_limit" tools:ignore="PluralsCandidate">The bank lends up to %1$d coins in all. Pay it back within %2$d days, or it costs you.</string>
+    <string name="bank_due" tools:ignore="PluralsCandidate">Pay it all back by day %1$d (%2$d days left).</string>
+    <string name="bank_late" tools:ignore="PluralsCandidate">LATE by %1$d days! The bank takes the restaurant in %2$d days.</string>
+    <string name="bank_no_loans_late">The bank won\'t lend you more while your loan is late.</string>
+    <string name="bank_no_loans_yet" tools:ignore="PluralsCandidate">You just paid off a loan: the bank will lend again from day %1$d.</string>
     <string name="bank_close">Done</string>
     <string name="costs_total">Every day</string>
     <string name="costs_note">Paid whether or not anyone comes in. Food is extra, when you buy it.</string>
