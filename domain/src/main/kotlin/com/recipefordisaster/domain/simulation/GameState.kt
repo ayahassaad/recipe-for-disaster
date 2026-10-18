@@ -72,6 +72,8 @@ data class GameState(
     val everythingFromTheStart: Boolean = false,
     /** Features the player has had explained to them (the pop-up the first time each one appears). */
     val introductionsSeen: Set<com.recipefordisaster.domain.progression.Feature> = emptySet(),
+    /** What's owed to the bank (see [com.recipefordisaster.domain.economy.Loans]). */
+    val loan: Long = 0,
     /** What the player has bought to make the dining room nicer. */
     val decorations: Set<com.recipefordisaster.domain.restaurant.Decoration> = emptySet(),
     /** This week's goal, from the second week on (see [com.recipefordisaster.domain.goal.WeeklyGoals]). */
@@ -138,6 +140,8 @@ data class PlayerDecisions(
     val fires: Set<EmployeeId> = emptySet(),
     /** Employees given today off: unpaid, not working, and they come back much less stressed. */
     val restDays: Set<EmployeeId> = emptySet(),
+    /** Coins to borrow from the bank this morning (above zero) or pay back (below zero). */
+    val loanChange: Long = 0,
     /** Staff given a raise this morning (see [com.recipefordisaster.domain.employee.Raises]). */
     val raises: Set<EmployeeId> = emptySet(),
     /** Staff sent on a morning's training (see [com.recipefordisaster.domain.employee.Training]). */
