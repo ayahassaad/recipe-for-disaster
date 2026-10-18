@@ -89,6 +89,7 @@ internal fun BillReceipt(report: DayReport, modifier: Modifier = Modifier) {
         if (books.drinks > 0) ReceiptLine(stringResource(R.string.bill_drinks), signedCoins(books.drinks))
         if (books.tips > 0) ReceiptLine(stringResource(R.string.bill_tips), signedCoins(books.tips))
         ReceiptLine(stringResource(R.string.bill_wages), signedCoins(-books.wages))
+        if (books.interest > 0) ReceiptLine(stringResource(R.string.bill_interest), signedCoins(-books.interest))
         ReceiptLine(stringResource(R.string.bill_premises), signedCoins(-(books.rent + books.utilities + books.maintenance + books.miscellaneous - oneOff)))
         if (books.ingredientCosts > 0) ReceiptLine(stringResource(R.string.bill_groceries), signedCoins(-books.ingredientCosts))
         if (books.upgrades > 0) ReceiptLine(stringResource(R.string.bill_repairs), signedCoins(-books.upgrades))

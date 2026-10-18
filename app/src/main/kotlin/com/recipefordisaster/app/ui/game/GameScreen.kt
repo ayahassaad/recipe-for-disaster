@@ -1003,6 +1003,7 @@ private fun CostsDialog(state: GameState, onClose: () -> Unit) {
         add((if (fame > 0) pluralStringResource(R.plurals.costs_rent_famous, tables, tables, fame) else pluralStringResource(R.plurals.costs_rent, tables, tables)) to costs.rentPerDay)
         add(stringResource(R.string.costs_bills) to costs.utilitiesPerDay + costs.miscPerDay)
         state.equipment.forEach { add(stringResource(R.string.costs_upkeep, it.name) to it.maintenanceCostPerDay) }
+        com.recipefordisaster.domain.economy.Loans.interest(state.loan).takeIf { it > 0 }?.let { add(stringResource(R.string.costs_interest) to it) }
     }
     AlertDialog(
         onDismissRequest = onClose,

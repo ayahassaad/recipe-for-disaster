@@ -197,6 +197,7 @@
     <string name="bill_earned">Meals sold</string>
     <string name="bill_tips">Tips</string>
     <string name="bill_drinks">Drinks</string>
+    <string name="bill_interest">Loan interest</string>
     <string name="bill_wages">Wages</string>
     <string name="bill_premises">Rent and bills</string>
     <string name="bill_groceries">Groceries</string>
@@ -374,6 +375,7 @@
     </plurals>
     <string name="costs_bills">Bills and supplies</string>
     <string name="costs_upkeep">%1$s upkeep</string>
+    <string name="costs_interest">Loan interest</string>
     <string name="costs_total">Every day</string>
     <string name="costs_note">Paid whether or not anyone comes in. Food is extra, when you buy it.</string>
     <string name="costs_close">Got it</string>
