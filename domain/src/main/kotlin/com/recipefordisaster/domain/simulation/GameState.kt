@@ -74,6 +74,10 @@ data class GameState(
     val introductionsSeen: Set<com.recipefordisaster.domain.progression.Feature> = emptySet(),
     /** What's owed to the bank (see [com.recipefordisaster.domain.economy.Loans]). */
     val loan: Long = 0,
+    /** The last day the loan can be paid back without being late; null when nothing is owed. */
+    val loanDueDay: Int? = null,
+    /** The first day the bank will lend again, after a loan was cleared (so it can't be rolled over by paying and borrowing straight away). */
+    val noLoanUntilDay: Int = 0,
     /** What the player has bought to make the dining room nicer. */
     val decorations: Set<com.recipefordisaster.domain.restaurant.Decoration> = emptySet(),
     /** This week's goal, from the second week on (see [com.recipefordisaster.domain.goal.WeeklyGoals]). */
