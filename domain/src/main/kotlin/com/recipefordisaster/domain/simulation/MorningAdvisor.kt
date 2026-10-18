@@ -23,8 +23,10 @@ import kotlin.math.roundToLong
 data class DailyCosts(
     val wages: Long,
     val premises: Long,
+    /** What the bank charges for the day on what's owed. */
+    val interest: Long = 0,
 ) {
-    val total: Long get() = wages + premises
+    val total: Long get() = wages + premises + interest
 
     companion object {
         fun of(state: GameState): DailyCosts {
@@ -34,6 +36,7 @@ data class DailyCosts(
             return DailyCosts(
                 wages = staff.sumOf { it.salaryPerDay },
                 premises = costs.rentPerDay + costs.utilitiesPerDay + costs.miscPerDay + state.equipment.sumOf { it.maintenanceCostPerDay },
+                interest = com.recipefordisaster.domain.economy.Loans.interest(state.loan),
             )
         }
     }

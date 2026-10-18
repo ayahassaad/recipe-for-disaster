@@ -157,6 +157,7 @@ class DefaultDayTickEngine(
             equipment = equipmentAfterFailureChecks,
             miscellaneous = morning.spending.staffing + morning.spending.cleaning + morning.spending.menu,
             upgrades = morning.spending.repairs + morning.spending.upgrades,
+            interest = com.recipefordisaster.domain.economy.Loans.interest(start.loan),
         ).let {
             // A failed inspection comes with a fine.
             val fine = if (serviceResult.specialVisits.any { v -> v.guest == SpecialGuest.INSPECTOR && !v.pleased }) INSPECTION_FINE else 0L

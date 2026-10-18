@@ -25,6 +25,7 @@ object DailyFinancialsCalculator {
         equipment: List<Equipment>,
         miscellaneous: Long = 0,
         upgrades: Long = 0,
+        interest: Long = 0,
     ): DailyFinancials {
         val menuById = menu.associateBy { it.id }
         val revenue = dishesSold.entries.sumOf { (dishId, count) ->
@@ -47,6 +48,7 @@ object DailyFinancialsCalculator {
             maintenance = maintenance,
             upgrades = upgrades, // repairs the player paid for this morning (Phase 6)
             miscellaneous = operatingCosts.miscPerDay + miscellaneous,
+            interest = interest,
         )
     }
 }
