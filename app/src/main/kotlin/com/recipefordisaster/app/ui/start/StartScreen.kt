@@ -60,6 +60,24 @@ fun StartScreen(
     /** Whatever goes under the buttons: backing up and restoring (see [com.recipefordisaster.app.ui.backup.BackupButtons]). */
     backupSlot: @Composable () -> Unit = {},
 ) {
+    // The theme song plays while the title screen is up, and stops when you leave it or the app goes to the background.
+    val sounds = com.recipefordisaster.app.ui.sound.Sounds.get(androidx.compose.ui.platform.LocalContext.current)
+    val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycle) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            when (event) {
+                androidx.lifecycle.Lifecycle.Event.ON_START -> sounds.themePlaying(true)
+                androidx.lifecycle.Lifecycle.Event.ON_STOP -> sounds.themePlaying(false)
+                else -> {}
+            }
+        }
+        lifecycle.lifecycle.addObserver(observer)
+        if (lifecycle.lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)) sounds.themePlaying(true)
+        onDispose {
+            lifecycle.lifecycle.removeObserver(observer)
+            sounds.themePlaying(false)
+        }
+    }
     Column(
         modifier = modifier
             .fillMaxSize()

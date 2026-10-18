@@ -21,6 +21,8 @@ enum class Sfx(val res: Int, val loudness: Float = 0.8f) {
     FANFARE(R.raw.sfx_fanfare),
     MEOW(R.raw.sfx_meow),
     POUR(R.raw.sfx_pour),
+    /** The sad trombone: for a night that lost money, or the end of the run. */
+    TROMBONE(R.raw.sfx_trombone, loudness = 0.9f),
 }
 
 /**
@@ -38,6 +40,8 @@ class Sounds private constructor(private val context: Application) {
     private val loaded = Sfx.entries.associateWith { pool.load(context, it.res, 1) }
     private var music: MediaPlayer? = null
     private var musicWanted = false
+    private var theme: MediaPlayer? = null
+    private var themeWanted = false
 
     var effectsOn: Boolean = prefs.getBoolean("effects", true)
         set(value) {
@@ -50,6 +54,7 @@ class Sounds private constructor(private val context: Application) {
             field = value
             prefs.edit().putBoolean("music", value).apply()
             if (value && musicWanted) startMusic() else if (!value) stopMusicNow()
+            if (value && themeWanted) startTheme() else if (!value) stopThemeNow()
         }
 
     fun play(sfx: Sfx, volume: Float = sfx.loudness) {
@@ -61,6 +66,24 @@ class Sounds private constructor(private val context: Application) {
     fun musicPlaying(wanted: Boolean) {
         musicWanted = wanted
         if (wanted && musicOn) startMusic() else stopMusicNow()
+    }
+
+    /** The title screen is showing: play the theme song (if music is on); it stops as soon as you leave. */
+    fun themePlaying(wanted: Boolean) {
+        themeWanted = wanted
+        if (wanted && musicOn) startTheme() else stopThemeNow()
+    }
+
+    private fun startTheme() {
+        val player = theme ?: MediaPlayer.create(context, R.raw.music_theme)?.apply {
+            isLooping = true
+            setVolume(0.45f, 0.45f)
+        }?.also { theme = it } ?: return
+        if (!player.isPlaying) player.start()
+    }
+
+    private fun stopThemeNow() {
+        theme?.let { if (it.isPlaying) it.pause() }
     }
 
     private fun startMusic() {
