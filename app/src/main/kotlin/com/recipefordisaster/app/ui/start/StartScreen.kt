@@ -10,6 +10,7 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -87,7 +88,8 @@ fun StartScreen(
     ) {
         Awning(height = 56.dp, stripes = 8)
         Column(
-            modifier = Modifier.weight(1f).fillMaxWidth().padding(24.dp),
+            // Scrolls when there's more than fits (the backup buttons are at the bottom).
+            modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(androidx.compose.foundation.rememberScrollState()).padding(24.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
