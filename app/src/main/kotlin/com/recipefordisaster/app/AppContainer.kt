@@ -23,6 +23,9 @@ class AppContainer(context: Context) {
 
     val gameRepository: GameRepository = RoomGameRepository(database)
 
+    /** Backing the game up to a file, and putting a backup back. */
+    val backupService = com.recipefordisaster.app.ui.backup.BackupService(gameRepository)
+
     // The Phase 6 event library (25 rules) with its tuned quiet-day weight.
     private val eventEngine: EventEngine = EventLibrary.engine()
 
