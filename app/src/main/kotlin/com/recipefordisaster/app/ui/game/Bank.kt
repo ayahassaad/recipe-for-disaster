@@ -42,7 +42,9 @@ internal fun BankDialog(uiState: GameUiState.Playing, actions: GameActions, onCl
                     val percent = if (late) Loans.OVERDUE_INTEREST_PERCENT else Loans.DAILY_INTEREST_PERCENT
                     Text(stringResource(R.string.bank_interest, Loans.interest(owed, percent), percent), style = MaterialTheme.typography.bodyLarge)
                     // When it has to be paid back by, or how late it is and how long the bank will wait.
-                    val left = Loans.daysUntilDue(state)
+                    // (Counting what's planned this morning: borrowing today starts the clock today.)
+                    val after = Loans.applied(state, change)
+                    val left = Loans.daysUntilDue(after)
                     when {
                         late -> Text(
                             stringResource(R.string.bank_late, Loans.overdueDays(state), Loans.daysBeforeForeclosure(state) ?: 0),
@@ -50,7 +52,7 @@ internal fun BankDialog(uiState: GameUiState.Playing, actions: GameActions, onCl
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.error,
                         )
-                        state.loanDueDay != null && left != null -> Text(stringResource(R.string.bank_due, state.loanDueDay!!, left), style = MaterialTheme.typography.bodyLarge)
+                        after.loanDueDay != null && left != null -> Text(stringResource(R.string.bank_due, after.loanDueDay!!, left), style = MaterialTheme.typography.bodyLarge)
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
