@@ -1613,18 +1613,21 @@ data class ServiceNight(
             var nextArrival = 1.5f
             // A rush night: everyone turns up at once.
             val rushGap = if (com.recipefordisaster.domain.progression.RushNights.isRush(state)) com.recipefordisaster.domain.progression.RushNights.ARRIVAL_GAP_FACTOR else 1f
+            // The first nights are slower: parties further apart, and more patient while they wait.
+            val gentleGap = com.recipefordisaster.domain.progression.GentleStart.arrivalGapFactor(state)
+            val gentlePatience = com.recipefordisaster.domain.progression.GentleStart.patienceFactor(state)
             // Once the bar opens, a few parties have a drink first; within a few nights, everyone does.
             val drinksShare = Progression.strength(state, Feature.DRINKS)
             val parties = groups.mapIndexed { index, guests ->
                 val arriveAt = nextArrival
-                nextArrival += (ARRIVAL_GAP + rng.nextFloat() * ARRIVAL_JITTER) * pace * dials.arrivalGap * rushGap
+                nextArrival += (ARRIVAL_GAP + rng.nextFloat() * ARRIVAL_JITTER) * pace * dials.arrivalGap * rushGap * gentleGap
                 Party(
                     id = index,
                     guests = guests,
                     preferences = guests.map { g -> rankDishes(customers[g], menu, rng) },
                     arriveAt = arriveAt,
                     // The first nights are gentler: guests are more forgiving while you learn the ropes.
-                    patience = (guests.map { customers[it].patience }.average().toFloat() / MINUTES_PER_SECOND + 12f) * dials.patience,
+                    patience = (guests.map { customers[it].patience }.average().toFloat() / MINUTES_PER_SECOND + 12f) * dials.patience * gentlePatience,
                     wantsDrinks = (index * 0.618f + 0.3f) % 1f < drinksShare,
                 )
             }
