@@ -43,6 +43,9 @@
     <!-- The restaurant scene -->
     <string name="hint_new_dish">New dish unlocked: %1$s. Tap the menu sign to add it.</string>
     <string name="hint_rush_tonight">Rush hour tonight! A big crowd is coming: stock up and have staff ready.</string>
+    <string name="hint_loan_soon" tools:ignore="PluralsCandidate">Your bank loan is due in %1$d days. Pay it back: tap your coins.</string>
+    <string name="hint_loan_today">Your bank loan is due TODAY! Pay it back: tap your coins.</string>
+    <string name="hint_loan_late" tools:ignore="PluralsCandidate">Loan overdue! The bank takes the restaurant in %1$d days. Tap your coins.</string>
     <string name="hint_no_food">The pantry is empty! Tap the pantry and buy food before you open.</string>
     <string name="hint_collapsing">%1$s is about to collapse! Tap them and give them a day off.</string>
     <string name="hint_collapsing_only_cook">%1$s is about to collapse! Hire a second cook, then give them a day off.</string>

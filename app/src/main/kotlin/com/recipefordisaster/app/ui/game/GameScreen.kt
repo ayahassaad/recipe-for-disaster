@@ -315,7 +315,9 @@ private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, onMe
         // Close to collapse is more urgent than just tired: say so loudly.
         val collapsing = tired?.takeIf { it.stress >= MorningAdvisor.COLLAPSE_STRESS }
         val onlyCook = remember(morning) { MorningAdvisor.onlyCookExhausted(morning) }
-        val urgent = noFood || collapsing != null
+        // A loan that's due soon, or late, is worth knowing about before anything else.
+        val loanHint = loanWarning(morning)
+        val urgent = noFood || collapsing != null || loanHint != null
         // Something new turning up tonight, or one of the quieter nights.
         val newTonight = remember(morning) { com.recipefordisaster.domain.progression.Progression.arrivingOn(morning, morning.day).firstOrNull() }
         val rushTonight = remember(morning) { com.recipefordisaster.domain.progression.RushNights.isRush(morning) }
@@ -332,6 +334,7 @@ private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, onMe
             Text(
                 text = when {
                     noFood -> stringResource(R.string.hint_no_food)
+                    loanHint != null -> loanHint
                     collapsing != null && onlyCook -> stringResource(R.string.hint_collapsing_only_cook, collapsing.name)
                     collapsing != null -> stringResource(R.string.hint_collapsing, collapsing.name)
                     tired != null -> stringResource(R.string.hint_tired, tired.name)
@@ -883,6 +886,19 @@ private fun ResultsPlay(
     }
 }
 
+/** A warning about the loan, if it's late or about to be: how long is left, or how long until the bank takes the place. */
+@Composable
+private fun loanWarning(state: GameState): String? {
+    val late = com.recipefordisaster.domain.economy.Loans.overdueDays(state)
+    val left = com.recipefordisaster.domain.economy.Loans.daysUntilDue(state)
+    return when {
+        late > 0 -> stringResource(R.string.hint_loan_late, com.recipefordisaster.domain.economy.Loans.daysBeforeForeclosure(state) ?: 0)
+        left == 0 -> stringResource(R.string.hint_loan_today)
+        left != null && left in 1..com.recipefordisaster.domain.economy.Loans.WARN_DAYS -> stringResource(R.string.hint_loan_soon, left)
+        else -> null
+    }
+}
+
 /** The biggest reason guests went without tonight, and what to do about it; null if everyone was fed. */
 @Composable
 private fun lostTip(report: DayReport): String? {
@@ -1018,7 +1034,7 @@ private fun CostsDialog(state: GameState, onClose: () -> Unit, onBank: () -> Uni
         add((if (fame > 0) pluralStringResource(R.plurals.costs_rent_famous, tables, tables, fame) else pluralStringResource(R.plurals.costs_rent, tables, tables)) to costs.rentPerDay)
         add(stringResource(R.string.costs_bills) to costs.utilitiesPerDay + costs.miscPerDay)
         state.equipment.forEach { add(stringResource(R.string.costs_upkeep, it.name) to it.maintenanceCostPerDay) }
-        com.recipefordisaster.domain.economy.Loans.interest(state.loan).takeIf { it > 0 }?.let { add(stringResource(R.string.costs_interest) to it) }
+        com.recipefordisaster.domain.economy.Loans.interestFor(state).takeIf { it > 0 }?.let { add(stringResource(R.string.costs_interest) to it) }
     }
     AlertDialog(
         onDismissRequest = onClose,
