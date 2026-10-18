@@ -66,7 +66,13 @@ object DecisionApplier {
         fun note(message: String, tone: LogTone = LogTone.NEUTRAL) {
             log += SimulationLogEntry(state.day, message, tone)
         }
-        fun canAfford(cost: Long) = spending.total + cost <= state.restaurant.cash
+        // The bank first: what's borrowed can be spent this morning, and what's paid back isn't there to spend.
+        val loanChange = com.recipefordisaster.domain.economy.Loans.clamp(state, decisions.loanChange)
+        if (loanChange != 0L) {
+            current = com.recipefordisaster.domain.economy.Loans.applied(current, loanChange)
+            note(if (loanChange > 0) "Borrowed $loanChange coins from the bank." else "Paid ${-loanChange} coins back to the bank.", LogTone.NEUTRAL)
+        }
+        fun canAfford(cost: Long) = spending.total + cost <= current.restaurant.cash
 
         // Firing first, so severance is accounted for before anything else spends the cash.
         for (id in decisions.fires) {
@@ -226,7 +232,7 @@ object DecisionApplier {
             val freeSpace = (current.inventory.storageCapacity - InventoryOperations.totalStorageUsed(current.inventory))
                 .coerceAtLeast(0.0)
             val spaceLimited = minOf(requested, freeSpace / ingredient.storageSpaceRequired.coerceAtLeast(0.01))
-            val budgetLeft = state.restaurant.cash - spending.total
+            val budgetLeft = current.restaurant.cash - spending.total
             val affordable = if (ingredient.purchasePricePerUnit > 0) budgetLeft.toDouble() / ingredient.purchasePricePerUnit else spaceLimited
             val quantity = minOf(spaceLimited, affordable).coerceAtLeast(0.0)
             if (quantity <= 0.0) {
