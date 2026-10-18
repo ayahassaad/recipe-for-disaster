@@ -34,48 +34,57 @@ private const val ARG_IS_NEW_GAME = "isNewGame"
 fun RecipeForDisasterNavHost(appContainer: AppContainer) {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = ROUTE_START) {
-        composable(ROUTE_START) {
-            val viewModel: StartViewModel = viewModel(
-                factory = StartViewModelFactory(appContainer.gameRepository),
-            )
-            // The Start destination's ViewModel survives while this entry
-            // stays on the back stack (e.g. while a game is in progress on
-            // top of it), so re-check for a save each time this screen is
-            // (re)entered — otherwise "Continue" would stay stuck showing
-            // whatever was true before that game started.
-            LaunchedEffect(Unit) { viewModel.refresh() }
-            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    androidx.compose.runtime.CompositionLocalProvider(com.recipefordisaster.app.ui.backup.LocalBackupService provides appContainer.backupService) {
+        NavHost(navController = navController, startDestination = ROUTE_START) {
+            composable(ROUTE_START) {
+                val viewModel: StartViewModel = viewModel(
+                    factory = StartViewModelFactory(appContainer.gameRepository),
+                )
+                // The Start destination's ViewModel survives while this entry
+                // stays on the back stack (e.g. while a game is in progress on
+                // top of it), so re-check for a save each time this screen is
+                // (re)entered — otherwise "Continue" would stay stuck showing
+                // whatever was true before that game started.
+                LaunchedEffect(Unit) { viewModel.refresh() }
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-            StartScreen(
-                uiState = uiState,
-                onNewGame = { navController.navigate("game?isNewGame=true") },
-                onContinueGame = { navController.navigate("game?isNewGame=false") },
-            )
-        }
-
-        composable(
-            route = ROUTE_GAME,
-            arguments = listOf(navArgument(ARG_IS_NEW_GAME) { type = NavType.BoolType; defaultValue = false }),
-        ) { backStackEntry ->
-            val isNewGame = backStackEntry.arguments?.getBoolean(ARG_IS_NEW_GAME) ?: false
-            val viewModel: GameViewModel = viewModel(
-                factory = GameViewModelFactory(appContainer.gameRepository, appContainer.dayTickEngine),
-            )
-
-            LaunchedEffect(Unit) {
-                if (isNewGame) viewModel.startNewGame() else viewModel.continueGame()
+                StartScreen(
+                    uiState = uiState,
+                    onNewGame = { navController.navigate("game?isNewGame=true") },
+                    onContinueGame = { navController.navigate("game?isNewGame=false") },
+                    backupSlot = {
+                        com.recipefordisaster.app.ui.backup.BackupButtons(
+                            showRestore = true,
+                            replacesGame = uiState.hasExistingSave && !uiState.savedGameIsOver,
+                            onRestored = { viewModel.refresh() },
+                        )
+                    },
+                )
             }
 
-            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+            composable(
+                route = ROUTE_GAME,
+                arguments = listOf(navArgument(ARG_IS_NEW_GAME) { type = NavType.BoolType; defaultValue = false }),
+            ) { backStackEntry ->
+                val isNewGame = backStackEntry.arguments?.getBoolean(ARG_IS_NEW_GAME) ?: false
+                val viewModel: GameViewModel = viewModel(
+                    factory = GameViewModelFactory(appContainer.gameRepository, appContainer.dayTickEngine),
+                )
 
-            GameScreen(
-                uiState = uiState,
-                actions = viewModel.actions(),
-                onBackToStart = {
-                    navController.popBackStack(ROUTE_START, inclusive = false)
-                },
-            )
+                LaunchedEffect(Unit) {
+                    if (isNewGame) viewModel.startNewGame() else viewModel.continueGame()
+                }
+
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+                GameScreen(
+                    uiState = uiState,
+                    actions = viewModel.actions(),
+                    onBackToStart = {
+                        navController.popBackStack(ROUTE_START, inclusive = false)
+                    },
+                )
+            }
         }
     }
 }

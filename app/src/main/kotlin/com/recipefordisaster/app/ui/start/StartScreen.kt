@@ -57,6 +57,8 @@ fun StartScreen(
     onNewGame: () -> Unit,
     onContinueGame: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Whatever goes under the buttons: backing up and restoring (see [com.recipefordisaster.app.ui.backup.BackupButtons]). */
+    backupSlot: @Composable () -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -159,6 +161,7 @@ fun StartScreen(
                     Text(stringResource(R.string.look_button), style = MaterialTheme.typography.titleMedium, color = WoodBrown)
                 }
                 if (choosingLook) com.recipefordisaster.app.ui.player.PlayerLookDialog(onClose = { choosingLook = false })
+                backupSlot()
             }
         }
     }
