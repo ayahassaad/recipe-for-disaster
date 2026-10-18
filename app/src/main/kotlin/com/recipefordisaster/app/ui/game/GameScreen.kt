@@ -240,6 +240,8 @@ fun GameScreen(
                                 Text(stringResource(R.string.unlocked_button))
                             }
                             if (showUnlocked) UnlockedDialog(uiState.state, onClose = { showUnlocked = false })
+                            // A copy of the game to keep safe (putting one back is done from the start screen).
+                            com.recipefordisaster.app.ui.backup.BackupButtons(showRestore = false, replacesGame = false)
                             // For players who'd rather have the whole game at once (only in the morning, so a night isn't changed under you).
                             if (uiState.night == null && uiState.report == null) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
