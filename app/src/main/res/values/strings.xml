@@ -376,6 +376,18 @@
     <string name="costs_bills">Bills and supplies</string>
     <string name="costs_upkeep">%1$s upkeep</string>
     <string name="costs_interest">Loan interest</string>
+    <string name="bank_open">The bank</string>
+    <string name="bank_title">The bank</string>
+    <string name="bank_owe" tools:ignore="PluralsCandidate">You owe the bank %1$d coins.</string>
+    <string name="bank_owe_nothing">You don\'t owe the bank anything.</string>
+    <string name="bank_interest" tools:ignore="PluralsCandidate">Interest: %1$d coins a day (%2$d%% of what you owe).</string>
+    <string name="bank_borrow" tools:ignore="PluralsCandidate">Borrow %1$d</string>
+    <string name="bank_repay" tools:ignore="PluralsCandidate">Pay back %1$d</string>
+    <string name="bank_nochange">No change today</string>
+    <string name="bank_less">Less</string>
+    <string name="bank_more">More</string>
+    <string name="bank_limit" tools:ignore="PluralsCandidate">The bank lends up to %1$d coins in all. You can pay back any time.</string>
+    <string name="bank_close">Done</string>
     <string name="costs_total">Every day</string>
     <string name="costs_note">Paid whether or not anyone comes in. Food is extra, when you buy it.</string>
     <string name="costs_close">Got it</string>
