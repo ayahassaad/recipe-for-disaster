@@ -831,6 +831,14 @@ private fun ResultsPlay(
 ) {
     var showBill by remember { mutableStateOf(false) }
     val event = report.event
+    // A night that lost money, or the end of the run, gets a sad trombone.
+    val resultSounds = com.recipefordisaster.app.ui.sound.Sounds.get(androidx.compose.ui.platform.LocalContext.current)
+    LaunchedEffect(report) {
+        if (report.books.profitOrLoss < 0 || gameOver) {
+            kotlinx.coroutines.delay(500)
+            resultSounds.play(com.recipefordisaster.app.ui.sound.Sfx.TROMBONE)
+        }
+    }
     val baseModel = remember(report) { sceneModelFor(report.startOfService, emptyList(), hiringOpen = false) }
     // Overnight, some events show up in the room itself.
     val model = if (event != null) {
