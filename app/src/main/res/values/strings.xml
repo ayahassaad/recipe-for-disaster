@@ -356,6 +356,7 @@
     <!-- Game over -->
     <string name="final_title">Final bill</string>
     <string name="final_bankrupt">The restaurant ran out of money.</string>
+    <string name="final_foreclosed">The bank took the restaurant: the loan was never paid back.</string>
     <string name="final_condemned">Nobody wants to eat here anymore.</string>
     <string name="final_closed">The restaurant has closed.</string>
     <string name="final_days">Days open</string>

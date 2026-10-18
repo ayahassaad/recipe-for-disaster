@@ -104,10 +104,13 @@ internal fun BillReceipt(report: DayReport, modifier: Modifier = Modifier) {
 /** The run is over: the last bill, with the totals for the whole run. */
 @Composable
 internal fun FinalBillScreen(state: GameState, onBackToStart: () -> Unit, modifier: Modifier = Modifier) {
+    val foreclosed = com.recipefordisaster.domain.economy.Loans.foreclosed(state) && state.restaurant.status == RestaurantStatus.BANKRUPT
     val cause = stringResource(
-        when (state.restaurant.status) {
-            RestaurantStatus.BANKRUPT -> R.string.final_bankrupt
-            RestaurantStatus.CONDEMNED -> R.string.final_condemned
+        when {
+            // The bank took it over a loan that was a week late.
+            foreclosed -> R.string.final_foreclosed
+            state.restaurant.status == RestaurantStatus.BANKRUPT -> R.string.final_bankrupt
+            state.restaurant.status == RestaurantStatus.CONDEMNED -> R.string.final_condemned
             else -> R.string.final_closed
         },
     )
