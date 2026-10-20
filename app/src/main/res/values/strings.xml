@@ -312,6 +312,8 @@
     <string name="diet_vegetarian">vegetarian</string>
     <string name="diet_vegan">vegan</string>
     <string name="scene_tables">Tables: see how many you have, or buy more</string>
+    <string name="tables_add_button" tools:ignore="PluralsCandidate">+ Add a table (%1$s)</string>
+    <string name="tables_ordered_button">Table ordered. Tap to change.</string>
     <string name="tables_title">Tables</string>
     <plurals name="tables_have">
         <item quantity="one">You have %1$d table.</item>

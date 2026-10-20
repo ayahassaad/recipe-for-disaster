@@ -296,7 +296,8 @@ private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, onMe
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding().navigationBarsPadding()) {
         Hud(day = uiState.state.day, cash = uiState.cashNow, reputation = morning.restaurant.reputation, subtitle = stringResource(R.string.daily_costs, coins(costs.total)), onMenu = onMenu,
             onHire = if (model.hiring) null else ({ open = SceneTarget.HiringSign }),
-            onSubtitle = { showCosts = true }, onCash = { showBank = true })
+            onSubtitle = { showCosts = true }, onCash = { showBank = true },
+            tablesLabel = tablesButtonLabel(uiState), onTables = { open = SceneTarget.Tables })
         if (showCosts) CostsDialog(morning, onClose = { showCosts = false }, onBank = { showCosts = false; showBank = true })
         if (showBank) BankDialog(uiState, actions, onClose = { showBank = false })
         RestaurantScene(
@@ -372,7 +373,7 @@ private fun MorningPlay(uiState: GameUiState.Playing, actions: GameActions, onMe
 
 /** Day, money and stars along the top, under the awning. */
 @Composable
-private fun Hud(day: Int, cash: Long, reputation: Int, subtitle: String, onMenu: () -> Unit, onPause: (() -> Unit)? = null, onHire: (() -> Unit)? = null, onSubtitle: (() -> Unit)? = null, onCash: (() -> Unit)? = null) {
+private fun Hud(day: Int, cash: Long, reputation: Int, subtitle: String, onMenu: () -> Unit, onPause: (() -> Unit)? = null, onHire: (() -> Unit)? = null, onSubtitle: (() -> Unit)? = null, onCash: (() -> Unit)? = null, tablesLabel: String? = null, onTables: (() -> Unit)? = null) {
     Column {
         Row(modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 16.dp, top = 2.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             // Back to the start screen (asks first), and during service a pause button under it.
@@ -434,6 +435,15 @@ private fun Hud(day: Int, cash: Long, reputation: Int, subtitle: String, onMenu:
                     style = MaterialTheme.typography.bodyMedium.let { if (onSubtitle != null) it.copy(textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline) else it },
                     modifier = if (onSubtitle != null) Modifier.clickable(onClick = onSubtitle) else Modifier,
                 )
+                // Room for another table: said out loud, because tapping a table to find the shop is easy to miss.
+                if (tablesLabel != null && onTables != null) {
+                    Text(
+                        tablesLabel,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline),
+                        color = LeafGreen,
+                        modifier = Modifier.clickable(onClick = onTables).padding(top = 2.dp),
+                    )
+                }
             }
         }
     }
@@ -883,6 +893,18 @@ private fun ResultsPlay(
         ModalBottomSheet(onDismissRequest = { showBill = false }, sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
             Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) { BillReceipt(report) }
         }
+    }
+}
+
+/** The words for the "add a table" button: the price of the next one, or that one is ordered; null when there's nothing to add. */
+@Composable
+private fun tablesButtonLabel(uiState: GameUiState.Playing): String? {
+    val have = uiState.state.restaurant.tables
+    val price = com.recipefordisaster.domain.restaurant.TableGrowth.nextTablePrice(have)
+    return when {
+        uiState.plan.buyTable -> stringResource(R.string.tables_ordered_button)
+        price != null -> stringResource(R.string.tables_add_button, coins(price))
+        else -> null
     }
 }
 
