@@ -308,6 +308,9 @@ class GameViewModel(
         plan.copy(loanChange = com.recipefordisaster.domain.economy.Loans.clamp(state, plan.loanChange + delta))
     }
 
+    /** A treat for the team from the tip jar; tapping again takes it back. */
+    fun toggleTreat(treat: com.recipefordisaster.domain.employee.Treat) = editPlan { it.copy(treats = it.treats.toggle(treat)) }
+
     fun toggleRepair(id: EquipmentId) = editPlan { it.copy(repairs = it.repairs.toggle(id)) }
     fun toggleUpgrade(id: EquipmentId) = editPlan { it.copy(upgrades = it.upgrades.toggle(id)) }
 

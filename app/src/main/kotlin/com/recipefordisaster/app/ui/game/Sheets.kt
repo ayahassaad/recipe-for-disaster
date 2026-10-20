@@ -66,6 +66,7 @@ internal fun SheetContent(target: SceneTarget, uiState: GameUiState.Playing, act
             SceneTarget.MenuBoard -> MenuSheet(uiState, actions)
             SceneTarget.Mop -> CleaningSheet(uiState, actions)
             SceneTarget.Tables -> TablesSheet(uiState, actions)
+            SceneTarget.TipJar -> TipJarSheet(uiState, actions)
             SceneTarget.HiringSign -> HiringSheet(uiState, actions)
             is SceneTarget.Staff -> {
                 val person = (uiState.state.employees + uiState.state.applicants).firstOrNull { it.id == target.id }
@@ -620,6 +621,39 @@ private fun BigAction(text: String, enabled: Boolean, onClick: () -> Unit) {
 }
 
 private enum class StaffAction { DAY_OFF, LET_GO }
+
+/** The tip jar: what's in it, and treats to spend it on, which cheer the whole team up. */
+@Composable
+private fun TipJarSheet(uiState: GameUiState.Playing, actions: GameActions) {
+    // What's left once this morning's treats are paid for.
+    val left = uiState.morning.tipJar
+    SectionTitle(stringResource(R.string.jar_title))
+    Text(stringResource(R.string.jar_pitch), style = MaterialTheme.typography.bodyLarge)
+    Text(stringResource(R.string.jar_coins, left), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+    com.recipefordisaster.domain.employee.Treat.entries.forEach { treat ->
+        val chosen = treat in uiState.plan.treats
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(treatName(treat), style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.jar_cheer, treat.morale, treat.stress), style = MaterialTheme.typography.bodyMedium, color = LeafGreen)
+            }
+            if (chosen) {
+                OutlinedButton(onClick = { actions.onToggleTreat(treat) }) { Text(stringResource(R.string.undo)) }
+            } else {
+                FilledTonalButton(onClick = { actions.onToggleTreat(treat) }, enabled = left >= treat.cost) { Text(stringResource(R.string.jar_buy, treat.cost)) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun treatName(treat: com.recipefordisaster.domain.employee.Treat): String = stringResource(
+    when (treat) {
+        com.recipefordisaster.domain.employee.Treat.COFFEE_AND_PASTRIES -> R.string.treat_coffee
+        com.recipefordisaster.domain.employee.Treat.PIZZA_FOR_THE_TEAM -> R.string.treat_pizza
+        com.recipefordisaster.domain.employee.Treat.AN_EVENING_OUT -> R.string.treat_evening
+    },
+)
 
 @Composable
 private fun TablesSheet(uiState: GameUiState.Playing, actions: GameActions) {

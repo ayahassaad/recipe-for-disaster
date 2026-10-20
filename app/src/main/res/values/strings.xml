@@ -542,4 +542,13 @@
         <item>Sat</item>
         <item>Sun</item>
     </string-array>
+    <string name="scene_tip_jar">Tip jar</string>
+    <string name="jar_title">The tip jar</string>
+    <string name="jar_pitch">Every tip a guest leaves goes in the jar. Spend it on treats for the team: they all work happier and feel less frayed.</string>
+    <string name="jar_coins">In the jar: %1$d coins</string>
+    <string name="jar_cheer">Everyone\'s mood +%1$d, stress −%2$d</string>
+    <string name="jar_buy">%1$d coins</string>
+    <string name="treat_coffee">Coffee and pastries</string>
+    <string name="treat_pizza">Pizza for the team</string>
+    <string name="treat_evening">An evening out</string>
 </resources>

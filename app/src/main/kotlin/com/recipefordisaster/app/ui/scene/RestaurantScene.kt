@@ -14,6 +14,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.clipRect
@@ -39,6 +40,8 @@ sealed interface SceneTarget {
     data object HiringSign : SceneTarget
     /** Any table: opens the "more tables" popup. */
     data object Tables : SceneTarget
+    /** The jar of tips on the counter: spend it on treats for the team. */
+    data object TipJar : SceneTarget
     data class Staff(val id: EmployeeId) : SceneTarget
 }
 
@@ -70,6 +73,8 @@ data class SceneModel(
     val ovenLevel: Int = 1,
     /** How many tables are in the dining room. */
     val tableCount: Int = 6,
+    /** Coins in the tip jar. */
+    val tipJar: Long = 0,
     val fridgeCondition: Int = 100,
     val fridgeLevel: Int = 1,
     /** The restaurant's name, for the sign over the door. */
@@ -96,6 +101,7 @@ data class SceneLabels(
     val hiringSign: String,
     val dishSign: String,
     val tables: String = "",
+    val tipJar: String = "",
     val staff: (StaffFigure) -> String,
 )
 
@@ -156,6 +162,7 @@ fun RestaurantScene(
                 drawTables(ServiceFloor.layout(model.tableCount))
                 // Room for one more: a faint outline where the next table will go.
                 if (model.tableCount < ServiceFloor.TABLE_COUNT) drawTableGhost(ServiceFloor.tables[model.tableCount])
+                drawIdleTipJar(text, model.tipJar)
                 drawLampGlow(evening, ServiceFloor.layout(model.tableCount))
                 // The candles stand on the tables, so people go in front of them.
                 drawLamps(evening, ServiceFloor.layout(model.tableCount), time)
@@ -207,7 +214,7 @@ fun RestaurantScene(
                 // One tap area per table, all opening the same popup.
                 ServiceFloor.layout(model.tableCount).let { layout ->
                     layout.tables.map { SceneTarget.Tables to labels.tables }
-                } + (if (model.hiring) listOf(SceneTarget.HiringSign to labels.hiringSign) else emptyList()) +
+                } + listOf(SceneTarget.TipJar to labels.tipJar) + (if (model.hiring) listOf(SceneTarget.HiringSign to labels.hiringSign) else emptyList()) +
                 staffSpots.map { (figure, _) -> SceneTarget.Staff(figure.id) to labels.staff(figure) } +
                 // The mop bucket last, so its tap sits on top of the nearest table's.
                 (if (model.mopOut) listOf(SceneTarget.Mop to labels.mop) else emptyList())
@@ -251,6 +258,21 @@ internal fun staffPositions(staff: List<StaffFigure>): List<Pair<StaffFigure, Po
 /** The mop bucket's tap area: the whole corner around it, mop handle and all, so it's easy to hit. */
 internal val MOP_TAP = Rect(0f, SceneLayout.mopBucket.top - 9f, SceneLayout.mopBucket.right + 6f, SceneLayout.HEIGHT)
 
+/** The tip jar's tap area: a bit bigger than the jar itself. */
+private val TIP_JAR_TAP = Rect(SceneLayout.TIP_JAR.x - 5f, SceneLayout.TIP_JAR.y - 5f, SceneLayout.TIP_JAR.x + 5f, SceneLayout.TIP_JAR.y + 4f)
+
+/** The tip jar on the counter in the morning, fuller the more tips are in it (full at about 100). */
+private fun Pen.drawIdleTipJar(text: androidx.compose.ui.text.TextMeasurer, coins: Long) {
+    val j = SceneLayout.TIP_JAR
+    oval(j.x, j.y + 2.6f, 2.4f, 0.6f, Color(0x33000000))
+    val fill = (coins / 100f).coerceIn(0f, 1f)
+    if (fill > 0f) box(j.x - 1.8f, j.y + 2.4f - 4f * fill, 3.6f, 4f * fill, Palette.gold, radius = 0.6f)
+    box(j.x - 2.2f, j.y - 2f, 4.4f, 4.6f, Color(0x55DDEEF7), radius = 1.2f)
+    box(j.x - 2.4f, j.y - 2.6f, 4.8f, 1f, Color(0xCCB0BEC5), radius = 0.4f)
+    line(j.x - 1.4f, j.y - 1f, j.x - 1.4f, j.y + 1.6f, Color(0x99FFFFFF), 0.3f)
+    centeredText(text, "TIPS", Point(j.x, j.y + 0.6f), size = 1.4f, color = Palette.ink, bold = true)
+}
+
 private fun rectFor(target: SceneTarget, staffSpots: List<Pair<StaffFigure, Point>>): Rect? = when (target) {
     SceneTarget.Oven -> SceneLayout.oven
     SceneTarget.Fridge -> SceneLayout.fridge
@@ -259,6 +281,7 @@ private fun rectFor(target: SceneTarget, staffSpots: List<Pair<StaffFigure, Poin
     SceneTarget.Mop -> MOP_TAP
     SceneTarget.HiringSign -> SceneLayout.hiringSign
     SceneTarget.Tables -> null
+    SceneTarget.TipJar -> TIP_JAR_TAP
     is SceneTarget.Staff -> staffSpots.firstOrNull { it.first.id == target.id }?.second?.let { Rect(it.x - 5f, it.y - 9f, it.x + 5f, it.y + 4f) }
 }
 
