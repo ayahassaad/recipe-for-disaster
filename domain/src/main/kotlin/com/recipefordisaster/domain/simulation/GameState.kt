@@ -82,6 +82,8 @@ data class GameState(
     val decorations: Set<com.recipefordisaster.domain.restaurant.Decoration> = emptySet(),
     /** Guests who keep coming back (see [com.recipefordisaster.domain.customer.Regulars]). */
     val regulars: List<com.recipefordisaster.domain.customer.Regular> = emptyList(),
+    /** Things guests left behind, waiting to be given back (see [com.recipefordisaster.domain.restaurant.LostAndFound]). */
+    val lostAndFound: List<com.recipefordisaster.domain.restaurant.LostItem> = emptyList(),
     /** Coins set aside from tips, to spend on treats for the team (see [com.recipefordisaster.domain.employee.Treat]). */
     val tipJar: Long = 0,
     /** This week's goal, from the second week on (see [com.recipefordisaster.domain.goal.WeeklyGoals]). */
@@ -160,6 +162,8 @@ data class PlayerDecisions(
     val deepClean: Boolean = false,
     /** Buy one more table (only possible once the free ones have all arrived). */
     val buyTable: Boolean = false,
+    /** Things in the lost and found to give back to their owners this morning (by id). */
+    val givenBack: Set<Int> = emptySet(),
     /** Treats for the team, paid for from the tip jar. */
     val treats: Set<com.recipefordisaster.domain.employee.Treat> = emptySet(),
     /** Decorations to buy for the dining room. */
