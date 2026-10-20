@@ -11,6 +11,8 @@ import kotlinx.serialization.Serializable
 enum class Feature(val day: Int, internal val legacyDay: Int?) {
     SPILLS(day = 3, legacyDay = 3),
     DRINKS(day = 6, legacyDay = 1),
+    /** A guest waits by the door for a takeaway: you take their order and hand over their food there. */
+    TAKEAWAY(day = 9, legacyDay = null),
     CAT(day = 8, legacyDay = 3),
     FAMILIES(day = 10, legacyDay = 2),
     CELEBRITY(day = 12, legacyDay = 3),

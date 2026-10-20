@@ -46,6 +46,7 @@ internal data class IntroductionText(@StringRes val title: Int, @StringRes val b
 internal fun introductionText(feature: Feature): IntroductionText = when (feature) {
     Feature.SPILLS -> IntroductionText(R.string.intro_spills_title, R.string.intro_spills)
     Feature.DRINKS -> IntroductionText(R.string.intro_drinks_title, R.string.intro_drinks)
+    Feature.TAKEAWAY -> IntroductionText(R.string.intro_takeaway_title, R.string.intro_takeaway)
     Feature.CAT -> IntroductionText(R.string.intro_cat_title, R.string.intro_cat)
     Feature.FAMILIES -> IntroductionText(R.string.intro_families_title, R.string.intro_families)
     Feature.CELEBRITY -> IntroductionText(R.string.intro_celebrity_title, R.string.intro_celebrity)
@@ -89,6 +90,7 @@ internal fun introductionSpot(night: ServiceNight, feature: Feature): SceneLayou
     return when (feature) {
         Feature.SPILLS -> night.messesOnFloor.firstOrNull()?.at?.toPoint()
         Feature.DRINKS -> tableOf(night.parties.firstOrNull { it.stage == ServiceNight.Stage.WANTS_DRINKS })
+        Feature.TAKEAWAY -> com.recipefordisaster.domain.service.ServiceFloor.takeawayDoor.toPoint()
         Feature.CAT -> night.catPose()?.at?.toPoint()
         Feature.FAMILIES -> tableOf(night.parties.firstOrNull { it.family && it.stage >= ServiceNight.Stage.DECIDING }) ?: door
         Feature.CELEBRITY, Feature.CRITIC, Feature.INSPECTOR -> tableOf(night.parties.firstOrNull { it.special != null && it.stage >= ServiceNight.Stage.DECIDING }) ?: door

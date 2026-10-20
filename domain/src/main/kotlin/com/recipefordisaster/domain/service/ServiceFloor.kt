@@ -102,6 +102,10 @@ object ServiceFloor {
     /** Where spills can happen: the open floor between the rows of tables, clear of where waiters stand. */
     val spillSpots: List<FloorPoint> = listOf(78f, 106f).flatMap { y -> listOf(14f, 38f, 62f, 86f).map { x -> FloorPoint(x, y) } }
     val door = FloorPoint(50f, 146f)
+
+    /** Where a takeaway guest waits, right of the door and clear of the tables, and where you stand to deal with them. */
+    val takeawayDoor = FloorPoint(91f, 131f)
+    val takeawayStand = FloorPoint(82f, 131f)
     const val AISLE_X = 50f
 
     /**

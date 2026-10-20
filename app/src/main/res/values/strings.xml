@@ -480,6 +480,8 @@
     <string name="intro_power">The lights are out and the kitchen has stopped. Tap the fuse box by the door to get them back on.</string>
     <string name="intro_double_title">Double trouble!</string>
     <string name="intro_double">Some nights, a second thing goes wrong once the first is sorted. Stay sharp!</string>
+    <string name="intro_takeaway_title">Takeaway</string>
+    <string name="intro_takeaway">Someone is waiting by the door for a takeaway. Tap them to take their order, give it to the chef as usual, then pick up their food and tap them again to hand it over. They never want a drink, and they won\'t wait forever!</string>
     <string name="new_tonight">New tonight: %1$s</string>
     <string name="hint_quiet_night">A quieter night tonight. Catch your breath!</string>
     <string name="feature_guest_requests">guests start asking for things only you can fix. Watch the tables!</string>
@@ -497,6 +499,7 @@
     <string name="feature_pan_fire">pans can catch fire! Tap the stove to put it out.</string>
     <string name="feature_inspector">the health inspector might visit. Keep the floor clean!</string>
     <string name="feature_power_cut">the power can cut out. Tap the fuse box by the door.</string>
+    <string name="feature_takeaway">some guests will wait by the door for a takeaway.</string>
     <string name="feature_double_trouble">some nights, two things will go wrong.</string>
     <string name="menu_variety_more">A big menu: %1$d%% more guests come tonight.</string>
     <string name="menu_variety_fewer">A small menu: %1$d%% fewer guests come tonight. Serve more dishes to draw more people.</string>
@@ -557,4 +560,9 @@
     <string name="lost_item">%1$s\'s %2$s</string>
     <string name="lost_found_on">Found on day %1$d</string>
     <string name="lost_give_back">Give it back</string>
+    <string name="night_takeaway_guest">Takeaway guest by the door</string>
+    <string name="night_takeaway_plate">Takeaway food for the door</string>
+    <string name="hint_takeaway_order">Someone by the door wants a takeaway: tap them to take their order.</string>
+    <string name="hint_takeaway_pickup">The takeaway is ready on the counter: pick it up.</string>
+    <string name="hint_takeaway_handover">Take the food to the guest by the door and tap them to hand it over.</string>
 </resources>

@@ -9,6 +9,7 @@ import com.recipefordisaster.domain.progression.Feature
 internal fun featureLine(feature: Feature): Int = when (feature) {
     Feature.SPILLS -> R.string.feature_spills
     Feature.DRINKS -> R.string.feature_drinks
+    Feature.TAKEAWAY -> R.string.feature_takeaway
     Feature.CAT -> R.string.feature_cat
     Feature.FAMILIES -> R.string.feature_families
     Feature.CELEBRITY -> R.string.feature_celebrity
