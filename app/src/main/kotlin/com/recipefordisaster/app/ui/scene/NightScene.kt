@@ -1537,7 +1537,7 @@ private fun Pen.drawPhone(seat: Point, clock: Float, sleeve: Color) {
  * drops in with a little jiggle, and the jar fills up as the night's takings grow.
  */
 private fun Pen.drawTipJar(text: TextMeasurer, night: ServiceNight, clock: Float) {
-    val jar = Point(38f, SceneLayout.counter.top + 0.6f)
+    val jar = SceneLayout.TIP_JAR
     // Coins in flight from tables that have just paid.
     var landed = 0f
     val layout = night.layout

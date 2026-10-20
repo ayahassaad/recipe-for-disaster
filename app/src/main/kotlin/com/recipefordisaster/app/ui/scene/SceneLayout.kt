@@ -42,6 +42,9 @@ object SceneLayout {
 
     // The pass: the counter between kitchen and dining room, where plates are handed over.
     val counter = Rect(4f, KITCHEN_BOTTOM, 96f, 44f)
+
+    /** Where the tip jar stands on the counter, by the chef. */
+    val TIP_JAR get() = Point(38f, counter.top + 0.6f)
     val pickup = ServiceFloor.pass.toPoint()
 
     /** The bar: the stretch of counter between the chef and the tip jar, where drinks are poured. */
