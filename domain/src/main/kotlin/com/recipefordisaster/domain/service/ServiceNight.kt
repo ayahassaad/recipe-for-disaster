@@ -66,6 +66,10 @@ data class ServiceNight(
     val dirtiedAt: Map<Int, Float> = emptyMap(),
     /** Spills, rolled when the doors opened: each shows up at its time and stays until someone mops it. */
     val messes: List<Mess> = emptyList(),
+    /** Whether the tables next to each other affect one another's mood (not on the very first nights). */
+    val neighboursReact: Boolean = false,
+    /** The latest cheering up and souring between tables, for the picture to show. */
+    val reactions: List<Reaction> = emptyList(),
     /** Which of tonight's guests (by customer id) are regulars: more patient, and they tip better. */
     val regulars: Set<String> = emptySet(),
     /** Whether a host is on the door tonight: guests wait longer, and one more party fits inside. */
@@ -176,6 +180,33 @@ data class ServiceNight(
         val crumbs: Boolean = false,
     )
 
+    /** A table [from] cheering up (or souring) the table [to] next to it, at [at]. */
+    @Serializable
+    data class Reaction(val from: Int, val to: Int, val cheer: Boolean, val at: Float)
+
+    /** The tables right next to [table]: across the aisle and in front or behind, not diagonally. */
+    fun neighbours(table: Int): List<Int> {
+        val here = layout.tables.getOrNull(table) ?: return emptyList()
+        val reach = NEIGHBOUR_REACH * layout.scale
+        return layout.tables.indices.filter { it != table && layout.tables[it].distanceTo(here) <= reach }
+    }
+
+    /**
+     * What happens at [from] reaches the guests at the tables next to it who are sitting down: a happy table
+     * cheers them up ([delta] above zero), a table that storms out sours them.
+     */
+    private fun reactAround(from: Int?, delta: Int): ServiceNight {
+        if (!neighboursReact || from == null) return this
+        val near = neighbours(from)
+        val affected = parties.filter { it.table in near && it.stage in Stage.DECIDING..Stage.EATING }
+        if (affected.isEmpty()) return this
+        val ids = affected.map { it.id }.toSet()
+        return copy(
+            parties = parties.map { if (it.id in ids) it.copy(neighbourMood = (it.neighbourMood + delta).coerceIn(-MAX_NEIGHBOUR_MOOD, MAX_NEIGHBOUR_MOOD)) else it },
+            reactions = (reactions + affected.map { Reaction(from, it.table!!, delta > 0, time) }).takeLast(MAX_REACTIONS),
+        )
+    }
+
     /** Spills on the floor right now. */
     val messesOnFloor: List<Mess> get() = messes.filter { !it.cleaned && it.appearsAt <= time }
 
@@ -253,6 +284,8 @@ data class ServiceNight(
         val wantsDrinks: Boolean = true,
         /** Each guest's favourite dish, by their index in [arrivalOrder] (not everyone has one). */
         val favourites: Map<Int, DishId> = emptyMap(),
+        /** How the tables next to them have put them in the mood: cheered up (above zero) or soured (below). */
+        val neighbourMood: Int = 0,
     ) {
         val seated: Boolean get() = stage in Stage.DECIDING..Stage.LEAVING_ANGRY
         val occupiesTable: Boolean get() = table != null && stage in Stage.WALKING_TO_TABLE..Stage.LEAVING_ANGRY
@@ -924,6 +957,9 @@ data class ServiceNight(
             },
         ).updateParty(partyId) {
             if (inLine) it.copy(stage = Stage.DONE, stageSince = time) else it.copy(stage = Stage.LEAVING_ANGRY, stageSince = time, until = time + LEAVE, heldBy = null)
+        }.let { stormed ->
+            // Watching a table storm out spoils the evening for the ones beside it.
+            if (inLine) stormed else stormed.reactAround(party.table, -NEIGHBOUR_SOUR)
         }
     }
 
@@ -1028,7 +1064,7 @@ data class ServiceNight(
                     val treat = night.decorJoy + (if (party.chefsSpecial) CHEFS_SPECIAL_JOY else 0) +
                         // Getting their favourite dish makes anyone's night.
                         (if (party.favourites[guest] == dishId) FAVOURITE_JOY else 0) +
-                        (if (party.requestFixed) REQUEST_FIXED_JOY else 0) - requestPenalty
+                        (if (party.requestFixed) REQUEST_FIXED_JOY else 0) - requestPenalty + party.neighbourMood
                     val satisfaction = (ServiceSimulator.resolveSatisfaction(customer, dish, waitedMinutes, kitchenQualityBonus) - mess + treat - night.pickiness).coerceIn(0, 100)
                         results = results + (guest to CustomerServiceOutcome(customer, dish, satisfaction, waitedMinutes))
                     }
@@ -1042,6 +1078,8 @@ data class ServiceNight(
                         .updateParty(party.id) { it.copy(stage = Stage.LEAVING_HAPPY, stageSince = time, until = time + LEAVE, tip = tipFor(party, results)) }
                     // Children drop food: a family leaves a mess on the floor by their table.
                     if (party.family) night = night.familyMess(party)
+                    // A table that had a wonderful time cheers up the tables next to it.
+                    if (party.guests.all { (results[it]?.satisfaction ?: 0) >= CHEER_SATISFACTION }) night = night.reactAround(party.table, NEIGHBOUR_CHEER)
                     party.special?.let { special ->
                         // The inspector judges the room, not the meal: any spill or other dirty table counts against you.
                         val pleased = when (special) {
@@ -1443,6 +1481,17 @@ data class ServiceNight(
         private const val CAT_WALKING = 0.5f
         private const val CAT_JOY = 6
 
+        /** Tables this close (in a full-size room) are neighbours; a happy table lifts them by [NEIGHBOUR_CHEER], a storm-out sours them by [NEIGHBOUR_SOUR]. */
+        private const val NEIGHBOURS_REACT_FROM_DAY = 4
+        private const val NEIGHBOUR_REACH = 48f
+        private const val NEIGHBOUR_CHEER = 3
+        private const val NEIGHBOUR_SOUR = 4
+        private const val MAX_NEIGHBOUR_MOOD = 8
+        private const val MAX_REACTIONS = 8
+
+        /** A table counts as having a wonderful time at this satisfaction or more. */
+        private const val CHEER_SATISFACTION = 85
+
         /** How long a trip takes, for the scene: when what they carried lands, and when they're back on their feet. */
         const val TRIP_LAND = 0.8f
         const val TRIP_TOTAL = 2.2f
@@ -1801,6 +1850,7 @@ data class ServiceNight(
                 introduced = state.introductionsSeen,
                 fridgeBroken = fridgeBrokenAtOpen,
                 regulars = setup.regulars,
+                neighboursReact = state.day >= NEIGHBOURS_REACT_FROM_DAY,
                 hosted = state.employees.any { it.status == EmployeeStatus.ACTIVE && it.role == Role.HOST },
             )
         }
