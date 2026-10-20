@@ -233,6 +233,11 @@ class DefaultDayTickEngine(
         regularsNow.joined.forEach { dayLog += SimulationLogEntry(state.day, "${it.name} loved it here and is now a regular.", LogTone.GOOD) }
         regularsNow.lost.forEach { dayLog += SimulationLogEntry(state.day, "${it.name}, one of your regulars, left unhappy and won't be back.", LogTone.BAD) }
 
+        // Guests who had a good evening sometimes leave something behind.
+        val box = com.recipefordisaster.domain.restaurant.LostAndFound.afterNight(start, serviceResult.outcomes)
+        box.found.forEach { dayLog += SimulationLogEntry(state.day, "${it.owner} left a ${it.what} behind. It's in the lost and found.", LogTone.NEUTRAL) }
+        box.thrownOut.forEach { dayLog += SimulationLogEntry(state.day, "The lost and found was full, so ${it.owner}'s ${it.what} went in the bin.", LogTone.NEUTRAL) }
+
         val updatedDishTotals = start.dishSalesTotals.toMutableMap()
         serviceResult.dishesSold.forEach { (dishId, count) -> updatedDishTotals.merge(dishId.value, count, Int::plus) }
 
@@ -275,6 +280,7 @@ class DefaultDayTickEngine(
             weeklyGoal = goalAfter,
             tipJar = start.tipJar + serviceResult.tips,
             regulars = regularsNow.regulars,
+            lostAndFound = box.items,
         ).withStatusChecked().let { s ->
             // A new week, a new goal.
             if (com.recipefordisaster.domain.goal.WeeklyGoals.startsAWeek(nextDay)) s.copy(weeklyGoal = com.recipefordisaster.domain.goal.WeeklyGoals.newGoal(s)) else s

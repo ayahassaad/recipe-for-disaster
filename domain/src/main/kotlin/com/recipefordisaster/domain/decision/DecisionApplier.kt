@@ -154,6 +154,15 @@ object DecisionApplier {
             note("The team got ${com.recipefordisaster.domain.employee.Treats.describe(treat)}. Spirits are up.", LogTone.GOOD)
         }
 
+        // Lost and found: things handed back are gone from the box, and their owners are grateful.
+        if (decisions.givenBack.isNotEmpty()) {
+            val returning = current.lostAndFound.filter { it.id in decisions.givenBack }
+            if (returning.isNotEmpty()) {
+                current = com.recipefordisaster.domain.restaurant.LostAndFound.giveBack(current, decisions.givenBack)
+                returning.forEach { note("${it.owner} was thrilled to get their ${it.what} back.", LogTone.GOOD) }
+            }
+        }
+
         // Menu: prices and availability are free to change; new dishes cost a reprint.
         current = current.copy(
             menu = current.menu.map { dish ->
