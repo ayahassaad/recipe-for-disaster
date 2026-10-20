@@ -66,6 +66,8 @@ data class ServiceNight(
     val dirtiedAt: Map<Int, Float> = emptyMap(),
     /** Spills, rolled when the doors opened: each shows up at its time and stays until someone mops it. */
     val messes: List<Mess> = emptyList(),
+    /** Which of tonight's guests (by customer id) are regulars: more patient, and they tip better. */
+    val regulars: Set<String> = emptySet(),
     /** Whether a host is on the door tonight: guests wait longer, and one more party fits inside. */
     val hosted: Boolean = false,
     /** How many tables the restaurant has tonight. */
@@ -1387,7 +1389,8 @@ data class ServiceNight(
         val extra = if (party.chefsSpecial) CHEFS_SPECIAL_TIP else 0L
         // So does serving someone their favourite dish.
         fun favourite(guest: Int) = if (party.favourites[guest] != null && party.favourites[guest] == party.orders.getOrNull(party.guests.indexOf(guest))) FAVOURITE_TIP else 0L
-        return party.guests.sumOf { guest -> if ((results[guest]?.satisfaction ?: 0) >= 55) perGuest + extra + favourite(guest) else 0L }
+        fun regular(guest: Int) = if (arrivalOrder[guest].id.value in regulars) com.recipefordisaster.domain.customer.Regulars.TIP_BONUS else 0L
+        return party.guests.sumOf { guest -> if ((results[guest]?.satisfaction ?: 0) >= 55) perGuest + extra + favourite(guest) + regular(guest) else 0L }
     }
 
     private fun missed(guest: Int, reason: MissedMealReason) =
@@ -1797,6 +1800,7 @@ data class ServiceNight(
                 laterChaos = laterChaos,
                 introduced = state.introductionsSeen,
                 fridgeBroken = fridgeBrokenAtOpen,
+                regulars = setup.regulars,
                 hosted = state.employees.any { it.status == EmployeeStatus.ACTIVE && it.role == Role.HOST },
             )
         }

@@ -74,7 +74,9 @@ class DefaultDayTickEngine(
         val rush = com.recipefordisaster.domain.progression.RushNights.demandPercent(morning.state)
         val over = com.recipefordisaster.domain.progression.RushNights.overCapacityPercent(morning.state)
         val arrivals = CustomerFlow.generateArrivals(morning.state.restaurant, rng, morning.state.pendingDemandModifierPercent + variety + rush, over)
-        return ServiceSetup(original = state, morning = morning, arrivals = arrivals)
+        // Regulars who are coming tonight take the place of some of the strangers.
+        val (withRegulars, regularIds) = com.recipefordisaster.domain.customer.Regulars.welcomeBack(morning.state, arrivals)
+        return ServiceSetup(original = state, morning = morning, arrivals = withRegulars, regulars = regularIds)
     }
 
     /** Steps 3-4: closes the books on a night of service, however it was played, and rolls for an overnight event. */
@@ -226,6 +228,11 @@ class DefaultDayTickEngine(
             dayLog += SimulationLogEntry(state.day, "Ran out of ingredients: $count customer${if (count == 1) "" else "s"} left hungry.", LogTone.BAD)
         }
 
+        // Regulars: tonight's very happy guests may join them, and any they let down are gone.
+        val regularsNow = com.recipefordisaster.domain.customer.Regulars.afterNight(start.copy(day = state.day), serviceResult.outcomes)
+        regularsNow.joined.forEach { dayLog += SimulationLogEntry(state.day, "${it.name} loved it here and is now a regular.", LogTone.GOOD) }
+        regularsNow.lost.forEach { dayLog += SimulationLogEntry(state.day, "${it.name}, one of your regulars, left unhappy and won't be back.", LogTone.BAD) }
+
         val updatedDishTotals = start.dishSalesTotals.toMutableMap()
         serviceResult.dishesSold.forEach { (dishId, count) -> updatedDishTotals.merge(dishId.value, count, Int::plus) }
 
@@ -267,6 +274,7 @@ class DefaultDayTickEngine(
             pendingDemandModifierPercent = celebrityBuzz,
             weeklyGoal = goalAfter,
             tipJar = start.tipJar + serviceResult.tips,
+            regulars = regularsNow.regulars,
         ).withStatusChecked().let { s ->
             // A new week, a new goal.
             if (com.recipefordisaster.domain.goal.WeeklyGoals.startsAWeek(nextDay)) s.copy(weeklyGoal = com.recipefordisaster.domain.goal.WeeklyGoals.newGoal(s)) else s
@@ -352,6 +360,8 @@ data class ServiceSetup(
     val original: GameState,
     val morning: com.recipefordisaster.domain.decision.AppliedDecisions,
     val arrivals: List<com.recipefordisaster.domain.customer.Customer>,
+    /** Which of tonight's guests (by customer id) are regulars. */
+    val regulars: Set<String> = emptySet(),
 )
 
 /** No overnight events after the first this-many nights. */
