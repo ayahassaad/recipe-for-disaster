@@ -23,6 +23,12 @@ sealed interface NightHint {
     data class PickUp(val table: Int, val partyId: Int) : NightHint
     data class DoorWaiting(val table: Int) : NightHint
     data class TakeOrder(val table: Int) : NightHint
+    /** Someone is waiting by the door for a takeaway: take their order. */
+    data class TakeawayOrder(val partyId: Int) : NightHint
+    /** A takeaway is ready on the counter: pick it up. */
+    data class PickUpTakeaway(val partyId: Int) : NightHint
+    /** You're carrying a takeaway: hand it over at the door. */
+    data class HandOver(val partyId: Int) : NightHint
     /** A table would like drinks: take their order. */
     data class TakeDrinks(val table: Int) : NightHint
     /** You've taken drinks orders: pour them at the bar. */
@@ -76,6 +82,7 @@ sealed interface NightHint {
         FixFridge, FixingFridge, FridgeStruggling -> com.recipefordisaster.domain.progression.Feature.FRIDGE_BREAKS
         is CatKnocked -> com.recipefordisaster.domain.progression.Feature.CAT
         is Asking -> com.recipefordisaster.domain.progression.Feature.GUEST_REQUESTS
+        is TakeawayOrder, is PickUpTakeaway, is HandOver -> com.recipefordisaster.domain.progression.Feature.TAKEAWAY
         is StaffAway -> com.recipefordisaster.domain.progression.Feature.STAFF_TROUBLE
         is Chaos -> when (kind) {
             com.recipefordisaster.domain.service.ChaosKind.RAT -> com.recipefordisaster.domain.progression.Feature.RAT
@@ -90,6 +97,9 @@ sealed interface NightHint {
     fun focus(night: ServiceNight): NightFocus? = when (this) {
         is Serve -> NightFocus.Table(table)
         is TakeOrder -> NightFocus.Table(table)
+        is TakeawayOrder -> NightFocus.Guest(partyId)
+        is HandOver -> NightFocus.Guest(partyId)
+        is PickUpTakeaway -> NightFocus.Plate(partyId)
         is TakeDrinks -> NightFocus.Table(table)
         is ServeDrinks -> NightFocus.Table(table)
         PourDrinks -> NightFocus.Bar
@@ -116,7 +126,8 @@ sealed interface NightHint {
             val plans = listOfNotNull(me.errand) + me.queue
             val carrying = me.plates.firstOrNull()?.let { id -> night.parties.firstOrNull { it.id == id } }
             // Whoever has waited longest to order, food or drinks.
-            val ordering = night.parties.filter { it.stage == Stage.READY_TO_ORDER || it.stage == Stage.WANTS_DRINKS }.minByOrNull { it.stageSince }
+            val ordering = night.parties.filter { !it.takeaway && (it.stage == Stage.READY_TO_ORDER || it.stage == Stage.WANTS_DRINKS) }.minByOrNull { it.stageSince }
+            val waitingTakeaway = night.parties.filter { it.takeaway && it.stage == Stage.READY_TO_ORDER }.minByOrNull { it.stageSince }
             val carryingDrinks = me.drinks.firstOrNull()?.let { id -> night.parties.firstOrNull { it.id == id } }
             val dirty = night.dirtyTables.firstOrNull { Errand.VisitTable(it) !in plans }
             // Only dishwashers and bussers clear tables; nobody but you mops.
@@ -137,6 +148,7 @@ sealed interface NightHint {
                 me.errand == Errand.FixFridge -> FixingFridge
                 me.errand == Errand.HandleChaos -> HandlingChaos
                 me.errand is Errand.Pour -> Pouring
+                carrying?.takeaway == true && Errand.VisitTakeaway(carrying.id) !in plans -> HandOver(carrying.id)
                 carrying?.table != null -> Serve(carrying.table!!)
                 carryingDrinks?.table != null -> ServeDrinks(carryingDrinks.table!!)
                 // A broken fridge stops orders, so fixing it comes before almost anything else.
@@ -149,12 +161,14 @@ sealed interface NightHint {
                 asking != null -> Asking(asking.table!!, asking.request!!.kind)
                 me.tickets.isNotEmpty() && !handingIn -> HandIn
                 me.drinkOrders.isNotEmpty() && Errand.VisitBar !in plans && me.freeHands > 0 -> PourDrinks
+                toCollect?.takeaway == true && me.freeHands - collecting.size > 0 -> PickUpTakeaway(toCollect.id)
                 toCollect?.table != null && me.freeHands - collecting.size > 0 -> PickUp(toCollect.table!!, toCollect.id)
                 trayToCollect?.table != null && me.freeHands - collecting.size - collectingTrays.size > 0 -> PickUpDrinks(trayToCollect.table!!, trayToCollect.id)
                 // A special guest has just walked in: worth knowing before anything routine.
                 newcomer != null -> SpecialArrived(newcomer.special!!, newcomer.table)
                 // Guests at the door with nowhere to sit, because a table needs clearing: they'll walk out soon.
                 night.waitingAtDoor.isNotEmpty() && !night.hasFreeTable && dirty != null && nobodyClears && me.freeHands > 0 -> DoorWaiting(dirty)
+                waitingTakeaway != null && Errand.VisitTakeaway(waitingTakeaway.id) !in plans -> TakeawayOrder(waitingTakeaway.id)
                 ordering?.table != null && Errand.VisitTable(ordering.table!!) !in plans ->
                     if (ordering.stage == Stage.WANTS_DRINKS) TakeDrinks(ordering.table!!) else TakeOrder(ordering.table!!)
                 me.dirtyDishes.isNotEmpty() && Errand.VisitDishStation !in plans && (me.freeHands == 0 || dirty == null) -> Wash

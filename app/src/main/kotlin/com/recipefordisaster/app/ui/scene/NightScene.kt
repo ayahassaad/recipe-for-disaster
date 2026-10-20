@@ -39,6 +39,9 @@ data class NightLabels(
     val table: (number: Int, state: String) -> String,
     /** The chef / kitchen area, where orders are handed in. */
     val counter: String,
+    /** The guest by the door waiting to order a takeaway or to be handed one, and their food on the counter. */
+    val takeawayGuest: String = "",
+    val takeawayPlate: String = "",
     /** A plate on the counter: "Food for table N". */
     val plate: (table: Int) -> String = { "" },
     /** A tray of drinks waiting on the bar: "Drinks for table N". */
@@ -114,6 +117,8 @@ fun NightScene(
     onTapCounter: () -> Unit,
     /** A plate on the counter, by party id: pick it up. */
     onTapPlate: (Int) -> Unit = {},
+    /** A takeaway guest by the door, by party id: take their order, or hand them their food. */
+    onTapTakeaway: (Int) -> Unit = {},
     onTapDishStation: () -> Unit,
     onTapMopBucket: () -> Unit,
     onTapMess: (Int) -> Unit,
@@ -252,6 +257,10 @@ fun NightScene(
                     // Guests.
                     var queueIndex = 0
                     night.parties.forEach { party ->
+                        if (party.takeaway) {
+                            drawTakeawayGuest(text, night, party, clock)
+                            return@forEach
+                        }
                         when (party.stage) {
                             Stage.NOT_YET_ARRIVED, Stage.DONE -> {}
                             Stage.QUEUEING -> {
@@ -416,6 +425,7 @@ fun NightScene(
                             NightFocus.DishStation -> Point(87f, SceneLayout.counter.top + 1f) to 9f
                             NightFocus.Fridge -> SceneLayout.fridge.center to 10f
                             NightFocus.Bar -> SceneLayout.bar.center to 8f
+                            is NightFocus.Guest -> ServiceFloor.takeawayDoor.toPoint().let { Point(it.x, it.y - 5f) } to 9f
                             NightFocus.Chaos -> (if (night.activeChaos?.kind == ChaosKind.PAN_FIRE) SceneLayout.stove.center else night.chaosSpot()?.toPoint() ?: return@let) to 9f
                             NightFocus.MopBucket -> SceneLayout.mopBucket.center to 9f
                             is NightFocus.Spill -> (night.messes.firstOrNull { it.id == f.messId }?.at?.toPoint() ?: return@let) to 7f
@@ -488,7 +498,7 @@ fun NightScene(
                                     val party = night.parties.firstOrNull { it.id == item.partyId }
                                     drawDrinksTray(hand, party)
                                     // The table number travels with the drinks, as with a plate.
-                                    party?.table?.let { table -> drawNumberFlag(text, Point(hand.x, hand.y - 1f), table + 1) }
+                                    party?.table?.let { table -> drawNumberFlag(text, Point(hand.x, hand.y - 1f), (table + 1).toString()) }
                                 }
                                 ServiceNight.HandItem.Mop -> drawMop(hand, if (k == 0) -1f else 1f, mopping = waiter.errand is ServiceNight.Errand.Mopping, clock = clock)
                                 is ServiceNight.HandItem.Plate -> {
@@ -500,7 +510,7 @@ fun NightScene(
                                     drawSteam(plateAt, clock, item.partyId)
                                     if (night.parties.firstOrNull { it.id == item.partyId }?.chefsSpecial == true) drawSpecialStar(plateAt)
                                     // The table number travels with the plate, so you always know where it's going.
-                                    night.parties.firstOrNull { it.id == item.partyId }?.table?.let { table -> drawNumberFlag(text, plateAt, table + 1) }
+                                    night.parties.firstOrNull { it.id == item.partyId }?.let { p -> drawNumberFlag(text, plateAt, if (p.takeaway) "GO" else ((p.table ?: 0) + 1).toString()) }
                                 }
                             }
                         }
@@ -648,7 +658,12 @@ fun NightScene(
         }
         readyPlates(night).forEachIndexed { i, party ->
             val at = plateSpot(i)
-            TapArea(Rect(at.x - 3.4f, at.y - 6f, at.x + 4f, at.y + 3f), unit, origin, labels.plate((party.table ?: 0) + 1)) { onTapPlate(party.id) }
+            TapArea(Rect(at.x - 3.4f, at.y - 6f, at.x + 4f, at.y + 3f), unit, origin, if (party.takeaway) labels.takeawayPlate else labels.plate((party.table ?: 0) + 1)) { onTapPlate(party.id) }
+        }
+        // A takeaway guest by the door: tap them to take their order, or to hand them their food.
+        night.parties.filter { it.takeaway && it.stage in Stage.READY_TO_ORDER..Stage.CARRIED }.forEach { party ->
+            val at = ServiceFloor.takeawayDoor
+            TapArea(Rect(at.x - 6f, at.y - 11f, at.x + 6f, at.y + 4f), unit, origin, labels.takeawayGuest) { onTapTakeaway(party.id) }
         }
         // Tonight's chaos, wherever it is: tap it to deal with it.
         night.activeChaos?.let { c ->
@@ -980,7 +995,7 @@ private fun Pen.drawTickets(text: TextMeasurer, night: ServiceNight) {
         val x = 8f + i * 6.2f
         box(x, top, 5.2f, 6.4f, Color(0xFFFFFCF2), radius = 0.3f)
         dot(x + 2.6f, top + 0.4f, 0.4f, Palette.steelDark) // clip
-        centeredText(text, ((party.table ?: 0) + 1).toString(), Point(x + 2.6f, top + 3f), size = 3f, color = Palette.ink, bold = true)
+        centeredText(text, if (party.takeaway) "GO" else ((party.table ?: 0) + 1).toString(), Point(x + 2.6f, top + 3f), size = if (party.takeaway) 2.4f else 3f, color = Palette.ink, bold = true)
         if (party.stage == Stage.COOKING) {
             val progress = (1f - (party.until - night.time) / (party.until - party.stageSince).coerceAtLeast(0.01f)).coerceIn(0f, 1f)
             box(x + 0.6f, top + 5f, 4f, 0.8f, Color(0x33000000), radius = 0.4f)
@@ -1004,7 +1019,7 @@ private fun Pen.drawReadyTrays(text: TextMeasurer, night: ServiceNight) {
     night.traysOnBar.forEachIndexed { i, party ->
         val at = ServiceFloor.tray(i).toPoint()
         drawDrinksTray(at, party)
-        drawNumberFlag(text, Point(at.x, at.y + 1f), (party.table ?: 0) + 1)
+        drawNumberFlag(text, Point(at.x, at.y + 1f), ((party.table ?: 0) + 1).toString())
     }
 }
 
@@ -1014,7 +1029,7 @@ private fun Pen.drawReadyPlates(text: TextMeasurer, night: ServiceNight, clock: 
         drawPlate(at, party.mainDish())
         drawSteam(at, clock, party.id)
         if (party.chefsSpecial) drawSpecialStar(at)
-        drawNumberFlag(text, at, (party.table ?: 0) + 1)
+        drawNumberFlag(text, at, if (party.takeaway) "GO" else ((party.table ?: 0) + 1).toString())
     }
 }
 
@@ -1072,10 +1087,10 @@ private fun Pen.drawTrip(text: TextMeasurer, night: ServiceNight, trip: ServiceN
 }
 
 /** A little red flag on a cocktail stick in a plate, showing the table number. */
-private fun Pen.drawNumberFlag(text: TextMeasurer, plate: Point, number: Int) {
+private fun Pen.drawNumberFlag(text: TextMeasurer, plate: Point, label: String) {
     line(plate.x + 2f, plate.y - 1f, plate.x + 2f, plate.y - 5.4f, Palette.ink, 0.25f)
     box(plate.x + 2f, plate.y - 5.4f, 3.4f, 2.6f, Palette.alert, radius = 0.3f)
-    centeredText(text, number.toString(), Point(plate.x + 3.7f, plate.y - 4.1f), size = 2.2f, color = Color.White, bold = true)
+    centeredText(text, label, Point(plate.x + 3.7f, plate.y - 4.1f), size = if (label.length > 1) 1.6f else 2.2f, color = Color.White, bold = true)
 }
 
 /** A bouncing green arrow with "YOU" over the player's waiter. */
@@ -1264,6 +1279,8 @@ sealed interface NightFocus {
     data object MopBucket : NightFocus
     data class Spill(val messId: Int) : NightFocus
     data object Bar : NightFocus
+    /** A takeaway guest by the door. */
+    data class Guest(val partyId: Int) : NightFocus
 }
 
 /**
@@ -1615,6 +1632,52 @@ private fun Pen.drawNeighbourReaction(text: TextMeasurer, layout: com.recipeford
 }
 
 private const val REACTION_SECONDS = 2.5f
+
+/**
+ * A takeaway guest: waiting by the door with a bubble showing their patience while they want to order and
+ * while their food cooks, then off out of the door with a paper bag (a little cloud of cross words if they gave up).
+ */
+private fun Pen.drawTakeawayGuest(text: TextMeasurer, night: ServiceNight, party: ServiceNight.Party, clock: Float) {
+    val guest = party.guests.firstOrNull() ?: return
+    val spot = ServiceFloor.takeawayDoor
+    val time = night.time
+    when (party.stage) {
+        Stage.NOT_YET_ARRIVED, Stage.DONE -> {}
+        Stage.LEAVING_HAPPY, Stage.LEAVING_ANGRY -> {
+            val angry = party.stage == Stage.LEAVING_ANGRY
+            val progress = (time - party.stageSince) / (party.until - party.stageSince).coerceAtLeast(0.01f)
+            val route = ServiceFloor.route(spot, ServiceFloor.door, ServiceFloor.layout(night.tableCount).aisles) + FloorPoint(50f, 156f)
+            val at = ServiceFloor.along(route, progress.coerceIn(0f, 1f)).toPoint()
+            val stomp = if (angry) abs(sin(time * 9f)) * 0.9f else 0f
+            drawGuest(Point(at.x, at.y - stomp), guest, if (angry) 5 else night.results[guest]?.satisfaction ?: 70, angry = angry, walkPhase = time * (if (angry) 4.2f else 2.6f), 0)
+            if (angry) drawGrumble(text, Point(at.x, at.y - 14f), clock) else drawPaperBag(Point(at.x + 3.4f, at.y - 2f))
+            if (!angry) {
+                val shown = ((time - party.stageSince) / 1.2f).coerceAtMost(1f)
+                drawCoins(text, Point(spot.x, spot.y - 5f), shown, night.results[guest]?.dish?.sellingPrice ?: 0L)
+                if (party.tip > 0) {
+                    val alpha = (1f - (shown - 0.6f) / 0.4f).coerceIn(0f, 1f)
+                    centeredText(text, "+${party.tip} tip!", Point(spot.x - 2f, spot.y - 10f - shown * 8f), size = 2.6f, color = Color(0xFF3E8E41).copy(alpha = alpha), bold = true)
+                }
+            }
+        }
+        else -> {
+            val waited = night.impatience(party)
+            val mood = if (party.stage == Stage.EATING) 85 else (75 - waited * 70).toInt()
+            drawGuest(spot.toPoint(), guest, mood, angry = waited > 0.75f, walkPhase = null, 0)
+            night.regularName(guest)?.let { drawRegularLook(text, spot.toPoint(), it, clock) }
+            // The bubble: wants to order, or how long the food is taking.
+            drawDoorBubble(Point(spot.x, spot.y - 6f), waited, clock)
+            if (party.stage == Stage.READY_AT_PASS || party.stage == Stage.CARRIED) drawPaperBag(Point(spot.x + 6f, spot.y - 2f), faint = true)
+        }
+    }
+}
+
+/** A brown paper bag with a folded top. */
+private fun Pen.drawPaperBag(at: Point, faint: Boolean = false) {
+    box(at.x - 1.8f, at.y - 2f, 3.6f, 4.4f, Color(0xFFC49A6C), radius = 0.4f)
+    box(at.x - 1.8f, at.y - 2f, 3.6f, 1f, Color(0xFFA67C4E), radius = 0.3f)
+    if (faint) outline(Rect(at.x - 1.8f, at.y - 2f, at.x + 1.8f, at.y + 2.4f), Color(0x66FFFFFF), radius = 0.4f, width = 0.2f)
+}
 
 /** The first name of [guest] if they're one of tonight's regulars. */
 private fun ServiceNight.regularName(guest: Int): String? =

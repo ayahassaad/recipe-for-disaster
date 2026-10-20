@@ -642,6 +642,7 @@ private fun NightPlay(session: NightSession, onFinished: (ServiceNight) -> Unit,
                 onTapTable = { tap { n -> n.tapTable(it) } },
                 onTapCounter = { tap { n -> n.tapChef() } },
                 onTapPlate = { id -> tap { n -> n.tapPlate(id) } },
+                onTapTakeaway = { id -> tap { n -> n.tapTakeaway(id) } },
                 onTapDishStation = { tap { n -> n.tapDishStation() } },
                 onTapMopBucket = { tap { n -> n.tapMopBucket() } },
                 onTapMess = { id -> tap { n -> n.tapMess(id) } },
@@ -745,6 +746,9 @@ private fun nightHint(night: ServiceNight): String = when (val hint = NightHint.
     NightHint.Washing -> stringResource(R.string.hint_washing)
     NightHint.Mopping -> stringResource(R.string.hint_mopping)
     is NightHint.Serve -> stringResource(R.string.hint_serve, hint.table + 1)
+    is NightHint.TakeawayOrder -> stringResource(R.string.hint_takeaway_order)
+    is NightHint.PickUpTakeaway -> stringResource(R.string.hint_takeaway_pickup)
+    is NightHint.HandOver -> stringResource(R.string.hint_takeaway_handover)
     NightHint.HandIn -> stringResource(R.string.hint_hand_in)
     is NightHint.PickUp -> stringResource(R.string.hint_pick_up, hint.table + 1)
     is NightHint.DoorWaiting -> stringResource(R.string.hint_door_waiting, hint.table + 1)
@@ -808,6 +812,8 @@ private fun nightLabels(): NightLabels {
     return NightLabels(
         table = { number, state -> String.format(table, number, state) },
         counter = stringResource(R.string.night_counter),
+        takeawayGuest = stringResource(R.string.night_takeaway_guest),
+        takeawayPlate = stringResource(R.string.night_takeaway_plate),
         plate = { number -> String.format(plateLabel, number) },
         tray = { number -> String.format(trayLabel, number) },
         wantsToOrder = stringResource(R.string.night_wants_to_order),
