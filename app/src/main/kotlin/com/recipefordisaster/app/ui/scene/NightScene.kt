@@ -263,6 +263,7 @@ fun NightScene(
                                     drawGuest(spot, guest, mood, angry = mood < 25, walkPhase = null, g, child = child)
                                     if (child) drawBalloon(spot, guest, clock)
                                     if (g == 0) party.special?.let { drawSpecialLook(spot, it, clock) }
+                                    night.regularName(guest)?.let { drawRegularLook(text, spot, it, clock) }
                                 }
                                 // A "we need a table" bubble with their patience, so a crowd at the door is hard to miss.
                                 drawDoorBubble(first, waited, clock)
@@ -355,6 +356,7 @@ fun NightScene(
                                         // Whatever their hands are doing, they only ever have the one pair: the arms are drawn doing it.
                                         drawGuest(sitAt, guest, mood, angry = waitedFraction > 0.75f, walkPhase = null, g, bob = guestBob, child = child, armsBusy = hands in Hands.WITH_ARMS, seated = true)
                                         if (g == 0) party.special?.let { drawSpecialLook(seat, it, clock, guestBob) }
+                                        night.regularName(guest)?.let { drawRegularLook(text, seat, it, clock, guestBob) }
                                         // Dreaming of their favourite while they read the menu (when it's on it), and a heart when it comes.
                                         party.favourites[guest]?.let { favourite ->
                                             val onMenu = night.menu.any { it.id == favourite && it.available }
@@ -1591,6 +1593,23 @@ private fun Pen.drawGrumble(text: TextMeasurer, at: Point, clock: Float) {
     val c = Point(at.x + shake, at.y)
     for ((dx, r) in listOf(-2.2f to 2f, 0f to 2.6f, 2.2f to 2f)) dot(c.x + dx, c.y, r, Color(0xFF4A4A52))
     centeredText(text, "#@!", Point(c.x, c.y), size = 2.3f, color = Color(0xFFF2C230), bold = true)
+}
+
+/** The first name of [guest] if they're one of tonight's regulars. */
+private fun ServiceNight.regularName(guest: Int): String? =
+    arrivalOrder[guest].takeIf { it.id.value in regulars }?.let { com.recipefordisaster.domain.customer.Regulars.firstName(it) }
+
+/** A gold star and their first name over a regular, so you know who's back. */
+private fun Pen.drawRegularLook(text: TextMeasurer, at: Point, name: String, clock: Float, bob: Float = 0f) {
+    val top = at.y - bob - 9.5f
+    val twinkle = 0.75f + 0.25f * sin(clock * 3f + at.x)
+    for (k in 0 until 5) {
+        val a1 = -PI_F / 2 + k * 2f * PI_F / 5f
+        val a2 = a1 + PI_F / 5f
+        line(at.x - 5.2f + kotlin.math.cos(a1) * 1.5f, top + kotlin.math.sin(a1) * 1.5f, at.x - 5.2f + kotlin.math.cos(a2) * 0.7f, top + kotlin.math.sin(a2) * 0.7f, Palette.gold.copy(alpha = twinkle), 0.5f)
+    }
+    dot(at.x - 5.2f, top, 0.9f, Palette.gold.copy(alpha = twinkle))
+    centeredText(text, name, Point(at.x + 1f, top), size = 1.7f, color = Palette.ink, bold = true)
 }
 
 /**
