@@ -226,6 +226,7 @@ fun NightScene(
 
                     drawBurnt(text, time - night.lastBurnAt, clock)
                     drawTipJar(text, night, clock)
+                    night.reactions.forEach { drawNeighbourReaction(text, layout, it, night.time) }
                     drawTickets(text, night)
                     drawReadyPlates(text, night, clock)
                     drawReadyTrays(text, night)
@@ -1594,6 +1595,26 @@ private fun Pen.drawGrumble(text: TextMeasurer, at: Point, clock: Float) {
     for ((dx, r) in listOf(-2.2f to 2f, 0f to 2.6f, 2.2f to 2f)) dot(c.x + dx, c.y, r, Color(0xFF4A4A52))
     centeredText(text, "#@!", Point(c.x, c.y), size = 2.3f, color = Color(0xFFF2C230), bold = true)
 }
+
+/** A little heart from a happy table drifting to the one beside it, or a grey cloud from one that stormed out. */
+private fun Pen.drawNeighbourReaction(text: TextMeasurer, layout: com.recipefordisaster.domain.service.TableLayout, reaction: ServiceNight.Reaction, now: Float) {
+    val age = now - reaction.at
+    if (age < 0f || age > REACTION_SECONDS) return
+    val from = layout.tables[reaction.from].toPoint()
+    val to = layout.tables[reaction.to].toPoint()
+    val t = age / REACTION_SECONDS
+    val x = from.x + (to.x - from.x) * t
+    val y = from.y + (to.y - from.y) * t - 8f - sin(t * PI_F) * 6f
+    val fade = if (t > 0.8f) (1f - t) / 0.2f else 1f
+    if (reaction.cheer) {
+        centeredText(text, "♥", Point(x, y), size = 4.2f, color = Color(0xFFE0457B).copy(alpha = fade), bold = true)
+    } else {
+        for ((dx, r) in listOf(-1.6f to 1.4f, 0f to 1.9f, 1.6f to 1.4f)) dot(x + dx, y, r, Color(0xFF4A4A52).copy(alpha = fade))
+        centeredText(text, "#@!", Point(x, y), size = 1.7f, color = Color(0xFFF2C230).copy(alpha = fade), bold = true)
+    }
+}
+
+private const val REACTION_SECONDS = 2.5f
 
 /** The first name of [guest] if they're one of tonight's regulars. */
 private fun ServiceNight.regularName(guest: Int): String? =
