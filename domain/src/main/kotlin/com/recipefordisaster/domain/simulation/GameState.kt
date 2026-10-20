@@ -80,6 +80,8 @@ data class GameState(
     val noLoanUntilDay: Int = 0,
     /** What the player has bought to make the dining room nicer. */
     val decorations: Set<com.recipefordisaster.domain.restaurant.Decoration> = emptySet(),
+    /** Coins set aside from tips, to spend on treats for the team (see [com.recipefordisaster.domain.employee.Treat]). */
+    val tipJar: Long = 0,
     /** This week's goal, from the second week on (see [com.recipefordisaster.domain.goal.WeeklyGoals]). */
     val weeklyGoal: com.recipefordisaster.domain.goal.WeeklyGoal? = null,
 )
@@ -156,6 +158,8 @@ data class PlayerDecisions(
     val deepClean: Boolean = false,
     /** Buy one more table (only possible once the free ones have all arrived). */
     val buyTable: Boolean = false,
+    /** Treats for the team, paid for from the tip jar. */
+    val treats: Set<com.recipefordisaster.domain.employee.Treat> = emptySet(),
     /** Decorations to buy for the dining room. */
     val decorationsToBuy: Set<com.recipefordisaster.domain.restaurant.Decoration> = emptySet(),
 )

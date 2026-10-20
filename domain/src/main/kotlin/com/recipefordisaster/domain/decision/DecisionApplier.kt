@@ -139,6 +139,21 @@ object DecisionApplier {
             note("Gave ${current.employees.filter { it.id in resting }.joinToString { it.name }} the day off.")
         }
 
+        // Treats come out of the tip jar, not the till, and cheer everyone who's working today.
+        for (treat in decisions.treats.sortedBy { it.ordinal }) {
+            if (current.tipJar < treat.cost) {
+                note("The tip jar didn't have enough for ${com.recipefordisaster.domain.employee.Treats.describe(treat)}.", LogTone.BAD)
+                continue
+            }
+            val team = current.employees.filter { it.status == EmployeeStatus.ACTIVE && !resting.contains(it.id) }
+            if (team.isEmpty()) continue
+            current = current.copy(
+                tipJar = current.tipJar - treat.cost,
+                employees = current.employees.map { if (it in team) treat.cheer(it) else it },
+            )
+            note("The team got ${com.recipefordisaster.domain.employee.Treats.describe(treat)}. Spirits are up.", LogTone.GOOD)
+        }
+
         // Menu: prices and availability are free to change; new dishes cost a reprint.
         current = current.copy(
             menu = current.menu.map { dish ->
