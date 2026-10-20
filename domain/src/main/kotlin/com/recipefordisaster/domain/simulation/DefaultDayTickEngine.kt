@@ -266,6 +266,7 @@ class DefaultDayTickEngine(
             recentSatisfaction = averageSatisfaction,
             pendingDemandModifierPercent = celebrityBuzz,
             weeklyGoal = goalAfter,
+            tipJar = start.tipJar + serviceResult.tips,
         ).withStatusChecked().let { s ->
             // A new week, a new goal.
             if (com.recipefordisaster.domain.goal.WeeklyGoals.startsAWeek(nextDay)) s.copy(weeklyGoal = com.recipefordisaster.domain.goal.WeeklyGoals.newGoal(s)) else s
