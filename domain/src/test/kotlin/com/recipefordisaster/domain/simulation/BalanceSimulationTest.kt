@@ -77,7 +77,8 @@ class BalanceSimulationTest {
     @Test
     fun `every event in the library fires at least once across many runs`() {
         val policies = listOf(BalancePolicies.sensiblePlayer, BalancePolicies.carelessOwner, BalancePolicies.doNothing, BalancePolicies.slaveDriver)
-        val fired = seeds.flatMap { seed -> policies.flatMap { play(seed, it).firedRuleIds } }.toSet()
+        // (More runs than the other tests use: some events are rare, and any change to a night shifts which runs meet them.)
+        val fired = (1L..80L).flatMap { seed -> policies.flatMap { play(seed, it).firedRuleIds } }.toSet()
         val neverFired = EventLibrary.rules.map { it.id }.toSet() - fired
         if (System.getProperty("balanceReport") != null) println("never fired: $neverFired")
         assertTrue("these events never fired: $neverFired", neverFired.isEmpty())
