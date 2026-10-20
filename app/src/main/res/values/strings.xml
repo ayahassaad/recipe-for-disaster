@@ -551,4 +551,10 @@
     <string name="treat_coffee">Coffee and pastries</string>
     <string name="treat_pizza">Pizza for the team</string>
     <string name="treat_evening">An evening out</string>
+    <string name="scene_lost_and_found">Lost and found</string>
+    <string name="lost_title">Lost and found</string>
+    <string name="lost_pitch">Guests who had a nice evening sometimes leave things behind. Give one back and its owner is thrilled: %1$d coins in the tip jar and a good word about the place.</string>
+    <string name="lost_item">%1$s\'s %2$s</string>
+    <string name="lost_found_on">Found on day %1$d</string>
+    <string name="lost_give_back">Give it back</string>
 </resources>

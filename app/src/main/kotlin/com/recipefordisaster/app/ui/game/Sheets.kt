@@ -67,6 +67,7 @@ internal fun SheetContent(target: SceneTarget, uiState: GameUiState.Playing, act
             SceneTarget.Mop -> CleaningSheet(uiState, actions)
             SceneTarget.Tables -> TablesSheet(uiState, actions)
             SceneTarget.TipJar -> TipJarSheet(uiState, actions)
+            SceneTarget.LostAndFound -> LostAndFoundSheet(uiState, actions)
             SceneTarget.HiringSign -> HiringSheet(uiState, actions)
             is SceneTarget.Staff -> {
                 val person = (uiState.state.employees + uiState.state.applicants).firstOrNull { it.id == target.id }
@@ -621,6 +622,27 @@ private fun BigAction(text: String, enabled: Boolean, onClick: () -> Unit) {
 }
 
 private enum class StaffAction { DAY_OFF, LET_GO }
+
+/** The lost and found: what guests left behind, and a button to give each thing back this morning. */
+@Composable
+private fun LostAndFoundSheet(uiState: GameUiState.Playing, actions: GameActions) {
+    SectionTitle(stringResource(R.string.lost_title))
+    Text(stringResource(R.string.lost_pitch, com.recipefordisaster.domain.restaurant.LostAndFound.THANK_YOU_TIP), style = MaterialTheme.typography.bodyLarge)
+    uiState.state.lostAndFound.forEach { item ->
+        val handedBack = item.id in uiState.plan.givenBack
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(stringResource(R.string.lost_item, item.owner, item.what), style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.lost_found_on, item.day), style = MaterialTheme.typography.bodyMedium)
+            }
+            if (handedBack) {
+                OutlinedButton(onClick = { actions.onToggleGiveBack(item.id) }) { Text(stringResource(R.string.undo)) }
+            } else {
+                FilledTonalButton(onClick = { actions.onToggleGiveBack(item.id) }) { Text(stringResource(R.string.lost_give_back)) }
+            }
+        }
+    }
+}
 
 /** The tip jar: what's in it, and treats to spend it on, which cheer the whole team up. */
 @Composable

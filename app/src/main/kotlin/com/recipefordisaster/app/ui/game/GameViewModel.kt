@@ -308,6 +308,9 @@ class GameViewModel(
         plan.copy(loanChange = com.recipefordisaster.domain.economy.Loans.clamp(state, plan.loanChange + delta))
     }
 
+    /** Something from the lost and found goes back to its owner this morning; tapping again keeps it. */
+    fun toggleGiveBack(id: Int) = editPlan { it.copy(givenBack = it.givenBack.toggle(id)) }
+
     /** A treat for the team from the tip jar; tapping again takes it back. */
     fun toggleTreat(treat: com.recipefordisaster.domain.employee.Treat) = editPlan { it.copy(treats = it.treats.toggle(treat)) }
 

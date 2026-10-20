@@ -109,6 +109,7 @@ data class GameActions(
     val onToggleDeepClean: () -> Unit = {},
     val onToggleBuyTable: () -> Unit = {},
     val onToggleDecoration: (com.recipefordisaster.domain.restaurant.Decoration) -> Unit = {},
+    val onToggleGiveBack: (Int) -> Unit = {},
     val onToggleTreat: (com.recipefordisaster.domain.employee.Treat) -> Unit = {},
 )
 
@@ -137,6 +138,7 @@ fun GameViewModel.actions(): GameActions = GameActions(
     onToggleDeepClean = ::toggleDeepClean,
     onToggleBuyTable = ::toggleBuyTable,
     onToggleDecoration = ::toggleDecoration,
+    onToggleGiveBack = ::toggleGiveBack,
     onToggleTreat = ::toggleTreat,
 )
 
@@ -489,6 +491,7 @@ internal fun sceneModelFor(state: GameState, advice: List<Advice>, hiringOpen: B
         fridgeLevel = com.recipefordisaster.domain.equipment.Fridge.of(state)?.upgradeLevel ?: 1,
         tableCount = state.restaurant.tables,
         tipJar = state.tipJar,
+        lostItems = state.lostAndFound.size,
         name = state.restaurant.displayName,
         pantryFullness = fullness,
         pantryJars = jars,
@@ -529,6 +532,7 @@ private fun sceneLabels(need: MorningAdvisor.Need? = null): SceneLabels {
         dishSign = stringResource(R.string.night_dish_sign),
         tables = stringResource(R.string.scene_tables),
         tipJar = stringResource(R.string.scene_tip_jar),
+        lostAndFound = stringResource(R.string.scene_lost_and_found),
         staff = { figure -> String.format(staffLabel, figure.name, roles[figure.role] ?: "") },
     )
 }

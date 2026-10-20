@@ -42,6 +42,8 @@ sealed interface SceneTarget {
     data object Tables : SceneTarget
     /** The jar of tips on the counter: spend it on treats for the team. */
     data object TipJar : SceneTarget
+    /** The box of things guests left behind. */
+    data object LostAndFound : SceneTarget
     data class Staff(val id: EmployeeId) : SceneTarget
 }
 
@@ -75,6 +77,8 @@ data class SceneModel(
     val tableCount: Int = 6,
     /** Coins in the tip jar. */
     val tipJar: Long = 0,
+    /** How many things are in the lost and found (the box only shows when there are some). */
+    val lostItems: Int = 0,
     val fridgeCondition: Int = 100,
     val fridgeLevel: Int = 1,
     /** The restaurant's name, for the sign over the door. */
@@ -102,6 +106,7 @@ data class SceneLabels(
     val dishSign: String,
     val tables: String = "",
     val tipJar: String = "",
+    val lostAndFound: String = "",
     val staff: (StaffFigure) -> String,
 )
 
@@ -163,6 +168,7 @@ fun RestaurantScene(
                 // Room for one more: a faint outline where the next table will go.
                 if (model.tableCount < ServiceFloor.TABLE_COUNT) drawTableGhost(ServiceFloor.tables[model.tableCount])
                 drawIdleTipJar(text, model.tipJar)
+                if (model.lostItems > 0) drawLostAndFound(text, model.lostItems)
                 drawLampGlow(evening, ServiceFloor.layout(model.tableCount))
                 // The candles stand on the tables, so people go in front of them.
                 drawLamps(evening, ServiceFloor.layout(model.tableCount), time)
@@ -214,7 +220,7 @@ fun RestaurantScene(
                 // One tap area per table, all opening the same popup.
                 ServiceFloor.layout(model.tableCount).let { layout ->
                     layout.tables.map { SceneTarget.Tables to labels.tables }
-                } + listOf(SceneTarget.TipJar to labels.tipJar) + (if (model.hiring) listOf(SceneTarget.HiringSign to labels.hiringSign) else emptyList()) +
+                } + listOf(SceneTarget.TipJar to labels.tipJar) + (if (model.lostItems > 0) listOf(SceneTarget.LostAndFound to labels.lostAndFound) else emptyList()) + (if (model.hiring) listOf(SceneTarget.HiringSign to labels.hiringSign) else emptyList()) +
                 staffSpots.map { (figure, _) -> SceneTarget.Staff(figure.id) to labels.staff(figure) } +
                 // The mop bucket last, so its tap sits on top of the nearest table's.
                 (if (model.mopOut) listOf(SceneTarget.Mop to labels.mop) else emptyList())
@@ -261,6 +267,26 @@ internal val MOP_TAP = Rect(0f, SceneLayout.mopBucket.top - 9f, SceneLayout.mopB
 /** The tip jar's tap area: a bit bigger than the jar itself. */
 private val TIP_JAR_TAP = Rect(SceneLayout.TIP_JAR.x - 5f, SceneLayout.TIP_JAR.y - 5f, SceneLayout.TIP_JAR.x + 5f, SceneLayout.TIP_JAR.y + 4f)
 
+/** Where the lost and found box sits, on the floor by the front door. */
+private val LOST_BOX = Point(68f, 144f)
+private val LOST_BOX_TAP = Rect(LOST_BOX.x - 7f, LOST_BOX.y - 5f, LOST_BOX.x + 7f, LOST_BOX.y + 5f)
+
+/** A cardboard box with a scarf and an umbrella sticking out, and the number of things in it on a label. */
+private fun Pen.drawLostAndFound(text: androidx.compose.ui.text.TextMeasurer, items: Int) {
+    val b = LOST_BOX
+    oval(b.x, b.y + 4.4f, 6.6f, 1.2f, Color(0x33000000))
+    // The umbrella's crook and the scarf poking out of the top.
+    line(b.x - 1.5f, b.y - 1f, b.x - 2.5f, b.y - 5.5f, Color(0xFF3A4A6B), 0.7f)
+    line(b.x - 2.5f, b.y - 5.5f, b.x - 4.2f, b.y - 5.2f, Color(0xFF3A4A6B), 0.7f)
+    box(b.x + 1f, b.y - 4f, 2.2f, 4f, Color(0xFFC0392B), radius = 0.8f)
+    box(b.x - 5.6f, b.y - 1.4f, 11.2f, 6.4f, Color(0xFFB8895A), radius = 0.5f)
+    box(b.x - 5.6f, b.y - 1.4f, 11.2f, 1.1f, Color(0xFF9A7144), radius = 0.4f)
+    box(b.x - 3.2f, b.y + 0.9f, 6.4f, 2.6f, Color(0xFFF4EBD6), radius = 0.3f)
+    centeredText(text, "LOST & FOUND", Point(b.x, b.y + 2.2f), size = 1.1f, color = Palette.ink, bold = true)
+    dot(b.x + 5.4f, b.y - 1.4f, 2f, Color(0xFFC0392B))
+    centeredText(text, items.toString(), Point(b.x + 5.4f, b.y - 1.4f), size = 2.2f, color = Color.White, bold = true)
+}
+
 /** The tip jar on the counter in the morning, fuller the more tips are in it (full at about 100). */
 private fun Pen.drawIdleTipJar(text: androidx.compose.ui.text.TextMeasurer, coins: Long) {
     val j = SceneLayout.TIP_JAR
@@ -282,6 +308,7 @@ private fun rectFor(target: SceneTarget, staffSpots: List<Pair<StaffFigure, Poin
     SceneTarget.HiringSign -> SceneLayout.hiringSign
     SceneTarget.Tables -> null
     SceneTarget.TipJar -> TIP_JAR_TAP
+    SceneTarget.LostAndFound -> LOST_BOX_TAP
     is SceneTarget.Staff -> staffSpots.firstOrNull { it.first.id == target.id }?.second?.let { Rect(it.x - 5f, it.y - 9f, it.x + 5f, it.y + 4f) }
 }
 
