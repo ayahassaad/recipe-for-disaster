@@ -286,6 +286,8 @@ data class ServiceNight(
         val favourites: Map<Int, DishId> = emptyMap(),
         /** How the tables next to them have put them in the mood: cheered up (above zero) or soured (below). */
         val neighbourMood: Int = 0,
+        /** A takeaway order: they stand by the door to give their order, take their food there, and never sit down. */
+        val takeaway: Boolean = false,
     ) {
         val seated: Boolean get() = stage in Stage.DECIDING..Stage.LEAVING_ANGRY
         val occupiesTable: Boolean get() = table != null && stage in Stage.WALKING_TO_TABLE..Stage.LEAVING_ANGRY
@@ -329,6 +331,10 @@ data class ServiceNight(
         /** The player hands their orders to the chef (and does nothing else there). */
         @Serializable
         data object HandIn : Errand
+
+        /** Go to the guest waiting by the door for a takeaway: take their order, or hand over their food if you're carrying it. */
+        @Serializable
+        data class VisitTakeaway(val partyId: Int) : Errand
 
         /** The player picks up one particular plate from the counter. */
         @Serializable
@@ -497,6 +503,7 @@ data class ServiceNight(
             if (messesOnFloor.isNotEmpty()) add(Feature.SPILLS)
             parties.filter { arriving(it) }.forEach { party -> party.special?.let { add(featureOf(it)) } }
             if (parties.any { it.family && arriving(it) }) add(Feature.FAMILIES)
+            if (parties.any { it.takeaway && it.stage == Stage.READY_TO_ORDER }) add(Feature.TAKEAWAY)
             if (parties.any { it.request != null }) add(Feature.GUEST_REQUESTS)
             if (troubled.isNotEmpty()) add(Feature.STAFF_TROUBLE)
             if (parties.any { it.stage == Stage.WANTS_DRINKS }) add(Feature.DRINKS)
@@ -516,6 +523,9 @@ data class ServiceNight(
 
     /** Go to the pass: hand in any tickets you're holding and pick up plates that are ready. */
     fun tapPass(): ServiceNight = enqueue(Errand.VisitPass)
+
+    /** Go to the takeaway guest by the door: take their order, or hand them their food. */
+    fun tapTakeaway(partyId: Int): ServiceNight = enqueue(Errand.VisitTakeaway(partyId))
 
     /** Go to the chef and hand in the orders you've taken. */
     fun tapChef(): ServiceNight = enqueue(Errand.HandIn)
@@ -582,7 +592,7 @@ data class ServiceNight(
     private val Errand.isWalk: Boolean
         get() = when (this) {
             is Errand.VisitTable, Errand.VisitPass, Errand.HandIn, is Errand.PickUp, is Errand.Serve, Errand.VisitDishStation,
-            Errand.VisitMopBucket, is Errand.CleanMess, Errand.VisitChaos, Errand.VisitBar, is Errand.PickUpDrinks, Errand.VisitFridge -> true
+            Errand.VisitMopBucket, is Errand.CleanMess, Errand.VisitChaos, Errand.VisitBar, is Errand.PickUpDrinks, Errand.VisitFridge, is Errand.VisitTakeaway -> true
             Errand.Wash, is Errand.Mopping, Errand.Rest, Errand.HandleChaos, is Errand.Pour, Errand.FixFridge -> false
         }
 
@@ -601,6 +611,11 @@ data class ServiceNight(
         val me = player
         // An empty, clean table has nothing to do: ignore the tap rather than send the player on a wasted trip.
         if (errand is Errand.VisitTable && partyAt(errand.table) == null && errand.table !in dirtyTables) return this
+        // Only a takeaway guest who's still waiting to order, or for their food, needs a visit.
+        if (errand is Errand.VisitTakeaway) {
+            val guest = parties.firstOrNull { it.id == errand.partyId && it.takeaway } ?: return this
+            if (guest.stage !in Stage.READY_TO_ORDER..Stage.CARRIED) return this
+        }
         // A working fridge doesn't need fixing.
         if (errand == Errand.VisitFridge && !fridgeBroken) return this
         // Only a tray that's actually waiting on the bar can be picked up.
@@ -619,6 +634,7 @@ data class ServiceNight(
         val destination = when (errand) {
             is Errand.VisitTable -> layout.stand(errand.table)
             is Errand.Serve -> layout.stand(errand.table)
+            is Errand.VisitTakeaway -> ServiceFloor.takeawayStand
             Errand.VisitPass -> ServiceFloor.pass
             // Walk right up to the chef to hand orders in, and to the plate itself to pick it up.
             Errand.HandIn -> ServiceFloor.chef
@@ -837,8 +853,8 @@ data class ServiceNight(
         var night = this
         for (party in parties.filter { it.stage == Stage.NOT_YET_ARRIVED && it.arriveAt <= time }.sortedBy { it.arriveAt }) {
             // No more than a couple of parties crowd the door. Others hold off — and if they'd have to
-            // hold off too long, they go somewhere else tonight.
-            if (night.parties.count { it.stage == Stage.QUEUEING } >= MAX_QUEUE + (if (hosted) 1 else 0)) {
+            // hold off too long, they go somewhere else tonight. (A takeaway guest isn't waiting for a table.)
+            if (!party.takeaway && night.parties.count { it.stage == Stage.QUEUEING } >= MAX_QUEUE + (if (hosted) 1 else 0)) {
                 if (time - party.arriveAt > GIVE_UP_COMING) night = night.stayAway(party)
                 continue
             }
@@ -854,7 +870,8 @@ data class ServiceNight(
                 if (staying.isEmpty()) {
                     it.copy(stage = Stage.DONE, stageSince = time)
                 } else {
-                    it.copy(guests = staying.map { g -> g.first }, preferences = staying.map { g -> g.second }, stage = Stage.QUEUEING, stageSince = time)
+                    // A takeaway guest waits by the door, ready to give their order; everyone else waits for a table.
+                    it.copy(guests = staying.map { g -> g.first }, preferences = staying.map { g -> g.second }, stage = if (it.takeaway) Stage.READY_TO_ORDER else Stage.QUEUEING, stageSince = time, seatedAt = time)
                 }
             }
         }
@@ -1043,7 +1060,7 @@ data class ServiceNight(
                 party.stage == Stage.EATING && time >= party.until -> {
                     // They pay; how happy they are depends on the food, the price, and how long it all took.
                     var results = night.results
-                    val waitedMinutes = ((time - EAT - party.seatedAt - party.sippedFor - EXPECTED_SERVICE - DRINKS_ALLOWANCE).coerceAtLeast(0f) * MINUTES_PER_SECOND).toDouble()
+                    val waitedMinutes = ((time - (if (party.takeaway) 0f else EAT) - party.seatedAt - party.sippedFor - EXPECTED_SERVICE - DRINKS_ALLOWANCE).coerceAtLeast(0f) * MINUTES_PER_SECOND).toDouble()
                     party.guests.zip(party.orders).forEach { (guest, dishId) ->
                         if (guest in results) return@forEach
                         val dish = night.menu.first { it.id == dishId }
@@ -1115,6 +1132,14 @@ data class ServiceNight(
             it.copy(stage = Stage.EATING, stageSince = time, until = time + EAT + (if (request != null) REQUEST_WAIT else 0f), heldBy = null, request = request)
         }
     }
+
+    /**
+     * [party]'s food is handed over at the door: they pay on the spot and go, with no table to clear.
+     * (They're "eating" for no time at all, so the same bill, mood and tip work as at a table.)
+     */
+    private fun handedOver(party: Party, waiterId: String): ServiceNight = copy(
+        waiters = waiters.map { if (it.id == waiterId) it.copy(hands = it.hands - HandItem.Plate(party.id)) else it },
+    ).updateParty(party.id) { it.copy(stage = Stage.EATING, stageSince = time, until = time, heldBy = null, seatedAt = it.orderedAt) }
 
     /** What, if anything, [party] asks for when their food arrives (the same every time the night is played). */
     private fun requestKindFor(party: Party): RequestKind? {
@@ -1235,6 +1260,31 @@ data class ServiceNight(
                     }
                 }
             }
+            is Errand.VisitTakeaway -> {
+                val party = night.parties.firstOrNull { it.id == errand.partyId && it.takeaway }
+                if (party != null && party.id in waiter.plates) {
+                    night = night.handedOver(party, waiterId)
+                } else if (party != null && waiter.kind == Kind.PLAYER && party.stage == Stage.READY_TO_ORDER) {
+                    // Their order goes on the notepad, same as a table's, and the ingredients are set aside.
+                    var stock = night.inventory
+                    val orders = party.preferences.map { prefs ->
+                        prefs.firstOrNull { night.canMake(it, stock) }?.also { id -> stock = InventoryOperations.consume(stock, night.menu.first { it.id == id }.recipe) }
+                    }
+                    val waitingForFridge = night.fridgeBroken && party.preferences.zip(orders).any { (prefs, order) ->
+                        order == null && prefs.any { night.canMake(it, night.inventory, fridgeMatters = false) }
+                    }
+                    if (waitingForFridge) return night
+                    var results = night.results
+                    party.guests.zip(orders).forEach { (guest, dish) -> if (dish == null && guest !in results) results = results + (guest to missed(guest, MissedMealReason.OUT_OF_STOCK)) }
+                    night = night.copy(inventory = stock, results = results)
+                    night = if (orders.all { it == null }) {
+                        night.updateParty(party.id) { it.copy(stage = Stage.LEAVING_ANGRY, stageSince = time, until = time + LEAVE) }
+                    } else {
+                        updateWaiter { it.copy(tickets = it.tickets + party.id) }
+                        night.updateParty(party.id) { it.copy(stage = Stage.ORDER_TAKEN, stageSince = time, orderedAt = time, orders = orders, heldBy = waiterId) }
+                    }
+                }
+            }
             is Errand.Serve -> {
                 val party = night.partyAt(errand.table)
                 if (party != null && party.id in waiter.plates) {
@@ -1274,7 +1324,7 @@ data class ServiceNight(
                 // out rather than race the player.
                 val claimed = night.player.let { listOfNotNull(it.errand) + it.queue }.filterIsInstance<Errand.PickUp>().map { it.partyId }.toSet()
                 val ready = night.parties
-                    .filter { it.stage == Stage.READY_AT_PASS && (waiter.isPlayer || (it.special == null && time - it.stageSince >= RUNNER_DELAY && it.id !in claimed)) }
+                    .filter { it.stage == Stage.READY_AT_PASS && (waiter.isPlayer || (it.special == null && !it.takeaway && time - it.stageSince >= RUNNER_DELAY && it.id !in claimed)) }
                     .sortedBy { it.stageSince }
                     .take(waiter.freeHands)
                 ready.forEach { party -> night = night.updateParty(party.id) { it.copy(stage = Stage.CARRIED, stageSince = time, heldBy = waiterId) } }
@@ -1383,7 +1433,7 @@ data class ServiceNight(
                         waiter.drinks.isNotEmpty() -> night.parties.first { it.id == waiter.drinks.first() }.table?.let { Errand.Serve(it) }
                         tray != null && waiter.freeHands > 0 -> Errand.PickUpDrinks(tray.id)
                         waiter.drinkOrders.isNotEmpty() && waiter.freeHands > 0 -> Errand.VisitBar
-                        night.parties.any { it.special == null && it.stage == Stage.READY_AT_PASS && time - it.stageSince >= RUNNER_DELAY } && waiter.freeHands > 0 -> Errand.VisitPass
+                        night.parties.any { it.special == null && !it.takeaway && it.stage == Stage.READY_AT_PASS && time - it.stageSince >= RUNNER_DELAY } && waiter.freeHands > 0 -> Errand.VisitPass
                         else -> null
                     }
                 }
@@ -1417,7 +1467,7 @@ data class ServiceNight(
         // Someone whose request was ignored leaves nothing.
         if (party.request != null) return 0L
         // Time spent sipping drinks doesn't count, and nor does a quick round of drinks.
-        val served = time - EAT - party.seatedAt - party.sippedFor - DRINKS_ALLOWANCE
+        val served = time - (if (party.takeaway) 0f else EAT) - party.seatedAt - party.sippedFor - DRINKS_ALLOWANCE
         val perGuest = when {
             served <= TIP_FAST -> 3L
             served <= TIP_OK -> 1L
@@ -1460,6 +1510,9 @@ data class ServiceNight(
         /** Seconds between parties arriving, plus up to [ARRIVAL_JITTER] more so it doesn't feel like clockwork. */
         private const val ARRIVAL_GAP = 6f
         private const val ARRIVAL_JITTER = 3f
+
+        /** Of the guests who come alone, this share want a takeaway once the idea has settled in. */
+        private const val TAKEAWAY_CHANCE = 0.3f
 
         /** Parties that can wait by the door at once; more than that hold off coming in. */
         private const val MAX_QUEUE = 2
@@ -1820,9 +1873,18 @@ data class ServiceNight(
             // Who has a favourite dish (rolled after everything else, so nothing above changes).
             val withFavourites = withFamilies.map { it.withFavourites((state.menu + RecipeBook.dishes).distinctBy { d -> d.id }, rng) }
 
+            // From day nine, now and then a lone guest wants a takeaway: they wait by the door instead of sitting down
+            // (rolled with their own dice, after everything else). On its first day one is sure to turn up.
+            val takeawayDice = com.recipefordisaster.domain.simulation.SeededRandomSource(state.seed * 53L + state.day * 17L)
+            val takeawayChance = TAKEAWAY_CHANCE * Progression.strength(state, Feature.TAKEAWAY)
+            val loners = withFavourites.filter { it.guests.size == 1 && it.special == null }.map { it.id }
+            val asked = loners.filter { takeawayDice.nextFloat() < takeawayChance }.toMutableList()
+            if (Progression.debutsToday(state, Feature.TAKEAWAY) && asked.isEmpty() && loners.size >= 2) asked += loners[1]
+            val withTakeaways = withFavourites.map { if (it.id in asked) it.copy(takeaway = true, wantsDrinks = false) else it }
+
             return ServiceNight(
                 time = 0f,
-                parties = withFavourites,
+                parties = withTakeaways,
                 chefMood = ChefMood.of(state),
                 pickiness = dials.pickiness,
                 chefLuck = chefLuck,
