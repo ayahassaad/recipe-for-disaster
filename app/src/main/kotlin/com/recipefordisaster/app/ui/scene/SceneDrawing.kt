@@ -632,6 +632,18 @@ internal fun Pen.drawTables(layout: TableLayout = ServiceFloor.layout(ServiceFlo
     }
 }
 
+/** A dashed outline where the next table will stand, so the room visibly has space to grow. */
+internal fun Pen.drawTableGhost(at: com.recipefordisaster.domain.service.FloorPoint) {
+    val c = Color(0x88FFFFFF)
+    for (k in 0 until 14 step 2) {
+        val a0 = k / 14f * 2f * PI.toFloat()
+        val a1 = (k + 1) / 14f * 2f * PI.toFloat()
+        line(at.x + cos(a0) * 8f, at.y + sin(a0) * 8f, at.x + cos(a1) * 8f, at.y + sin(a1) * 8f, c, 0.5f)
+    }
+    line(at.x - 2.5f, at.y, at.x + 2.5f, at.y, c, 0.7f)
+    line(at.x, at.y - 2.5f, at.x, at.y + 2.5f, c, 0.7f)
+}
+
 /** A wooden chair from above: seat, curved backrest on the far side, spindles, and a cushion. */
 private fun Pen.drawChair(at: Point, facingRight: Boolean) {
     val back = if (facingRight) -1f else 1f // the backrest is on the side away from the table

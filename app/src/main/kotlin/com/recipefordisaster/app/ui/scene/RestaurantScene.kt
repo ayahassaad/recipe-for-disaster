@@ -154,6 +154,8 @@ fun RestaurantScene(
                 drawDishStation(text, labels.dishSign)
                 drawPantry(model.pantryFullness, model.pantryJars)
                 drawTables(ServiceFloor.layout(model.tableCount))
+                // Room for one more: a faint outline where the next table will go.
+                if (model.tableCount < ServiceFloor.TABLE_COUNT) drawTableGhost(ServiceFloor.tables[model.tableCount])
                 drawLampGlow(evening, ServiceFloor.layout(model.tableCount))
                 // The candles stand on the tables, so people go in front of them.
                 drawLamps(evening, ServiceFloor.layout(model.tableCount), time)
