@@ -115,6 +115,11 @@ class DefaultDayTickEngine(
             }
         }
 
+        // As people work on, they tell you a bit more about themselves.
+        start.employees.zip(employeesAfterDay).forEach { (before, after) ->
+            com.recipefordisaster.domain.employee.StaffStories.newChapter(before, after)?.let { dayLog += SimulationLogEntry(state.day, it, LogTone.NEUTRAL) }
+        }
+
         val usageIntensity = if (start.restaurant.guestCapacity > 0) {
             (arrivals.size.toDouble() / start.restaurant.guestCapacity).coerceIn(0.0, 1.0)
         } else {
