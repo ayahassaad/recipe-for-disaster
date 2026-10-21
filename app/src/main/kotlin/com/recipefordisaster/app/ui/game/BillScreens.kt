@@ -114,9 +114,7 @@ internal fun FinalBillScreen(state: GameState, onBackToStart: () -> Unit, modifi
             else -> R.string.final_closed
         },
     )
-    val best = state.dishSalesTotals.maxByOrNull { it.value }
-    val bestName = best?.let { (id, _) -> state.menu.firstOrNull { it.id.value == id }?.name ?: id }
-    val profit = state.ledger.totalProfitOrLoss
+    val summary = com.recipefordisaster.domain.economy.RunSummaries.of(state)
 
     Column(modifier = modifier.fillMaxSize().background(WoodBrown).statusBarsPadding().navigationBarsPadding()) {
         Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp)) {
@@ -131,10 +129,28 @@ internal fun FinalBillScreen(state: GameState, onBackToStart: () -> Unit, modifi
                 Text(text = cause, style = receiptText.copy(color = DisasterRed), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                 Dashes()
                 // The run ended during the day shown, so the last full day open is the one before.
-                ReceiptLine(stringResource(R.string.final_days), (state.day - 1).coerceAtLeast(0).toString())
-                ReceiptLine(stringResource(R.string.final_revenue), coins(state.ledger.totalRevenue))
-                ReceiptLine(stringResource(R.string.final_profit), signedCoins(profit), bold = true)
-                if (best != null && bestName != null) ReceiptLine(stringResource(R.string.final_best), bestName)
+                ReceiptLine(stringResource(R.string.final_days), summary.daysSurvived.toString())
+                ReceiptLine(stringResource(R.string.final_revenue), coins(summary.revenue))
+                ReceiptLine(stringResource(R.string.final_profit), signedCoins(summary.profit), bold = true)
+                summary.bestNight?.let { ReceiptLine(stringResource(R.string.final_best_night), stringResource(R.string.final_best_night_value, it.day, signedCoins(it.profit))) }
+                summary.favouriteDish?.let { (name, count) -> ReceiptLine(stringResource(R.string.final_favourite), stringResource(R.string.final_favourite_value, name, count)) }
+                if (summary.tips > 0) ReceiptLine(stringResource(R.string.final_tips), coins(summary.tips))
+                if (summary.regulars > 0) ReceiptLine(stringResource(R.string.final_regulars), summary.regulars.toString())
+                ReceiptLine(stringResource(R.string.final_stars), "★".repeat(summary.stars) + "☆".repeat(5 - summary.stars))
+                // What went wrong, in one honest line.
+                summary.mistake?.let { mistake ->
+                    Dashes()
+                    Text(stringResource(R.string.final_mistake_title), style = receiptText.copy(fontWeight = FontWeight.Bold))
+                    Text(
+                        text = when (mistake) {
+                            com.recipefordisaster.domain.economy.Mistake.BankTookOver -> stringResource(R.string.final_mistake_bank)
+                            is com.recipefordisaster.domain.economy.Mistake.CostlyNight -> stringResource(
+                                R.string.final_mistake_night, mistake.day, coins(mistake.loss), stringResource(costName(mistake.mostlyOn)),
+                            )
+                        },
+                        style = receiptText,
+                    )
+                }
             }
         }
         SignButton(text = stringResource(R.string.game_back_to_start), onClick = onBackToStart, modifier = Modifier.padding(16.dp))
@@ -223,4 +239,14 @@ private fun Dashes() {
         softWrap = false,
         modifier = Modifier.padding(vertical = 6.dp),
     )
+}
+
+@androidx.annotation.StringRes
+private fun costName(category: com.recipefordisaster.domain.economy.CostCategory): Int = when (category) {
+    com.recipefordisaster.domain.economy.CostCategory.WAGES -> R.string.cost_wages
+    com.recipefordisaster.domain.economy.CostCategory.GROCERIES -> R.string.cost_groceries
+    com.recipefordisaster.domain.economy.CostCategory.RUNNING_COSTS -> R.string.cost_running
+    com.recipefordisaster.domain.economy.CostCategory.UPGRADES -> R.string.cost_upgrades
+    com.recipefordisaster.domain.economy.CostCategory.FINES_AND_OTHER -> R.string.cost_other
+    com.recipefordisaster.domain.economy.CostCategory.INTEREST -> R.string.cost_interest
 }
