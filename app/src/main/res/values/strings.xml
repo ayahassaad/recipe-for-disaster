@@ -565,4 +565,7 @@
     <string name="hint_takeaway_order">Someone by the door wants a takeaway: tap them to take their order.</string>
     <string name="hint_takeaway_pickup">The takeaway is ready on the counter: pick it up.</string>
     <string name="hint_takeaway_handover">Take the food to the guest by the door and tap them to hand it over.</string>
+    <string name="story_title">Their story</string>
+    <string name="story_none">You don\'t know much about them yet. Give it a few days.</string>
+    <string name="story_more">There\'s more to learn as they work here.</string>
 </resources>

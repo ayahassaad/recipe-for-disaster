@@ -460,6 +460,7 @@ private fun PersonSheet(person: Employee, uiState: GameUiState.Playing, actions:
     Meter(stringResource(R.string.staff_mood), person.morale)
     Meter(stringResource(R.string.staff_energy), 100 - person.stress)
     Meter(stringResource(R.string.staff_skill), person.skill)
+    StorySection(person)
     // Those who carry trays and dishes drop them now and then: new, tired and unreliable ones most.
     if (person.role in setOf(com.recipefordisaster.domain.employee.Role.SERVER, com.recipefordisaster.domain.employee.Role.MANAGER, com.recipefordisaster.domain.employee.Role.DISHWASHER, com.recipefordisaster.domain.employee.Role.BUSSER)) {
         val often = when (com.recipefordisaster.domain.service.StaffSlips.sloppiness(person)) {
@@ -541,6 +542,18 @@ private fun PersonSheet(person: Employee, uiState: GameUiState.Playing, actions:
         OutlinedButton(onClick = { actions.onToggleTraining(person.id) }, enabled = uiState.cashNow >= cost) {
             Text(stringResource(R.string.staff_train, coins(cost)))
         }
+    }
+}
+
+/** What they've told you about themselves so far, a chapter at a time as they work for you. */
+@Composable
+private fun StorySection(person: Employee) {
+    val story = com.recipefordisaster.domain.employee.StaffStories.told(person)
+    Text(stringResource(R.string.story_title), style = MaterialTheme.typography.titleMedium)
+    if (story.isEmpty()) Text(stringResource(R.string.story_none), style = MaterialTheme.typography.bodyMedium)
+    story.forEach { Text(it, style = MaterialTheme.typography.bodyMedium) }
+    if (story.isNotEmpty() && com.recipefordisaster.domain.employee.StaffStories.hasMore(person)) {
+        Text(stringResource(R.string.story_more), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
     }
 }
 
