@@ -39,8 +39,9 @@ class StaffingMarketTest {
         val start = com.recipefordisaster.domain.simulation.NewGameFactory.create(seed = 5L)
         fun poolAfter(day: Int) = engine.advanceDay(start.copy(day = day), com.recipefordisaster.domain.simulation.PlayerDecisions(), SeededRandomSource(day.toLong())).newState.applicants
         assertTrue(poolAfter(3).none { it.role == Role.BARTENDER })
-        // The night of day five closes; day six is when the bar opens.
-        assertTrue(poolAfter(5).any { it.role == Role.BARTENDER })
-        assertTrue(StaffingMarket.withEveryBasicRole(emptyList(), SeededRandomSource(1L), 6, bar = true).any { it.role == Role.BARTENDER })
+        // The night before the bar opens closes; the next day is when it opens.
+        val opens = com.recipefordisaster.domain.progression.Feature.DRINKS.day
+        assertTrue(poolAfter(opens - 1).any { it.role == Role.BARTENDER })
+        assertTrue(StaffingMarket.withEveryBasicRole(emptyList(), SeededRandomSource(1L), opens, bar = true).any { it.role == Role.BARTENDER })
     }
 }

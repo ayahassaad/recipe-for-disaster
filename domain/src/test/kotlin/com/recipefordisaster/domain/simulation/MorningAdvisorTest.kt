@@ -145,7 +145,7 @@ class MorningAdvisorTest {
     fun `a busy night with the bar open and no bartender asks for one`() {
         val server = start.applicants.first { it.role == com.recipefordisaster.domain.employee.Role.SERVER }
             .copy(status = com.recipefordisaster.domain.employee.EmployeeStatus.ACTIVE)
-        val busy = start.copy(day = 10, employees = start.employees + server, restaurant = start.restaurant.copy(reputation = 100, cleanliness = 90))
+        val busy = start.copy(day = com.recipefordisaster.domain.progression.Feature.DRINKS.day + 2, employees = start.employees + server, restaurant = start.restaurant.copy(reputation = 100, cleanliness = 90))
         assertEquals(MorningAdvisor.Need.BARTENDER, MorningAdvisor.staffNeed(busy))
     }
 

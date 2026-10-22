@@ -14,8 +14,8 @@ class ProgressionTest {
 
     @Test
     fun `a new game meets each feature on its day, one at a time`() {
-        assertFalse(Progression.has(start.copy(day = 5), Feature.DRINKS))
-        assertTrue(Progression.has(start.copy(day = 6), Feature.DRINKS))
+        assertFalse(Progression.has(start.copy(day = Feature.DRINKS.day - 1), Feature.DRINKS))
+        assertTrue(Progression.has(start.copy(day = Feature.DRINKS.day), Feature.DRINKS))
         assertFalse(Progression.has(start.copy(day = 14), Feature.RAT))
         assertTrue(Progression.has(start.copy(day = 15), Feature.RAT))
         // Never two new things on the same day.
@@ -24,11 +24,11 @@ class ProgressionTest {
 
     @Test
     fun `a new feature starts rare and settles in over a few days`() {
-        assertEquals(0f, Progression.strength(start.copy(day = 5), Feature.DRINKS), 0.001f)
-        val first = Progression.strength(start.copy(day = 6), Feature.DRINKS)
+        assertEquals(0f, Progression.strength(start.copy(day = Feature.DRINKS.day - 1), Feature.DRINKS), 0.001f)
+        val first = Progression.strength(start.copy(day = Feature.DRINKS.day), Feature.DRINKS)
         assertTrue(first >= 0.4f && first < 0.5f)
-        assertTrue(Progression.strength(start.copy(day = 8), Feature.DRINKS) > first)
-        assertEquals(1f, Progression.strength(start.copy(day = 6 + Progression.RAMP_DAYS - 1), Feature.DRINKS), 0.001f)
+        assertTrue(Progression.strength(start.copy(day = Feature.DRINKS.day + 2), Feature.DRINKS) > first)
+        assertEquals(1f, Progression.strength(start.copy(day = Feature.DRINKS.day + Progression.RAMP_DAYS - 1), Feature.DRINKS), 0.001f)
     }
 
     @Test
@@ -50,14 +50,14 @@ class ProgressionTest {
     @Test
     fun `a new game has met nothing early`() {
         assertEquals(emptySet<Feature>(), start.featuresMetEarly)
-        assertEquals(listOf(Feature.DRINKS), Progression.arrivingOn(start, 6))
+        assertEquals(listOf(Feature.DRINKS), Progression.arrivingOn(start, Feature.DRINKS.day))
     }
 
     @Test
     fun `a feature counts as new for its first few nights`() {
-        assertFalse(Progression.isNew(start.copy(day = 5), Feature.DRINKS))
-        assertTrue(Progression.isNew(start.copy(day = 6), Feature.DRINKS))
-        assertTrue(Progression.isNew(start.copy(day = 8), Feature.DRINKS))
+        assertFalse(Progression.isNew(start.copy(day = Feature.DRINKS.day - 1), Feature.DRINKS))
+        assertTrue(Progression.isNew(start.copy(day = Feature.DRINKS.day), Feature.DRINKS))
+        assertTrue(Progression.isNew(start.copy(day = Feature.DRINKS.day + 2), Feature.DRINKS))
         assertFalse(Progression.isNew(start.copy(day = 9), Feature.DRINKS))
     }
 
