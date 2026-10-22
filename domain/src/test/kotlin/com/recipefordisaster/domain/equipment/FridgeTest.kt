@@ -1,5 +1,6 @@
 package com.recipefordisaster.domain.equipment
 
+import com.recipefordisaster.domain.service.doneIgnoringSpills
 import com.recipefordisaster.domain.decision.DecisionApplier
 import com.recipefordisaster.domain.event.EventEngine
 import com.recipefordisaster.domain.event.KitchenEvents
@@ -121,7 +122,7 @@ class FridgeTest {
         val seed = (1L..40L).first { open(state, it).fridgeBreaksAt != null }
         val setup = engine.openService(state, PlayerDecisions(), SeededRandomSource(seed))
         var n = ServiceNight.open(setup, SeededRandomSource(seed + 1))
-        while (!n.finished) n = n.advance(0.05f).drinksServed()
+        while (!n.doneIgnoringSpills()) n = n.advance(0.05f).drinksServed()
         val next = engine.closeService(setup, n.result(), SeededRandomSource(seed + 2)).newState
         assertTrue(EquipmentOperations.isBroken(Fridge.of(next)!!))
     }

@@ -41,7 +41,7 @@ class ChefMoodTest {
     private fun play(night: ServiceNight): ServiceNight {
         var n = night
         var guard = 0
-        while (!n.finished && guard++ < 20_000) {
+        while (!n.doneIgnoringSpills() && guard++ < 20_000) {
             val me = n.player
             if (!me.walking) {
                 n = me.plates.firstOrNull()?.let { id -> n.parties.first { it.id == id }.table?.let { n.tapTable(it) } }

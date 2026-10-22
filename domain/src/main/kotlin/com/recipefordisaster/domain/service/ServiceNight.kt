@@ -442,8 +442,9 @@ data class ServiceNight(
     /**
      * The night is over once the last guest has left and the place is cleared up. If nobody clears
      * up, it closes anyway [TIDY_UP_LIMIT] seconds after the last guest goes, so it can't hang.
+     * A spill on the floor never waits that out: the night doesn't end until it's mopped.
      */
-    val finished: Boolean get() = guestsGone && (tidy || time - (parties.maxOfOrNull { it.stageSince } ?: 0f) > TIDY_UP_LIMIT)
+    val finished: Boolean get() = guestsGone && messesOnFloor.isEmpty() && (tidy || time - (parties.maxOfOrNull { it.stageSince } ?: 0f) > TIDY_UP_LIMIT)
 
     private val trayCount: Int get() = parties.count { it.stage == Stage.DRINKS_ORDERED && it.trayAt != null }
 

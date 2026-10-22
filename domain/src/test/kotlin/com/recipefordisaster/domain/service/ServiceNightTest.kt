@@ -29,7 +29,7 @@ class ServiceNightTest {
     private fun play(night: ServiceNight, player: (ServiceNight) -> ServiceNight = { it }): ServiceNight {
         var n = night
         var steps = 0
-        while (!n.finished && steps < 20_000) {
+        while (!n.doneIgnoringSpills() && steps < 20_000) {
             n = player(n).advance(0.05f).drinksServed()
             steps++
         }
@@ -160,7 +160,7 @@ class ServiceNightTest {
     fun `no more than two parties ever wait by the door`() {
         var n = open()
         var worst = 0
-        while (!n.finished) {
+        while (!n.doneIgnoringSpills()) {
             worst = maxOf(worst, n.parties.count { it.stage == Stage.QUEUEING })
             n = n.advance(0.05f).drinksServed()
         }
@@ -329,7 +329,7 @@ class ServiceNightTest {
         var n = open(empty)
         assertTrue(!n.kitchenHasFood)
         var everSeated = false
-        while (!n.finished) {
+        while (!n.doneIgnoringSpills()) {
             n = busyPlayer(n).advance(0.05f).drinksServed()
             if (n.parties.any { it.table != null }) everSeated = true
         }
@@ -343,7 +343,7 @@ class ServiceNightTest {
         val scarce = start.copy(inventory = start.inventory.copy(ingredients = start.inventory.ingredients.mapValues { it.value.copy(quantityOnHand = it.value.quantityOnHand.coerceAtMost(0.6)) }))
         var n = open(scarce)
         val ordered = mutableSetOf<Int>()
-        while (!n.finished) {
+        while (!n.doneIgnoringSpills()) {
             n = busyPlayer(n).advance(0.05f).drinksServed()
             n.parties.filter { it.stage >= Stage.ORDER_TAKEN && it.orders.any { o -> o != null } }.forEach { ordered += it.id }
         }
@@ -394,7 +394,7 @@ class ServiceNightTest {
         var n = open(start.copy(employees = start.employees.filter { it.role == com.recipefordisaster.domain.employee.Role.COOK }))
         var seen = false
         // Serve but never clear.
-        while (!n.finished) {
+        while (!n.doneIgnoringSpills()) {
             val me = n.player
             n = when {
                 me.walking -> n
@@ -488,7 +488,7 @@ class ServiceNightTest {
     fun `guests only ever sit at the tables the restaurant has`() {
         val small = start.copy(restaurant = start.restaurant.copy(tables = 2))
         var n = open(small)
-        while (!n.finished) {
+        while (!n.doneIgnoringSpills()) {
             n = busyPlayer(n).advance(0.05f).drinksServed()
             assertTrue(n.parties.all { it.table == null || it.table!! < 2 })
         }
@@ -500,7 +500,7 @@ class ServiceNightTest {
         // Nine tables are bought later in a run, when guests come in thick and fast.
         val big = start.copy(day = 20, restaurant = start.restaurant.copy(tables = 9, reputation = 80))
         val n = play(open(big), ::busyPlayer)
-        assertTrue(n.finished)
+        assertTrue(n.doneIgnoringSpills())
         assertTrue(n.parties.mapNotNull { it.table }.any { it >= 6 })
         assertTrue(n.result().outcomes.count { it.dish != null } > 20)
     }
@@ -793,5 +793,18 @@ class ServiceNightTest {
         val burger = n.menu.first { it.name == "The Regular Burger" }
         assertTrue(n.cookTime(listOf(salad.id)) < n.cookTime(listOf(burger.id)))
         assertTrue(ServiceNight.dishPace(com.recipefordisaster.domain.menu.RecipeBook.dishes.first { it.name == "The Lasagna Situation" }) > 1.3f)
+    }
+
+    @Test
+    fun `the night doesn't end while there's a spill on the floor`() {
+        val night = open().let { n -> n.copy(parties = n.parties.map { it.copy(stage = Stage.DONE) }, messes = listOf(ServiceNight.Mess(id = 0, at = ServiceFloor.spillSpots.first(), appearsAt = 0f))) }
+        val tidyButSpilt = night.advance(0.05f)
+        assertTrue(tidyButSpilt.guestsGone)
+        assertTrue(tidyButSpilt.messesOnFloor.isNotEmpty())
+        // Even long after the usual tidy-up limit, it's still not over.
+        assertTrue(!tidyButSpilt.copy(time = tidyButSpilt.time + 500f).finished)
+        // Once it's mopped, the night ends.
+        val mopped = tidyButSpilt.copy(messes = tidyButSpilt.messes.map { it.copy(cleaned = true) })
+        assertTrue(mopped.finished)
     }
 }

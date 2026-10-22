@@ -1,5 +1,7 @@
 package com.recipefordisaster.domain.service
 
+import com.recipefordisaster.domain.progression.Feature
+import com.recipefordisaster.domain.progression.Progression
 import com.recipefordisaster.domain.event.EventEngine
 import com.recipefordisaster.domain.service.ServiceNight.Stage
 import com.recipefordisaster.domain.simulation.DefaultDayTickEngine
@@ -15,7 +17,7 @@ class DrinksTest {
 
     private val engine = DefaultDayTickEngine(EventEngine(emptyList()))
     /** A restaurant a while in, once everybody has a drink first. */
-    private val start: GameState = NewGameFactory.create(seed = 11L).let { it.copy(day = 11, restaurant = it.restaurant.copy(tables = 6)) }
+    private val start: GameState = NewGameFactory.create(seed = 11L).let { it.copy(day = 11, featuresMetEarly = setOf(Feature.DRINKS), restaurant = it.restaurant.copy(tables = 6)) }
 
     private fun open(state: GameState = start, seed: Long = 1L): ServiceNight =
         ServiceNight.open(engine.openService(state, PlayerDecisions(), SeededRandomSource(seed)), SeededRandomSource(seed + 1))
@@ -95,7 +97,7 @@ class DrinksTest {
         // Serve drinks and then food as quickly as possible: guests should be happy and tip.
         var n = open()
         var guard = 0
-        while (!n.finished && guard++ < 20_000) {
+        while (!n.doneIgnoringSpills() && guard++ < 20_000) {
             n = DrinksPlayer.play(n).advance(0.05f)
         }
         val fed = n.result().outcomes.filter { it.dish != null }
@@ -108,7 +110,7 @@ class DrinksTest {
         val setup = engine.openService(start, PlayerDecisions(), SeededRandomSource(1L))
         var n = ServiceNight.open(setup, SeededRandomSource(2L))
         var guard = 0
-        while (!n.finished && guard++ < 20_000) n = DrinksPlayer.play(n).advance(0.05f)
+        while (!n.doneIgnoringSpills() && guard++ < 20_000) n = DrinksPlayer.play(n).advance(0.05f)
         assertTrue(n.drinkTakings > 0)
         // Everyone who got as far as drinking paid for a drink.
         val served = n.parties.filter { it.sippedFor > 0f }
@@ -135,12 +137,13 @@ class DrinksTest {
     }
 
     @Test
-    fun `nobody has a drink until the bar opens on day six, then a few do, then everyone`() {
-        fun share(day: Int) = open(start.copy(day = day)).parties.let { ps -> ps.count { it.wantsDrinks }.toFloat() / ps.size }
-        assertEquals(0f, share(5), 0.001f)
-        assertTrue(share(6) > 0f && share(6) < 0.7f)
-        assertTrue(share(8) > share(6))
-        assertEquals(1f, share(10), 0.001f)
+    fun `nobody has a drink until the bar opens, then a few do, then everyone`() {
+        fun share(day: Int) = open(start.copy(day = day, featuresMetEarly = emptySet())).parties.filter { !it.takeaway }.let { ps -> ps.count { it.wantsDrinks }.toFloat() / ps.size }
+        val opens = Feature.DRINKS.day
+        assertEquals(0f, share(opens - 1), 0.001f)
+        assertTrue(share(opens) > 0f && share(opens) < 0.7f)
+        assertTrue(share(opens + 2) > share(opens))
+        assertEquals(1f, share(opens + Progression.RAMP_DAYS - 1), 0.001f)
     }
 
     @Test
